@@ -4,6 +4,8 @@ I'm building Aweille to structure my running training. I want an editable weekly
 
 This README defines the first version I want to build. I haven't written the application code yet.
 
+I'm planning the first create, save, and display workflow in the [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) before starting implementation.
+
 ## Purpose
 
 I want a simple framework to improve my running gradually. I like Runna's simplicity, but I find it expensive and hard to personalize. I want more flexibility, a web interface, and an app I can run locally without a hosting subscription.
