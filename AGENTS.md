@@ -1,3 +1,7 @@
+## Git workflow
+
+Make code and documentation changes on feature branches and open pull requests targeting `main`. Never push commits directly to `main`.
+
 ## Agent skills
 
 ### Issue tracker
