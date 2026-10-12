@@ -2,6 +2,12 @@
 
 Make code and documentation changes on feature branches and open pull requests targeting `main`. Never push commits directly to `main`.
 
+## File organization
+
+Prefer more small, focused files over files containing independent components. Name each file for the component it defines, and use directories to group collections, such as `use_cases/create_run.py` and `use_cases/read_runs.py`.
+
+Keep a component's private helpers in its file. Give shared helpers their own named modules. Framework entry files such as `__init__.py` and `conftest.py` may expose or register multiple components; keep their component definitions in separate files. Test files mirror the component they check and may contain multiple tests for it.
+
 ## Agent skills
 
 ### Issue tracker

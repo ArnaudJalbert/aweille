@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Protocol
 
-from .model import PlannedRun
+from .models.planned_run import PlannedRun
 
 
 class Storage(Protocol):

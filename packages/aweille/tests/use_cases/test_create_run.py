@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime, time
 from decimal import Decimal, localcontext
 from typing import Any
 from unittest.mock import Mock
-from uuid import UUID
 
 import pytest
 from aweille.core import (
@@ -258,86 +257,15 @@ def test_saved_targets_and_notes_cannot_be_changed_through_returned_values(
     assert read_runs(storage, start=date(2026, 10, 12), end=date(2026, 10, 19)) == [run]
 
 
-@pytest.mark.parametrize(
-    ("start", "end", "loc", "code"),
-    [
-        (date(2026, 10, 12), date(2026, 10, 12), ("end",), "invalid_range"),
-        (date(2026, 10, 19), date(2026, 10, 12), ("end",), "invalid_range"),
-        (date(2026, 10, 12), None, ("end",), "invalid_date"),
-        ("2026-10-12", date(2026, 10, 19), ("start",), "invalid_date"),
-        (datetime(2026, 10, 12), date(2026, 10, 19), ("start",), "invalid_date"),
-    ],
-)
-def test_invalid_read_range_reports_field_problems(
-    storage: Storage,
-    start: Any,
-    end: Any,
-    loc: tuple[str | int, ...],
-    code: str,
-) -> None:
-    with pytest.raises(ValidationError) as failure:
-        read_runs(storage, start=start, end=end)
-
-    assert failure.value.problems[0].loc == loc
-    assert failure.value.problems[0].code == code
-
-
-def test_read_range_is_half_open_and_orders_dates_times_then_canonical_ids(
-    storage: Storage, run_input: dict[str, Any]
-) -> None:
-    for number, planned_date, start_time in [
-        (3, date(2026, 10, 12), time(8)),
-        (1, date(2026, 10, 12), time(7, 30)),
-        (5, date(2026, 10, 13), time(0)),
-        (4, date(2026, 10, 12), None),
-        (2, date(2026, 10, 12), time(7, 30)),
-        (6, date(2026, 10, 11), time(23, 59)),
-        (7, date(2026, 10, 19), time(0)),
-    ]:
-        run_input.update(
-            id=UUID(int=number),
-            planned_date=planned_date,
-            planned_start_time=start_time,
-        )
-        _, inserted = create_run(storage, **run_input)
-        assert inserted is True
-
-    runs = read_runs(storage, start=date(2026, 10, 12), end=date(2026, 10, 19))
-    assert [r.id for r in runs] == [UUID(int=n) for n in [1, 2, 3, 4, 5]]
-    assert read_runs(storage, start=date(2026, 10, 14), end=date(2026, 10, 15)) == []
-
-
-@pytest.mark.parametrize("error_type", [StorageUnavailable, StorageFailure])
-@pytest.mark.parametrize("operation", ["create", "read"])
-def test_storage_failure_categories_reach_the_public_caller(
-    run_input: dict[str, Any], error_type: type[Exception], operation: str
-) -> None:
-    failure = error_type("Storage could not complete the operation.")
-    storage = Mock(spec=Storage)
-    storage.insert_if_absent.side_effect = failure
-    storage.read_range.side_effect = failure
-
-    with pytest.raises(error_type) as reported:
-        if operation == "create":
-            create_run(storage, **run_input)
-        else:
-            read_runs(storage, start=date(2026, 10, 12), end=date(2026, 10, 19))
-
-    assert reported.value is failure
-
-
 def test_invalid_inputs_are_rejected_even_when_storage_is_unavailable(
     run_input: dict[str, Any],
 ) -> None:
     storage = Mock(spec=Storage)
     storage.insert_if_absent.side_effect = StorageUnavailable("Storage unavailable.")
-    storage.read_range.side_effect = StorageUnavailable("Storage unavailable.")
     run_input["sections"][1] = SectionInput(Decimal("1.0001"), 345)
 
     with pytest.raises(ValidationError):
         create_run(storage, **run_input)
-    with pytest.raises(ValidationError):
-        read_runs(storage, start=date(2026, 10, 19), end=date(2026, 10, 12))
 
 
 @pytest.mark.parametrize(
@@ -408,3 +336,17 @@ def test_core_does_not_limit_section_count_or_note_length(
     assert len(run.sections) == 1001
     assert run.user_note == note
     assert run.trainer_note == note
+
+
+@pytest.mark.parametrize("error_type", [StorageUnavailable, StorageFailure])
+def test_storage_failure_categories_reach_the_public_caller(
+    run_input: dict[str, Any], error_type: type[Exception]
+) -> None:
+    failure = error_type("Storage could not complete the operation.")
+    storage = Mock(spec=Storage)
+    storage.insert_if_absent.side_effect = failure
+
+    with pytest.raises(error_type) as reported:
+        create_run(storage, **run_input)
+
+    assert reported.value is failure

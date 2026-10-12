@@ -13,13 +13,15 @@ The current full suite passed with Python 3.13.14. The original 90-case suite al
 | Check | Result |
 | --- | --- |
 | `uv sync --locked --all-packages` | Passed. One workspace member, no runtime dependencies. |
-| `uv run pytest packages/aweille/tests/test_planned_runs.py -q` | 72 passed. |
+| `uv run pytest packages/aweille/tests/use_cases/test_create_run.py -q` | 64 passed. |
+| `uv run pytest packages/aweille/tests/use_cases/test_read_runs.py -q` | 8 passed. |
 | `uv run pytest -q` | 72 passed. |
 | `uv run ty check` | Passed. |
 | `uv run ruff check .` | Passed. |
 | `uv run ruff format --check .` | Passed. |
+| Temporary coverage.py measurement | 100% of core statements and branches after the file-layout refactor. |
 | `git diff --check` | Passed. |
-| `uv build --package aweille --out-dir /tmp/aweille-core-dist` | Built a source distribution and wheel. |
+| `uv build --package aweille --out-dir /tmp/aweille-core-layout-dist` | Built a source distribution and wheel. |
 | Isolated installation of the built wheel | Package and public core imported with no runtime dependencies. |
 
 Covered behavior:
@@ -49,7 +51,7 @@ The original suite had 18 test functions expanded into 90 parametrized cases. Th
 - Removed the summer scheduling example because the representative October run uses the same daylight-saving offset. Winter scheduling and calendar endpoints remain.
 - Changed the distance and pace conflict cases to alter one section value while preserving section count and all other fields. Their original inputs also changed the section count, which could hide a broken value comparison.
 
-Coverage measured 100% of core statements and branches before and after pruning: 114 statements and 32 branches, with identical executed lines and branches. Coverage supports the audit; the contract scenarios determine which cases stay.
+Before the file-layout refactor, coverage measured 100% of core statements and branches before and after pruning: 114 statements and 32 branches, with identical executed lines and branches. Coverage supports the audit; the contract scenarios determine which cases stay.
 
 A mutation check simulated retry comparison ignoring section distance, in an isolated process without editing production code. The original conflict tests passed with that bug; the strengthened distance-conflict case failed as intended. This check used the existing public test seam.
 
@@ -61,3 +63,11 @@ COVERAGE_FILE=/tmp/aweille-core.coverage uv run --with coverage \
 COVERAGE_FILE=/tmp/aweille-core.coverage uv run --with coverage \
   python -m coverage report -m
 ```
+
+## File organization checks
+
+Use cases, models, and errors now live in separate named modules. Shared date validation and error construction also have their own modules. Test files mirror the use cases, and `conftest.py` registers the separate fixture modules. The [file organization rule](../../AGENTS.md#file-organization) records this convention.
+
+The split retains all 72 cases: 64 for creation and eight for range reads. The two storage-failure categories remain checked for each use case. Invalid-range checks now also establish that validation happens before unavailable storage is accessed.
+
+Coverage after the move is 100% of 141 core statements and 32 branches. The statement count increased because components now import their dependencies in their own modules. The rebuilt wheel imports both named use-case modules and the existing `aweille.core` public exports without runtime dependencies.

@@ -96,7 +96,8 @@ Use uv and Python 3.13 or later. `.python-version` selects 3.13 for local develo
 ```sh
 uv sync --locked --all-packages
 uv run pytest
-uv run pytest packages/aweille/tests/test_planned_runs.py
+uv run pytest packages/aweille/tests/use_cases/test_create_run.py
+uv run pytest packages/aweille/tests/use_cases/test_read_runs.py
 uv run ty check
 uv run ruff check .
 uv run ruff format --check .
@@ -107,6 +108,8 @@ Use `uv run ruff format .` to format changes. The workspace's development depend
 ### Public core interface
 
 Import the models, storage port, errors, and use cases from `aweille.core`.
+
+Each use case, model, and error has its own named file under `core/use_cases`, `core/models`, or `core/errors`. Shared validators have their own modules. Tests mirror the use cases, with shared fixtures registered through `conftest.py`. Follow the [file organization rule](AGENTS.md#file-organization) when adding components.
 
 - `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
