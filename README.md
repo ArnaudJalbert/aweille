@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. I haven't written the application code yet.
+This README defines the first version I want to build. The planned-run core is implemented. HTTP, SQLite persistence, and the web interface come next.
 
 I'm planning the first create, save, and display workflow in the [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) before starting implementation.
 
@@ -65,7 +65,7 @@ When I ask for a review, the agent can read my recorded history and adjust upcom
 
 I'll run the first version locally for myself. Local app hosting costs nothing; model access remains part of my external agent setup. Later, I may host it on my existing VPS or Fly.io so I can access it from anywhere. Deployment is outside the first version.
 
-I'll use a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) from the start, with one member package named `aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
+The repository uses a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with one member package named `aweille` in `packages/aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
 
 Within `aweille`:
 
@@ -88,6 +88,38 @@ Source-code dependencies point from adapters to core. Core has no dependency on 
 One factory in adapters constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
 
 The browser always calls the API for application data and changes. The trainer uses the same API. Page templates provide the interface structure; browser interactions go through the API. All business rules live in core, with HTTP and storage details in adapters.
+
+## Development
+
+Use uv and Python 3.13 or later. `.python-version` selects 3.13 for local development. Run these commands from the repository root:
+
+```sh
+uv sync --locked --all-packages
+uv run pytest
+uv run pytest packages/aweille/tests/test_planned_runs.py
+uv run ty check
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Use `uv run ruff format .` to format changes. The workspace's development dependencies are pytest, ty, and Ruff. The `aweille` package has no runtime dependencies; Montreal scheduling uses Python's `zoneinfo` and the system IANA timezone database.
+
+### Public core interface
+
+Import the models, storage port, errors, and use cases from `aweille.core`.
+
+- `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
+- `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
+
+Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is `easy`, `hard`, `interval`, or `long`. Supply an ordered sequence of `SectionInput(distance_km=Decimal(...), target_pace_seconds_per_km=int_value)` values. Distances must be finite, positive, and expressible in whole metres; paces must be positive integers. Binary floating-point inputs and booleans are rejected. JSON strings are parsed by the future API adapter.
+
+`PlannedRun` and its `Section` values are immutable. Normalized sections use integer `distance_m` and integer `target_pace_seconds_per_km`, with no domain upper limit. Run IDs remain `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+
+Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. A section path can be `("sections", 1, "distance_km")`. HTTP location prefixes and status codes belong to adapters.
+
+Implement the core-owned `Storage` protocol to supply `insert_if_absent(run)` and `read_range(start, end)`. Adapters return normalized `PlannedRun` values, commit atomically, and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory can bind storage to the functions with `functools.partial` when wiring is implemented.
+
+Tests use the public use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). Real HTTP and SQLite checks belong to the next implementation step.
 
 ## First-version completion
 

@@ -1,0 +1,10 @@
+[project]
+name = "aweille"
+version = "0.1.0"
+description = "Planned running workouts with exact targets and Montreal scheduling."
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
