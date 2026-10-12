@@ -56,7 +56,7 @@ When I ask for a review, the agent can read my recorded history and adjust upcom
 | Component | Choice |
 | --- | --- |
 | Language | Python. |
-| Repository and package management | uv workspace with multiple Python packages in the same repository. |
+| Repository and package management | uv workspace with one `aweille` package for now. |
 | HTTP API and web service | FastAPI. |
 | Web interface | Jinja2 page templates, ordinary CSS, and small amounts of JavaScript that call the API. |
 | Storage | SQLite through Python's standard `sqlite3` module. |
@@ -65,21 +65,23 @@ When I ask for a review, the agent can read my recorded history and adjust upcom
 
 I'll run the first version locally for myself. Local app hosting costs nothing; model access remains part of my external agent setup. Later, I may host it on my existing VPS or Fly.io so I can access it from anywhere. Deployment is outside the first version.
 
-I'll use a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) from the start. Each member package has its own `pyproject.toml`, and the workspace shares one `uv.lock`. I'll start with two packages:
+I'll use a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) from the start, with one member package named `aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
 
-- `aweille-core` contains entities, value objects, ports, and use cases.
-- `aweille-app` contains storage adapters, the API, web interface, and wiring.
+Within `aweille`:
+
+- `aweille/core` contains entities, value objects, ports, and use cases.
+- `aweille/adapters` contains storage adapters, the API, web interface, and wiring.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
 
 ## Architecture
 
-I'll use a small hexagonal architecture with two layers and focused files within each.
+I'll use a small hexagonal architecture with two internal layers in the same package and focused files within each.
 
 | Layer | Responsibility |
 | --- | --- |
-| `core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
-| `adapters` | Concrete port implementations, storage access, the HTTP API, web interface, and wiring factory. |
+| `aweille/core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
+| `aweille/adapters` | Concrete port implementations, storage access, the HTTP API, web interface, and wiring factory. |
 
 Source-code dependencies point from adapters to core. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
