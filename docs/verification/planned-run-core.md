@@ -8,13 +8,13 @@ Tests call the public `create_run` and `read_runs` functions. A dictionary-backe
 
 ## Results
 
-The full suite passed with Python 3.13.14. Focused checks also passed during implementation with Python 3.14.7. Development tools are pinned in the shared `uv.lock`.
+The current full suite passed with Python 3.13.14. The original 90-case suite also passed during implementation with Python 3.14.7. Development tools are pinned in the shared `uv.lock`.
 
 | Check | Result |
 | --- | --- |
 | `uv sync --locked --all-packages` | Passed. One workspace member, no runtime dependencies. |
-| `uv run pytest packages/aweille/tests/test_planned_runs.py -q` | 90 passed. |
-| `uv run pytest -q` | 90 passed. |
+| `uv run pytest packages/aweille/tests/test_planned_runs.py -q` | 72 passed. |
+| `uv run pytest -q` | 72 passed. |
 | `uv run ty check` | Passed. |
 | `uv run ruff check .` | Passed. |
 | `uv run ruff format --check .` | Passed. |
@@ -37,3 +37,27 @@ Covered behavior:
 ## Limits
 
 The fake verifies core behavior, not real persistence guarantees. SQLite transactions, concurrency, committed snapshots, HTTP parsing and errors, browser behavior, and restart persistence remain for their later implementation steps.
+
+## Test necessity audit
+
+The original suite had 18 test functions expanded into 90 parametrized cases. The audit removed 18 repeated cases, leaving 72 cases in the same 18 functions. Production code did not change.
+
+- Removed repeated incompatible-type examples after retaining cases for each field, meaningful coercion risk, and validation path.
+- Kept zero and negative numbers, fractional metres, NaN, signaling NaN, infinity, integer versus floating-point values, boolean pace, and exact-value limits.
+- Replaced three examples within the spring-forward gap with its first and last minute, retaining valid times immediately before and after it.
+- Kept the fall-back `fold=1` input and its retry with `fold=0` in one case. The separate `fold=0` case repeated that check.
+- Removed the summer scheduling example because the representative October run uses the same daylight-saving offset. Winter scheduling and calendar endpoints remain.
+- Changed the distance and pace conflict cases to alter one section value while preserving section count and all other fields. Their original inputs also changed the section count, which could hide a broken value comparison.
+
+Coverage measured 100% of core statements and branches before and after pruning: 114 statements and 32 branches, with identical executed lines and branches. Coverage supports the audit; the contract scenarios determine which cases stay.
+
+A mutation check simulated retry comparison ignoring section distance, in an isolated process without editing production code. The original conflict tests passed with that bug; the strengthened distance-conflict case failed as intended. This check used the existing public test seam.
+
+To reproduce coverage without adding a project dependency:
+
+```sh
+COVERAGE_FILE=/tmp/aweille-core.coverage uv run --with coverage \
+  python -m coverage run --branch --source=aweille.core -m pytest -q
+COVERAGE_FILE=/tmp/aweille-core.coverage uv run --with coverage \
+  python -m coverage report -m
+```
