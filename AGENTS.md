@@ -8,6 +8,10 @@ Prefer more small, focused files over files containing independent components. N
 
 Keep a component's private helpers in its file. Give shared helpers their own named modules. Framework entry files such as `__init__.py` and `conftest.py` may expose or register multiple components; keep their component definitions in separate files. Test files mirror the component they check and may contain multiple tests for it.
 
+## Function structure
+
+Main functions describe the workflow through named steps. Put each step's implementation in a focused helper with a single clear responsibility, and name it for the work it performs.
+
 ## Agent skills
 
 ### Issue tracker
