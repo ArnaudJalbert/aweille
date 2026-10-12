@@ -1,6 +1,6 @@
 # Domain docs
 
-Use one domain context for Aweille. The workspace package split separates business logic from application adapters.
+Use one domain context for Aweille. Follow the internal core and adapter boundaries defined in the root README's Architecture section.
 
 Before exploring or designing domain behavior, read the root `CONTEXT.md` if it exists and relevant ADRs in `docs/adr/` if present. If these documents do not exist, proceed. Domain-modeling creates them when terms or decisions are resolved.
 
