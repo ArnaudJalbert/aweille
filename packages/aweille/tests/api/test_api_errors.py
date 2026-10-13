@@ -3,7 +3,7 @@ from contextlib import closing
 from unittest.mock import Mock
 
 import pytest
-from aweille.adapters.create_app import create_app
+from aweille.api.create_app import create_app
 from aweille.core import RunStorage
 from fastapi.testclient import TestClient
 

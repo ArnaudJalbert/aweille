@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
+from aweille.adapters import SQLiteRunStorage
 from aweille.core import (
     RunConflict,
     RunStorage,
@@ -17,7 +18,6 @@ from aweille.core import (
 
 from .api_errors import conflict_response, failure_response, validation_response
 from .runs_api import router
-from .sqlite_run_storage import SQLiteRunStorage
 
 
 def create_app(*, storage: RunStorage | None = None) -> FastAPI:

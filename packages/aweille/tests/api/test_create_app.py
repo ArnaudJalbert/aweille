@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-from aweille.adapters.create_app import create_app
 from aweille.adapters.create_database import create_database
+from aweille.api.create_app import create_app
 from fastapi.testclient import TestClient
 
 

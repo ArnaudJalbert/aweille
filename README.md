@@ -70,22 +70,24 @@ The repository uses a [uv workspace](https://docs.astral.sh/uv/concepts/projects
 Within `aweille`:
 
 - `aweille/core` contains entities, value objects, ports, and use cases.
-- `aweille/adapters` contains storage adapters, the API, web interface, and wiring.
+- `aweille/api` contains HTTP routes, request models, error handling, and application wiring.
+- `aweille/adapters` contains storage adapters and database setup.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
 
 ## Architecture
 
-I'll use a small hexagonal architecture with two internal layers in the same package and focused files within each.
+I'll use a small hexagonal architecture within one package, with core business rules and adapters for HTTP and storage.
 
-| Layer | Responsibility |
+| Module | Responsibility |
 | --- | --- |
 | `aweille/core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
-| `aweille/adapters` | Concrete port implementations, storage access, the HTTP API, web interface, and wiring factory. |
+| `aweille/api` | HTTP routes, request models, error handling, and the application factory. |
+| `aweille/adapters` | Concrete port implementations, SQLite storage, and database setup. |
 
-Source-code dependencies point from adapters to core. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
+Both `aweille/api` and `aweille/adapters` depend on core. The application factory also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
-One factory in adapters constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
+One factory in `aweille/api` constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
 
 The browser always calls the API for application data and changes. The trainer uses the same API. Page templates provide the interface structure; browser interactions go through the API. All business rules live in core, with HTTP and storage details in adapters.
 
@@ -163,7 +165,7 @@ Prepare the default persistent database once, then start the API on loopback:
 uv sync --locked --all-packages
 mkdir -p ~/.local/share/aweille
 uv run aweille-init-db ~/.local/share/aweille/aweille.sqlite3
-uv run uvicorn aweille.adapters.create_app:create_app --factory --host 127.0.0.1 --port 8000
+uv run uvicorn aweille.api.create_app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
 For an installed package, use `aweille-init-db` and `uvicorn` without `uv run`. Setup refuses an existing file, so skip it when restarting with an already prepared database.
@@ -201,10 +203,7 @@ Validation and malformed JSON return `422` with `detail` problems containing `lo
 Stop Uvicorn and start it again with the same database path, then repeat the read. The saved run and its ID remain unchanged. Run the focused HTTP checks with:
 
 ```sh
-uv run pytest packages/aweille/tests/adapters/test_create_app.py \
-  packages/aweille/tests/adapters/test_runs_api.py \
-  packages/aweille/tests/adapters/test_creation_route.py \
-  packages/aweille/tests/adapters/test_api_errors.py
+uv run pytest packages/aweille/tests/api
 ```
 
 ## First-version completion
