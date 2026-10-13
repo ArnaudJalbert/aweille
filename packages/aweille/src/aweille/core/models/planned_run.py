@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+from ..errors.validation_error import ValidationError
 from ..raise_validation_error import raise_validation_error
 from ..validate_date import validate_date
 from .distance import Distance
@@ -137,6 +138,8 @@ class PlannedRun:
             if run.to_dict() != dict(data):
                 raise ValueError
             return run
+        except ValidationError:
+            raise
         except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
             raise ValueError("Encoded planned-run data is invalid.") from None
 

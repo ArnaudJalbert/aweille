@@ -108,3 +108,16 @@ def test_dictionary_decoder_rejects_malformed_or_noncanonical_values(
         PlannedRun.from_dict(data)
 
     assert "PRIVATE" not in str(failure.value)
+
+
+def test_dictionary_decoder_preserves_domain_validation_details(
+    storage: RunStorage, run_input: dict[str, Any]
+) -> None:
+    run, _ = create_run(storage, **run_input)
+    data = run.to_dict()
+    data["sections"][0]["distance_m"] = "0"
+
+    with pytest.raises(ValidationError) as failure:
+        PlannedRun.from_dict(data)
+
+    assert failure.value.problems[0].code == "invalid_distance"

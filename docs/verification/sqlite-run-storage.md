@@ -17,9 +17,9 @@ Failure cases cover unrelated schemas, non-SQLite files, malformed saved data, r
 | Check | Result |
 | --- | --- |
 | All adapter tests with `-q --durations=3` | 22 passed in 0.25 seconds; command wall time 0.319 seconds. |
-| Full pytest suite with branch coverage and `--durations=5` | 111 passed in 0.38 seconds; command wall time 0.476 seconds. |
+| Full pytest suite with branch coverage and `--durations=5` | 112 passed in 0.36 seconds; command wall time 0.397 seconds. |
 | Core and SQLite adapter coverage | 100% of statements and branches. |
-| Overall core and adapters coverage | 97% across 293 statements and 58 branches. |
+| Overall core and adapters coverage | 97% across 296 statements and 58 branches. |
 | `uv run ty check` | Passed. |
 | `uv run ruff check .` | Passed. |
 | `uv run ruff format --check .` | Passed. |
@@ -31,7 +31,7 @@ The focused pytest run meets the agreed local target of under one second. The sp
 
 The test audit moved canonical encoding cases to the public model methods and removed seven overlapping SQLite cases. Covered lines and branches stayed identical after that trim. Distinct transport, transaction, concurrency, and domain-failure assertions remain. The existing core matrix still checks creation normalization, retry comparison, and ordering.
 
-The standards review found no issues. The spec review found a raw text-encoding error at the SQLite seam. The adapter now translates it to a safe `StorageFailure`; a regression check verifies unchanged storage and a successful subsequent write. The affected checks and full suite passed after the fix.
+The standards review found no issues. Spec review caught text-encoding error translation and loss of structured domain errors in model decoding. Both were fixed with public-interface regressions. The adapter reports safe storage errors, and the model preserves domain validation details. The full suite and static checks passed after the fixes.
 
 ## Scope
 
