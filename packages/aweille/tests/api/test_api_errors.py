@@ -55,9 +55,10 @@ def test_failed_write_has_safe_error_and_no_partial_save(
 
 
 @pytest.mark.parametrize("operation", ["save", "get"])
-def test_unexpected_port_failure_is_safe_and_logged(
-    database_path, monkeypatch, run_request, caplog, operation
+def test_injected_storage_failure_is_safe_without_database(
+    tmp_path, monkeypatch, run_request, caplog, operation
 ):
+    database_path = tmp_path / "unused.sqlite"
     monkeypatch.setenv("AWEILLE_DB_PATH", str(database_path))
     storage = Mock(spec=RunStorage)
     getattr(storage, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
@@ -75,3 +76,4 @@ def test_unexpected_port_failure_is_safe_and_logged(
     }
     assert "PRIVATE" not in response.text
     assert "PRIVATE unexpected failure" in caplog.text
+    assert not database_path.exists()

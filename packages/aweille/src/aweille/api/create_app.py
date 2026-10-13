@@ -21,22 +21,23 @@ from .runs_api import router
 
 
 def create_app(*, storage: RunStorage | None = None) -> FastAPI:
-    """Construct the local HTTP application against a prepared database.
+    """Construct the HTTP application with injected or configured storage.
 
     Args:
-        storage: Optional storage port for HTTP integration fault checks. Normal
-            startup constructs SQLite storage from the configured database path.
+        storage: Optional initialized storage port, used without SQLite
+            configuration. When omitted, construct SQLite storage from the
+            configured path to a prepared database.
 
     Returns:
-        Application with SQLite-backed create and read use cases.
+        Application with create and read use cases bound to the storage port.
 
     Raises:
-        ValueError: Database configuration is invalid or its resolved path is
-            not an existing file. Prepare storage with aweille-init-db first.
+        ValueError: No storage port was supplied and database configuration is
+            invalid or its resolved path is not an existing file. Prepare
+            SQLite storage with aweille-init-db first.
     """
-    path = _database_path()
     if storage is None:
-        storage = SQLiteRunStorage(path)
+        storage = SQLiteRunStorage(_database_path())
     app = FastAPI()
     app.add_exception_handler(RunConflict, conflict_response)
     app.add_exception_handler(ValidationError, validation_response)
