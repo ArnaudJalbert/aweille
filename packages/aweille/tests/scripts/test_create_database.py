@@ -9,22 +9,28 @@ from typing import Any, Literal
 
 import pytest
 from aweille.adapters import SQLiteRunStorage
-from aweille.adapters.create_database import create_database
 from aweille.core import create_run
+
+from scripts.create_database import create_database
 
 
 def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(
     tmp_path: Path, run_input: dict[str, Any]
 ) -> None:
     path = tmp_path / "runs.sqlite"
-    command = [sys.executable, "-m", "aweille.adapters.create_database", str(path)]
-    created = subprocess.run(command, capture_output=True, text=True, timeout=5)
+    script = Path(__file__).resolve().parents[4] / "scripts" / "create_database.py"
+    command = [sys.executable, str(script), str(path)]
+    created = subprocess.run(
+        command, cwd=tmp_path, capture_output=True, text=True, timeout=5
+    )
     assert created.returncode == 0, created.stderr
     storage = SQLiteRunStorage(path)
     run, _ = create_run(storage, **run_input)
     before = path.read_bytes()
 
-    repeated = subprocess.run(command, capture_output=True, text=True, timeout=5)
+    repeated = subprocess.run(
+        command, cwd=tmp_path, capture_output=True, text=True, timeout=5
+    )
 
     assert repeated.returncode != 0
     assert "already exists" in repeated.stderr

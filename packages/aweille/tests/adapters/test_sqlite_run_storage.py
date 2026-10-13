@@ -13,7 +13,6 @@ from uuid import UUID
 
 import pytest
 from aweille.adapters import SQLiteRunStorage
-from aweille.adapters.create_database import create_database
 from aweille.core import (
     Distance,
     Pace,
@@ -23,6 +22,8 @@ from aweille.core import (
     StorageFailure,
     StorageUnavailable,
 )
+
+from scripts.create_database import create_database
 
 
 def test_saved_run_survives_reopening_with_exact_sections_and_notes(

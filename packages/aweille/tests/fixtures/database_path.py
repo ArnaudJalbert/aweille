@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import pytest
-from aweille.adapters.create_database import create_database
+
+from scripts.create_database import create_database
 
 
 @pytest.fixture
