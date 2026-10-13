@@ -1,7 +1,6 @@
 from typing import NoReturn
 
-from .errors.validation_error import ValidationError
-from .errors.validation_problem import ValidationProblem
+from .errors.validation_error import ValidationError, ValidationProblem
 
 
 def raise_validation_error(

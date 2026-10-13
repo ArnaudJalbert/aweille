@@ -27,7 +27,38 @@ def create_run(
     user_note: str | None = None,
     trainer_note: str | None = None,
 ) -> tuple[PlannedRun, bool]:
-    """Create a planned run and return its committed insertion outcome."""
+    """Validate and create a planned run, or return an identical retry.
+
+    Validate and normalize all fields before accessing storage. Preserve section
+    order and repeated entries. Trim notes and treat blank notes as absent.
+
+    Args:
+        storage: Storage port providing an atomic insert-or-read operation.
+        id: Caller-supplied UUID, reused when retrying the same creation.
+        planned_date: Montreal calendar date. Past and future dates are allowed.
+        run_type: One of "easy", "hard", "interval", or "long".
+        sections: Non-empty ordered section inputs. Distances must be finite,
+            positive Decimal kilometres in whole-metre increments. Target paces
+            must be positive integer seconds per kilometre.
+        planned_start_time: Optional naive Montreal clock time with minute
+            precision. Reject spring-forward gaps; allow fall-back ambiguity
+            without selecting an occurrence. None means no start time.
+        user_note: Optional plain-text note from the user about the whole run.
+        trainer_note: Optional plain-text note from the trainer about the run.
+
+    Returns:
+        A tuple of the normalized stored run and its insertion outcome. The
+        outcome is True only after a new run is committed. An identical retry
+        returns the existing run and False.
+
+    Raises:
+        ValidationError: An input field or section violates the domain rules.
+            The error reports a safe field path, code, and message.
+        RunConflict: The ID belongs to a run with different normalized data.
+        StorageUnavailable: Temporary storage contention or unavailability
+            prevents the operation. The caller may retry with the same ID.
+        StorageFailure: An unexpected storage failure prevents the operation.
+    """
     run = _normalize_run(
         id=id,
         planned_date=planned_date,

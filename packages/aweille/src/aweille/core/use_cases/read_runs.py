@@ -7,7 +7,28 @@ from ..validate_date import validate_date
 
 
 def read_runs(storage: Storage, *, start: date, end: date) -> list[PlannedRun]:
-    """Read planned runs whose local date is in [start, end)."""
+    """Read planned runs in a Montreal calendar-date range.
+
+    Validate the range before accessing storage. Use planned local dates without
+    converting them to UTC or rounding the range to week boundaries.
+
+    Args:
+        storage: Storage port providing a committed snapshot of matching runs.
+        start: First included Montreal calendar date.
+        end: First excluded Montreal calendar date, strictly later than start.
+
+    Returns:
+        All matching normalized runs, ordered by planned date, then start time
+        with untimed runs last within each day, then canonical UUID string.
+        Return an empty list when the range contains no runs.
+
+    Raises:
+        ValidationError: A boundary is not a calendar date or end is not later
+            than start. The error identifies the invalid range field.
+        StorageUnavailable: Temporary storage contention or unavailability
+            prevents the read. The caller may retry.
+        StorageFailure: An unexpected storage failure prevents the read.
+    """
     _validate_range(start, end)
     runs = storage.read_range(start, end)
     return sorted(runs, key=_run_sort_key)

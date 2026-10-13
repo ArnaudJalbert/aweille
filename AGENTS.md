@@ -6,11 +6,13 @@ Make code and documentation changes on feature branches and open pull requests t
 
 Prefer more small, focused files over files containing independent components. Name each file for the component it defines, and use directories to group collections, such as `use_cases/create_run.py` and `use_cases/read_runs.py`.
 
-Keep a component's private helpers in its file. Give shared helpers their own named modules. Framework entry files such as `__init__.py` and `conftest.py` may expose or register multiple components; keep their component definitions in separate files. Test files mirror the component they check and may contain multiple tests for it.
+Keep a component's private helpers and closely related supporting types in its file. Give shared helpers their own named modules. Framework entry files such as `__init__.py` and `conftest.py` may expose or register multiple components; keep their component definitions in separate files. Test files mirror the component they check and may contain multiple tests for it.
 
 ## Function structure
 
 Main functions describe the workflow through named steps. Put each step's implementation in a focused helper with a single clear responsibility, and name it for the work it performs.
+
+Document public entry functions with Google-style docstrings covering inputs, outputs, and the errors callers can expect.
 
 ## Implementation
 
