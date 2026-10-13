@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. I haven't written the application code yet.
+This README defines the first version I want to build. The planned-run core is implemented. HTTP, SQLite persistence, and the web interface come next.
 
 I'm planning the first create, save, and display workflow in the [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) before starting implementation.
 
@@ -65,7 +65,7 @@ When I ask for a review, the agent can read my recorded history and adjust upcom
 
 I'll run the first version locally for myself. Local app hosting costs nothing; model access remains part of my external agent setup. Later, I may host it on my existing VPS or Fly.io so I can access it from anywhere. Deployment is outside the first version.
 
-I'll use a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) from the start, with one member package named `aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
+The repository uses a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with one member package named `aweille` in `packages/aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
 
 Within `aweille`:
 
@@ -88,6 +88,44 @@ Source-code dependencies point from adapters to core. Core has no dependency on 
 One factory in adapters constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
 
 The browser always calls the API for application data and changes. The trainer uses the same API. Page templates provide the interface structure; browser interactions go through the API. All business rules live in core, with HTTP and storage details in adapters.
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
+
+## Public core interface
+
+Import the models, storage port, errors, and use cases from `aweille.core`.
+
+- `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
+- `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
+
+Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is a `RunType` enum member: `EASY`, `HARD`, `INTERVAL`, or `LONG`. The enum's string values remain `easy`, `hard`, `interval`, and `long`; adapters can parse them with `RunType(value)`.
+
+Supply an ordered sequence of immutable `Section` values:
+
+```python
+from aweille.core import Distance, Pace, RunType, Section
+
+run_type = RunType.INTERVAL
+sections = [
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=345)),
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
+]
+```
+
+`Distance` and `Pace` validate during construction. They accept positive integers only, rejecting booleans, floats, Decimal values, and strings without coercion. Distances use whole metres; paces use whole seconds per kilometre. Neither has a domain upper limit. `Section` requires these validated value objects. Both input and saved runs use this same section model. Read numeric values through `section.distance.metres` and `section.target_pace.seconds_per_km`.
+
+`create_run` validates the run fields and non-empty section sequence before saving. It copies sections into an immutable tuple, preserving order and repeated entries. `PlannedRun` is immutable. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+
+Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The future request adapter maps constructor errors to request fields and section indexes, adds HTTP location prefixes, and selects status codes. Unknown enum strings raise `ValueError` during `RunType(value)` parsing; adapters translate that error without exposing the input.
+
+Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory can bind storage to the functions with `functools.partial` when wiring is implemented.
+
+The October 13, 2026 review agreement revises the earlier [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787). Core inputs now use validated metre-based values, and the storage methods are named `save` and `get`. The future API replaces `distance_km` with `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`. Target pace remains the decimal-digit string `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, exponent notation, and whitespace remain invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
+
+Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). Real HTTP and SQLite checks belong to the next implementation step.
 
 ## First-version completion
 

@@ -1,0 +1,22 @@
+[tool.uv.workspace]
+members = ["packages/aweille"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov>=7.1.0",
+    "ruff",
+    "ty",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/aweille/tests"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.13"

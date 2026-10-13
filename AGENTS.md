@@ -1,6 +1,4 @@
-## Git workflow
-
-Make code and documentation changes on feature branches and open pull requests targeting `main`. Never push commits directly to `main`.
+Before planning, editing, or reviewing code, tests, documentation, or Git history, read [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and project standards.
 
 ## Agent skills
 
