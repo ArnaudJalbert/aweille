@@ -1,21 +1,22 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
-from starlette.concurrency import run_in_threadpool
+from typing import Annotated, Any
 
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+
+from .creation_route import CreationRoute
 from .range_query import RangeQuery
-from .read_creation_body import read_creation_body
-from .request_validation import reject
 from .run_request import RunRequest
 
-router = APIRouter()
+router = APIRouter(route_class=CreationRoute)
 
 
-@router.post("/api/runs")
-async def post_run(request: Request) -> JSONResponse:
+@router.post("/api/runs", status_code=201)
+def post_run(data: RunRequest, request: Request, response: Response) -> dict[str, Any]:
     """Create a planned run from JSON and return its committed representation.
 
     Args:
-        request: JSON creation request using the application's bound use case.
+        data: Creation fields validated by FastAPI and Pydantic.
+        request: Request supplying the application's bound use case.
+        response: Response used to select the committed insertion/retry status.
 
     Returns:
         Normalized run with 201 for insertion or 200 for an identical retry.
@@ -27,20 +28,20 @@ async def post_run(request: Request) -> JSONResponse:
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    data = await read_creation_body(request)
-    run, inserted = await run_in_threadpool(
-        request.app.state.create_run,
-        **RunRequest.model_validate(data).core_inputs(),
-    )
-    return JSONResponse(run.to_dict(), status_code=201 if inserted else 200)
+    run, inserted = request.app.state.create_run(**data.core_inputs())
+    response.status_code = 201 if inserted else 200
+    return run.to_dict()
 
 
 @router.get("/api/runs")
-async def get_runs(request: Request) -> JSONResponse:
+def get_runs(
+    query: Annotated[RangeQuery, Query()], request: Request
+) -> list[dict[str, Any]]:
     """Read every planned run in the requested half-open local date range.
 
     Args:
-        request: Request with start/end calendar-date query parameters.
+        query: Calendar-date query parameters validated by FastAPI and Pydantic.
+        request: Request supplying the application's bound use case.
 
     Returns:
         A 200 array of normalized runs in core ordering.
@@ -53,13 +54,15 @@ async def get_runs(request: Request) -> JSONResponse:
     """
     for field in request.query_params:
         if len(request.query_params.getlist(field)) != 1:
-            reject(
-                ("query", field), "duplicate_parameter", "Supply this parameter once."
+            raise HTTPException(
+                422,
+                [
+                    {
+                        "loc": ["query", field],
+                        "type": "duplicate_parameter",
+                        "msg": "Supply this parameter once.",
+                    }
+                ],
             )
-    query = RangeQuery.model_validate(dict(request.query_params))
-    runs = await run_in_threadpool(
-        request.app.state.read_runs,
-        start=query.start,
-        end=query.end,
-    )
-    return JSONResponse([run.to_dict() for run in runs])
+    runs = request.app.state.read_runs(start=query.start, end=query.end)
+    return [run.to_dict() for run in runs]

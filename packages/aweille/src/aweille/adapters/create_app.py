@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 
 from fastapi import FastAPI
-from pydantic import ValidationError as RequestValidationError
+from fastapi.exceptions import RequestValidationError
 
 from aweille.core import (
     RunConflict,

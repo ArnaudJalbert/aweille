@@ -1,36 +1,29 @@
-import re
 from datetime import time
 from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
-from pydantic_core import PydanticCustomError
+from pydantic import BaseModel, ConfigDict, Field, ValidateAs
 
 from aweille.core import Distance, Pace, RunType, Section
 
 from .request_date import RequestDate
 
-
-def _parse_decimal_digits(value: Any) -> int:
-    if not isinstance(value, str) or re.fullmatch(r"[0-9]+", value) is None:
-        raise PydanticCustomError(
-            "invalid_integer", "Supply a positive whole number as decimal-digit text."
-        )
-    # Preserve exact targets beyond Python's integer-string digit threshold.
-    return int(Decimal(value))
-
-
-def _require_time_format(value: Any) -> str:
-    if not isinstance(value, str) or re.fullmatch(r"[0-9]{2}:[0-9]{2}", value) is None:
-        raise PydanticCustomError(
-            "invalid_start_time", "Supply a local start time in HH:MM format or null."
-        )
-    return value
-
-
-_Target = Annotated[int, Field(gt=0), BeforeValidator(_parse_decimal_digits)]
-_StartTime = Annotated[time, Field(strict=False), BeforeValidator(_require_time_format)]
+# Decimal preserves exact targets beyond Python's integer-string digit threshold.
+_Target = Annotated[
+    int,
+    ValidateAs(
+        Annotated[str, Field(strict=True, pattern=r"^0*[1-9][0-9]*$")],
+        lambda value: int(Decimal(value)),
+    ),
+]
+_StartTime = Annotated[
+    time,
+    ValidateAs(
+        Annotated[str, Field(strict=True, pattern=r"^[0-9]{2}:[0-9]{2}$")],
+        time.fromisoformat,
+    ),
+]
 
 
 class _SectionRequest(BaseModel):
@@ -60,9 +53,7 @@ class RunRequest(BaseModel):
             Typed run fields and ordered Distance/Pace/Section values.
         """
         return {
-            "id": self.id,
-            "planned_date": self.planned_date,
-            "run_type": self.run_type,
+            **self.model_dump(exclude={"sections"}),
             "sections": [
                 Section(
                     Distance(section.distance_m),
@@ -70,7 +61,4 @@ class RunRequest(BaseModel):
                 )
                 for section in self.sections
             ],
-            "planned_start_time": self.planned_start_time,
-            "user_note": self.user_note,
-            "trainer_note": self.trainer_note,
         }

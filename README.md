@@ -203,7 +203,7 @@ Stop Uvicorn and start it again with the same database path, then repeat the rea
 ```sh
 uv run pytest packages/aweille/tests/adapters/test_create_app.py \
   packages/aweille/tests/adapters/test_runs_api.py \
-  packages/aweille/tests/adapters/test_read_creation_body.py \
+  packages/aweille/tests/adapters/test_creation_route.py \
   packages/aweille/tests/adapters/test_api_errors.py
 ```
 

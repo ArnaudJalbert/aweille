@@ -1,8 +1,8 @@
 import logging
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError as RequestValidationError
 
 from aweille.core import StorageUnavailable, ValidationError
 
@@ -34,28 +34,26 @@ async def validation_response(request: Request, error: Exception) -> JSONRespons
     """Translate request and domain validation problems to HTTP locations.
 
     Args:
-        request: Request supplying the body or query location prefix.
-        error: Pydantic or core validation error without response input values.
+        request: Request supplying the body or query location prefix for core errors.
+        error: FastAPI or core validation error without response input values.
 
     Returns:
         A 422 response with field problems and no raw input or internal context.
     """
-    prefix = "body" if request.method == "POST" else "query"
     if isinstance(error, RequestValidationError):
         problems = [
             {
-                "loc": [prefix, *problem["loc"]],
+                "loc": list(problem["loc"]),
                 "type": problem["type"],
                 "msg": "ID must be a UUID string."
                 if problem["type"] == "uuid_parsing"
                 else problem["msg"],
             }
-            for problem in error.errors(
-                include_input=False, include_context=False, include_url=False
-            )
+            for problem in error.errors()
         ]
     else:
         assert isinstance(error, ValidationError)
+        prefix = "body" if request.method == "POST" else "query"
         problems = [
             {
                 "loc": [prefix, *problem.loc],

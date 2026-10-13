@@ -81,6 +81,7 @@ def test_invalid_creation_is_rejected_without_saving(
         ("distance_m", "1.0"),
         ("distance_m", "1e3"),
         ("distance_m", " 1"),
+        ("distance_m", "1\n"),
         ("distance_m", "١"),
         ("distance_m", 1),
         ("distance_m", True),
