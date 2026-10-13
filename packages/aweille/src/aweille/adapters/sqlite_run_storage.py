@@ -112,7 +112,7 @@ class SQLiteRunStorage:
                 sqlite3.connect(uri, timeout=self._timeout, uri=True)
             ) as connection:
                 yield connection
-        except sqlite3.Error as error:
+        except (sqlite3.Error, UnicodeError) as error:
             code = getattr(error, "sqlite_errorcode", 0) & 0xFF
             if code in {
                 sqlite3.SQLITE_BUSY,

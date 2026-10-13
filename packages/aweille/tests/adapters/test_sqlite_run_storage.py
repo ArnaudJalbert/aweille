@@ -343,6 +343,24 @@ def test_missing_database_is_not_recreated_by_an_operation(
     assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [_run()]
 
 
+def test_text_encoding_failure_is_safe_and_leaves_storage_unchanged(
+    tmp_path: Path,
+) -> None:
+    storage = SQLiteRunStorage(tmp_path / "runs.sqlite")
+    original = _run()
+    storage.save(original)
+    unsupported = replace(
+        original, id=UUID(int=1), user_note="before\ud800PRIVATEafter"
+    )
+
+    with pytest.raises(StorageFailure) as failure:
+        storage.save(unsupported)
+
+    assert "PRIVATE" not in str(failure.value)
+    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [original]
+    assert storage.save(replace(unsupported, user_note="Supported text"))[1] is True
+
+
 def _save_from_process(
     path: Path, run: PlannedRun, barrier: Barrier, sender: Connection
 ) -> None:
