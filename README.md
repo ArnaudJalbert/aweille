@@ -97,8 +97,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, chec
 
 Import the models, storage port, errors, and use cases from `aweille.core`.
 
-Each use case, domain model, and error component has its own named file under `core/use_cases`, `core/models`, or `core/errors`. Shared validators have their own modules. Tests mirror the use cases, with shared fixtures registered through `conftest.py`. Follow the [contribution guide](CONTRIBUTING.md#write-the-change) when adding components.
-
 - `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
 

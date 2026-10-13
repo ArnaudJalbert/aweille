@@ -28,7 +28,7 @@ Main functions describe the workflow through named steps. Give each helper a cle
 
 ### Tests
 
-Write pytest tests as functions, using fixtures and parametrization when helpful. Test through agreed public interfaces; agree new test seams with the maintainer before adding tests there. Use test-first development for new behavior. Assert returned values, errors, and saved behavior through those interfaces.
+Write `pytest` tests as functions, using fixtures and parametrization when helpful. Test through agreed public interfaces; agree new test seams with the maintainer before adding tests there. Use test-first development for new behavior. Assert returned values, errors, and saved behavior through those interfaces.
 
 For core tests, use a small in-memory storage fake for normal stateful behavior and mocks at the storage port for failures. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
 

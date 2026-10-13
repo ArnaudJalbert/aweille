@@ -1,4 +1,4 @@
-Before planning or changing code, tests, documentation, or Git history, read [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and project standards.
+Before planning, editing, or reviewing code, tests, documentation, or Git history, read [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and project standards.
 
 ## Agent skills
 
