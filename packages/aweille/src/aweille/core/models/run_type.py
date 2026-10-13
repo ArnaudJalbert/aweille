@@ -1,3 +1,10 @@
-from typing import Literal
+from enum import StrEnum
 
-type RunType = Literal["easy", "hard", "interval", "long"]
+
+class RunType(StrEnum):
+    """The supported planned-run types and their transport values."""
+
+    EASY = "easy"
+    HARD = "hard"
+    INTERVAL = "interval"
+    LONG = "long"

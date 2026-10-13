@@ -11,7 +11,7 @@ A running workout planned for a date, with an optional start time, one run type,
 One part of a planned run, with a distance and a target pace. Its position in the list defines when it comes within the run; repeated sections remain separate entries.
 
 **Section distance**:
-The distance planned for one section, measured in kilometres with whole-metre precision.
+The positive distance planned for one section, measured in whole metres.
 
 **Target pace**:
 The intended pace for one section, measured in whole seconds per kilometre.

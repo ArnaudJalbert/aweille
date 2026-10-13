@@ -100,15 +100,32 @@ Import the models, storage port, errors, and use cases from `aweille.core`.
 - `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
 
-Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is `easy`, `hard`, `interval`, or `long`. Supply an ordered sequence of `SectionInput(distance_km=Decimal(...), target_pace_seconds_per_km=int_value)` values. Distances must be finite, positive, and expressible in whole metres; paces must be positive integers. Binary floating-point inputs and booleans are rejected. JSON strings are parsed by the future API adapter.
+Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is a `RunType` enum member: `EASY`, `HARD`, `INTERVAL`, or `LONG`. The enum's string values remain `easy`, `hard`, `interval`, and `long`; adapters can parse them with `RunType(value)`.
 
-`PlannedRun` and its `Section` values are immutable. Normalized sections use integer `distance_m` and integer `target_pace_seconds_per_km`, with no domain upper limit. Run IDs remain `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+Supply an ordered sequence of immutable `Section` values:
 
-Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. A section path can be `("sections", 1, "distance_km")`. HTTP location prefixes and status codes belong to adapters.
+```python
+from aweille.core import Distance, Pace, RunType, Section
 
-Implement the core-owned `Storage` protocol to supply `insert_if_absent(run)` and `read_range(start, end)`. Adapters return normalized `PlannedRun` values, commit atomically, and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory can bind storage to the functions with `functools.partial` when wiring is implemented.
+run_type = RunType.INTERVAL
+sections = [
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=345)),
+    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
+]
+```
 
-Tests use the public use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). Real HTTP and SQLite checks belong to the next implementation step.
+`Distance` and `Pace` validate during construction. They accept positive integers only, rejecting booleans, floats, Decimal values, and strings without coercion. Distances use whole metres; paces use whole seconds per kilometre. Neither has a domain upper limit. `Section` requires these validated value objects. Both input and saved runs use this same section model. Read numeric values through `section.distance.metres` and `section.target_pace.seconds_per_km`.
+
+`create_run` validates the run fields and non-empty section sequence before saving. It copies sections into an immutable tuple, preserving order and repeated entries. `PlannedRun` is immutable. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+
+Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The future request adapter maps constructor errors to request fields and section indexes, adds HTTP location prefixes, and selects status codes. Unknown enum strings raise `ValueError` during `RunType(value)` parsing; adapters translate that error without exposing the input.
+
+Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory can bind storage to the functions with `functools.partial` when wiring is implemented.
+
+The October 13, 2026 review agreement revises the earlier [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787). Core inputs now use validated metre-based values, and the storage methods are named `save` and `get`. The future API replaces `distance_km` with `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`. Target pace remains the decimal-digit string `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, exponent notation, and whitespace remain invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
+
+Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). Real HTTP and SQLite checks belong to the next implementation step.
 
 ## First-version completion
 

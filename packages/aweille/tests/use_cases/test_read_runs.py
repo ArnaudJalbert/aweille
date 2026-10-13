@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 from aweille.core import (
-    Storage,
+    RunStorage,
     StorageFailure,
     StorageUnavailable,
     ValidationError,
@@ -15,7 +15,7 @@ from aweille.core import (
 
 
 @pytest.mark.parametrize(
-    ("start", "end", "loc", "code"),
+    ("start", "end", "field_path", "code"),
     [
         (date(2026, 10, 12), date(2026, 10, 12), ("end",), "invalid_range"),
         (date(2026, 10, 19), date(2026, 10, 12), ("end",), "invalid_range"),
@@ -27,21 +27,21 @@ from aweille.core import (
 def test_invalid_read_range_reports_field_problems(
     start: Any,
     end: Any,
-    loc: tuple[str | int, ...],
+    field_path: tuple[str | int, ...],
     code: str,
 ) -> None:
-    storage = Mock(spec=Storage)
-    storage.read_range.side_effect = StorageUnavailable("Storage unavailable.")
+    storage = Mock(spec=RunStorage)
+    storage.get.side_effect = StorageUnavailable("Storage unavailable.")
 
     with pytest.raises(ValidationError) as failure:
         read_runs(storage, start=start, end=end)
 
-    assert failure.value.problems[0].loc == loc
+    assert failure.value.problems[0].loc == field_path
     assert failure.value.problems[0].code == code
 
 
 def test_read_range_is_half_open_and_orders_dates_times_then_canonical_ids(
-    storage: Storage, run_input: dict[str, Any]
+    storage: RunStorage, run_input: dict[str, Any]
 ) -> None:
     for number, planned_date, start_time in [
         (3, date(2026, 10, 12), time(8)),
@@ -70,8 +70,8 @@ def test_storage_failure_categories_reach_the_public_caller(
     error_type: type[Exception],
 ) -> None:
     failure = error_type("Storage could not complete the operation.")
-    storage = Mock(spec=Storage)
-    storage.read_range.side_effect = failure
+    storage = Mock(spec=RunStorage)
+    storage.get.side_effect = failure
 
     with pytest.raises(error_type) as reported:
         read_runs(storage, start=date(2026, 10, 12), end=date(2026, 10, 19))

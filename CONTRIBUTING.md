@@ -28,11 +28,15 @@ Main functions describe the workflow through named steps. Give each helper a cle
 
 ### Tests
 
+Every test case must protect a named use case, edge case, or regression. Before adding one, check whether existing assertions already protect that behavior. Reuse an existing scenario when it can check the behavior clearly. Add a separate case when it protects something distinct.
+
 Write `pytest` tests as functions, using fixtures and parametrization when helpful. Test through agreed public interfaces; agree new test seams with the maintainer before adding tests there. Use test-first development for new behavior. Assert returned values, errors, and saved behavior through those interfaces.
 
 For core tests, use a small in-memory storage fake for normal stateful behavior and mocks at the storage port for failures. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
 
-Keep distinct contract and edge cases. When trimming tests, compare line and branch coverage and check that the remaining assertions still protect those behaviors.
+Prefer representative cases for each rule over exhaustive input lists. Combine parameter dimensions only when their interaction changes behavior. Avoid tests that merely repeat the implementation or check library internals.
+
+Before finishing a change, review added and modified tests for usefulness and overlap. Keep distinct contract and edge cases even when they execute the same branch. When trimming tests, compare line and branch coverage and check that the remaining assertions still catch the relevant failures. Coverage and test counts alone do not show whether tests are useful.
 
 ## Check the change
 
