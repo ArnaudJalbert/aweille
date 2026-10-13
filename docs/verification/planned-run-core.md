@@ -66,7 +66,7 @@ COVERAGE_FILE=/tmp/aweille-core.coverage uv run --with coverage \
 
 ## File organization checks
 
-Use cases, models, and errors now live in separate named modules. Shared date validation and error construction also have their own modules. Test files mirror the use cases, and `conftest.py` registers the separate fixture modules. The [file organization rule](../../AGENTS.md#file-organization) records this convention.
+Use cases, models, and errors now live in separate named modules. Shared date validation and error construction also have their own modules. Test files mirror the use cases, and `conftest.py` registers the separate fixture modules. The [contribution guide](../../CONTRIBUTING.md#write-the-change) records this convention.
 
 The split retains all 72 cases: 64 for creation and eight for range reads. The two storage-failure categories remain checked for each use case. Invalid-range checks now also establish that validation happens before unavailable storage is accessed.
 
@@ -76,4 +76,4 @@ Coverage after the move is 100% of 141 core statements and 32 branches. The stat
 
 The public create function now normalizes a run, asks storage to insert it, checks any existing run for retry conflicts, and returns the committed outcome. Its private helpers handle run construction, ordered sections, exact distance conversion, pace validation, and retry comparison. The read function validates its range, fetches runs, and applies its named sort key.
 
-The same 72 tests pass through the public functions. Validation order, safe errors, normalized values, storage outcomes, and scheduling order are preserved. Coverage is 100% of 155 core statements and 32 branches; ty and Ruff also pass. The [function structure rule](../../AGENTS.md#function-structure) records the agreed style.
+The same 72 tests pass through the public functions. Validation order, safe errors, normalized values, storage outcomes, and scheduling order are preserved. Coverage is 100% of 155 core statements and 32 branches; ty and Ruff also pass. The [contribution guide](../../CONTRIBUTING.md#write-the-change) records the agreed style.

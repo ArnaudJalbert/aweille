@@ -91,25 +91,13 @@ The browser always calls the API for application data and changes. The trainer u
 
 ## Development
 
-Use uv and Python 3.13 or later. `.python-version` selects 3.13 for local development. Run these commands from the repository root:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
 
-```sh
-uv sync --locked --all-packages
-uv run pytest
-uv run pytest packages/aweille/tests/use_cases/test_create_run.py
-uv run pytest packages/aweille/tests/use_cases/test_read_runs.py
-uv run ty check
-uv run ruff check .
-uv run ruff format --check .
-```
-
-Use `uv run ruff format .` to format changes. The workspace's development dependencies are pytest, ty, and Ruff. The `aweille` package has no runtime dependencies; Montreal scheduling uses Python's `zoneinfo` and the system IANA timezone database.
-
-### Public core interface
+## Public core interface
 
 Import the models, storage port, errors, and use cases from `aweille.core`.
 
-Each use case, domain model, and error component has its own named file under `core/use_cases`, `core/models`, or `core/errors`. Shared validators have their own modules. Tests mirror the use cases, with shared fixtures registered through `conftest.py`. Follow the [file organization rule](AGENTS.md#file-organization) when adding components.
+Each use case, domain model, and error component has its own named file under `core/use_cases`, `core/models`, or `core/errors`. Shared validators have their own modules. Tests mirror the use cases, with shared fixtures registered through `conftest.py`. Follow the [contribution guide](CONTRIBUTING.md#write-the-change) when adding components.
 
 - `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
