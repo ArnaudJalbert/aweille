@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core and SQLite storage are implemented. HTTP and the web interface come next.
+This README defines the first version I want to build. The planned-run core, SQLite storage, and create/read HTTP API are implemented. The web interface comes next.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -119,13 +119,13 @@ sections = [
 
 `PlannedRun` is a frozen dataclass with a generated constructor. Its `__post_init__` only validates fields, without changing them. Direct construction requires a non-empty section tuple, trimmed nonblank notes or `None`, and a local time without a selected daylight-saving occurrence. `create_run` normalizes these inputs before calling the constructor: it copies section sequences into a tuple, trims notes, converts blank notes to `None`, and clears the local time's occurrence selection. Section order, repeated entries, and internal note spacing and line breaks are preserved. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset.
 
-Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The future request adapter maps constructor errors to request fields and section indexes, adds HTTP location prefixes, and selects status codes. Unknown enum strings raise `ValueError` during `RunType(value)` parsing; adapters translate that error without exposing the input.
+Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The HTTP adapter uses strict Pydantic request models, reports field and section locations, and adds `body` or `query` prefixes. Unknown enum strings are rejected without exposing the input.
 
-Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory can bind storage to the functions with `functools.partial` when wiring is implemented.
+Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds SQLite storage to the functions with `functools.partial`.
 
-The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API remains planned. It uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
+The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser will convert distances to and from kilometres exactly and format seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
-Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter; HTTP checks belong to the next implementation step.
+Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter. HTTP checks use the application factory and real file-backed SQLite, with storage-port fault injection for unexpected failures.
 
 `run.to_dict()` produces a fresh portable dictionary with canonical UUID, date, and time strings, ordered sections with decimal-digit metre and pace strings, and separate optional notes. `PlannedRun.from_dict(data)` reconstructs a validated model from that complete canonical representation. It raises `ValueError` for invalid encoded structure or representation and `ValidationError` for invalid domain values. These methods have no JSON or SQLite dependency. Parsing raw HTTP creation requests and their optional fields remains the request adapter's job.
 
@@ -147,13 +147,65 @@ from aweille.adapters import SQLiteRunStorage
 storage = SQLiteRunStorage("aweille.sqlite", timeout=1.0)
 ```
 
-Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. Default-path selection, environment configuration, and application wiring belong to the API step; application startup does not create the schema automatically.
+Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. The application factory resolves the database path and rejects missing files; application startup does not create or repair the schema.
 
 The adapter implements `RunStorage.save/get`. Each operation closes its connections, and reads use a committed snapshot. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
 
 The adapter uses the model's dictionary representation, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. Reads use `PlannedRun.from_dict`. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain commit failure can be resolved by retrying the same ID.
 
 The default lock wait is one second, configurable through `timeout`. SQLite handles this bounded wait; the adapter adds no retry loop. Tests use real temporary files, short deliberate lock waits, and targeted driver fault injection. See [SQLite storage verification](docs/verification/sqlite-run-storage.md) and [testing research](docs/research/sqlite-storage-testing.md).
+
+## Local HTTP API
+
+Prepare the default persistent database once, then start the API on loopback:
+
+```sh
+uv sync --locked --all-packages
+mkdir -p ~/.local/share/aweille
+uv run aweille-init-db ~/.local/share/aweille/aweille.sqlite3
+uv run uvicorn aweille.adapters.create_app:create_app --factory --host 127.0.0.1 --port 8000
+```
+
+For an installed package, use `aweille-init-db` and `uvicorn` without `uv run`. Setup refuses an existing file, so skip it when restarting with an already prepared database.
+
+The factory defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another prepared file, set `AWEILLE_DB_PATH` before starting Uvicorn. The factory expands `~` and resolves the path once; relative paths use the startup working directory. Empty values, `:memory:`, missing files, and directories fail startup with a configuration error. Schema and connection failures return safe HTTP errors during requests. Startup never creates or repairs storage. Remote deployment is outside this workflow.
+
+Create the representative interval run:
+
+```sh
+curl -i http://127.0.0.1:8000/api/runs \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{
+  "id": "54d97d4d-fadb-4d50-926e-af1bb26c711a",
+  "planned_date": "2026-10-14",
+  "planned_start_time": "07:30",
+  "run_type": "interval",
+  "sections": [
+    {"distance_m": "1000", "target_pace_seconds_per_km": "390"},
+    {"distance_m": "1000", "target_pace_seconds_per_km": "345"},
+    {"distance_m": "1000", "target_pace_seconds_per_km": "390"}
+  ],
+  "user_note": "Keep the first section easy.",
+  "trainer_note": "Finish relaxed."
+}
+JSON
+
+curl 'http://127.0.0.1:8000/api/runs?start=2026-10-12&end=2026-10-19'
+```
+
+Creation returns `201` and the normalized run after commit. Replaying the same normalized run with its original ID returns `200`; changed data under that ID returns `409` without overwriting it. Time and notes may be omitted or null. Reads return a plain JSON array covering `[start, end)`, ordered by date, then start time with untimed runs last, then UUID. Both query dates are required; unknown fields and query parameters are rejected.
+
+Validation and malformed JSON return `422` with `detail` problems containing `loc`, `type`, and `msg`. Other errors have a short `detail` string: `413` for a creation body over 1 MiB of received bytes, `415` for a non-JSON content type, `503` for temporary storage unavailability, and `500` for other operation failures. Exactly 1 MiB is permitted, including streamed requests without Content-Length. Responses omit raw input values and internal diagnostics; diagnostics go to local logs.
+
+Stop Uvicorn and start it again with the same database path, then repeat the read. The saved run and its ID remain unchanged. Run the focused HTTP checks with:
+
+```sh
+uv run pytest packages/aweille/tests/adapters/test_create_app.py \
+  packages/aweille/tests/adapters/test_runs_api.py \
+  packages/aweille/tests/adapters/test_read_creation_body.py \
+  packages/aweille/tests/adapters/test_api_errors.py
+```
 
 ## First-version completion
 

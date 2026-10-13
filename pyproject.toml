@@ -3,6 +3,7 @@ members = ["packages/aweille"]
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.13.1",
     "pytest",
     "pytest-cov>=7.1.0",
     "ruff",
