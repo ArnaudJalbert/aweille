@@ -20,15 +20,15 @@ from .section import Section
 
 @dataclass(frozen=True)
 class PlannedRun:
-    """An immutable planned run that validates already-normalized domain fields.
+    """An immutable planned run that validates and normalizes domain fields.
 
     Args:
         id: Caller-supplied UUID.
         planned_date: Montreal calendar date.
         planned_start_time: Optional naive local time with minute precision.
         run_type: A RunType member.
-        sections: Non-empty immutable tuple of ordered Section values.
-        user_note: Optional nonblank user text with outer whitespace trimmed.
+        sections: Non-empty ordered Section values, copied into an immutable tuple.
+        user_note: Optional user text, trimmed with blank notes treated as absent.
         trainer_note: Optional trainer text with the same normalization rules.
 
     Raises:
@@ -40,41 +40,28 @@ class PlannedRun:
     planned_date: date
     planned_start_time: time | None
     run_type: RunType
-    sections: tuple[Section, ...]
+    sections: Sequence[Section]
     user_note: str | None
     trainer_note: str | None
 
     _MONTREAL = ZoneInfo("America/Toronto")
 
     def __post_init__(self) -> None:
-        PlannedRun._validate_id(self.id)
+        self._validate_id(self.id)
         validate_date(self.planned_date, "planned_date")
-        PlannedRun._validate_start_time(self.planned_date, self.planned_start_time)
-        if self.planned_start_time is not None and self.planned_start_time.fold:
-            raise_validation_error(
-                ("planned_start_time",),
-                "invalid_start_time",
-                "Start time must not select a daylight-saving occurrence.",
+        self._validate_start_time(self.planned_date, self.planned_start_time)
+        if self.planned_start_time is not None:
+            object.__setattr__(
+                self, "planned_start_time", self.planned_start_time.replace(fold=0)
             )
-        PlannedRun._validate_run_type(self.run_type)
-        PlannedRun._validate_sections(self.sections)
-        if not isinstance(self.sections, tuple):
-            raise_validation_error(
-                ("sections",),
-                "invalid_sections",
-                "Sections must be an immutable tuple.",
-            )
+        self._validate_run_type(self.run_type)
+        self._validate_sections(self.sections)
+        object.__setattr__(self, "sections", tuple(self.sections))
         for field, note in (
             ("user_note", self.user_note),
             ("trainer_note", self.trainer_note),
         ):
-            PlannedRun._validate_note(note, field)
-            if note is not None and (not note or note.strip() != note):
-                raise_validation_error(
-                    (field,),
-                    "invalid_note",
-                    "Notes must be trimmed and nonblank, or absent.",
-                )
+            object.__setattr__(self, field, self._normalize_note(note, field))
 
     def to_dict(self) -> dict[str, Any]:
         """Encode a normalized run as portable canonical values.
@@ -103,8 +90,8 @@ class PlannedRun:
             "trainer_note": self.trainer_note,
         }
 
-    @staticmethod
-    def from_dict(data: Mapping[str, Any]) -> PlannedRun:
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> PlannedRun:
         """Decode the canonical dictionary representation of a run.
 
         Args:
@@ -118,11 +105,11 @@ class PlannedRun:
             ValidationError: Decoded values violate domain invariants.
         """
         try:
-            if data.keys() != {field.name for field in fields(PlannedRun)}:
+            if data.keys() != {field.name for field in fields(cls)}:
                 raise ValueError
             if not isinstance(data["sections"], list):
                 raise ValueError
-            run = PlannedRun(
+            run = cls(
                 id=UUID(data["id"]),
                 planned_date=date.fromisoformat(data["planned_date"]),
                 planned_start_time=time.fromisoformat(data["planned_start_time"])
@@ -130,7 +117,7 @@ class PlannedRun:
                 else None,
                 run_type=RunType(data["run_type"]),
                 sections=tuple(
-                    PlannedRun._decode_section(value) for value in data["sections"]
+                    cls._decode_section(value) for value in data["sections"]
                 ),
                 user_note=data["user_note"],
                 trainer_note=data["trainer_note"],
@@ -143,16 +130,16 @@ class PlannedRun:
         except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
             raise ValueError("Encoded planned-run data is invalid.") from None
 
-    @staticmethod
-    def _decode_section(value: object) -> Section:
+    @classmethod
+    def _decode_section(cls, value: object) -> Section:
         if not isinstance(value, dict) or value.keys() != {
             "distance_m",
             "target_pace_seconds_per_km",
         }:
             raise ValueError
         return Section(
-            Distance(PlannedRun._decode_integer(value["distance_m"])),
-            Pace(PlannedRun._decode_integer(value["target_pace_seconds_per_km"])),
+            Distance(cls._decode_integer(value["distance_m"])),
+            Pace(cls._decode_integer(value["target_pace_seconds_per_km"])),
         )
 
     @staticmethod
@@ -161,37 +148,6 @@ class PlannedRun:
             raise ValueError
         # Decimal conversion is exact and avoids Python's int/str digit threshold.
         return int(Decimal(value))
-
-    @staticmethod
-    def _normalize_run(
-        *,
-        id: UUID,
-        planned_date: date,
-        planned_start_time: time | None,
-        run_type: RunType,
-        sections: Sequence[Section],
-        user_note: str | None,
-        trainer_note: str | None,
-    ) -> PlannedRun:
-        PlannedRun._validate_id(id)
-        validate_date(planned_date, "planned_date")
-        PlannedRun._validate_start_time(planned_date, planned_start_time)
-        planned_start_time = (
-            planned_start_time.replace(fold=0)
-            if planned_start_time is not None
-            else None
-        )
-        PlannedRun._validate_run_type(run_type)
-        PlannedRun._validate_sections(sections)
-        return PlannedRun(
-            id=id,
-            planned_date=planned_date,
-            planned_start_time=planned_start_time,
-            run_type=run_type,
-            sections=tuple(sections),
-            user_note=PlannedRun._normalize_note(user_note, "user_note"),
-            trainer_note=PlannedRun._normalize_note(trainer_note, "trainer_note"),
-        )
 
     @staticmethod
     def _validate_id(value: UUID) -> None:
@@ -225,9 +181,8 @@ class PlannedRun:
                     ("sections", index), "invalid_section", "Supply a Section value."
                 )
 
-    @staticmethod
-    def _normalize_note(note: str | None, field: str) -> str | None:
-        PlannedRun._validate_note(note, field)
+    def _normalize_note(self, note: str | None, field: str) -> str | None:
+        self._validate_note(note, field)
         return note.strip() or None if note is not None else None
 
     @staticmethod
@@ -237,8 +192,7 @@ class PlannedRun:
                 (field,), "invalid_note", "Note must be plain text or absent."
             )
 
-    @staticmethod
-    def _validate_start_time(planned_date: date, value: time | None) -> None:
+    def _validate_start_time(self, planned_date: date, value: time | None) -> None:
         if value is None:
             return
         if (
@@ -253,12 +207,10 @@ class PlannedRun:
                 "Start time must use local minutes without seconds "
                 "or a timezone offset.",
             )
-        local = datetime.combine(
-            planned_date, value.replace(fold=0), PlannedRun._MONTREAL
-        )
+        local = datetime.combine(planned_date, value.replace(fold=0), self._MONTREAL)
         # Ordinary dates need no UTC conversion, including Python's calendar endpoints.
         if local.utcoffset() != local.replace(fold=1).utcoffset():
-            round_trip = local.astimezone(UTC).astimezone(PlannedRun._MONTREAL)
+            round_trip = local.astimezone(UTC).astimezone(self._MONTREAL)
             if round_trip.replace(tzinfo=None) != local.replace(tzinfo=None):
                 raise_validation_error(
                     ("planned_start_time",),

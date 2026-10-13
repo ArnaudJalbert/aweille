@@ -52,7 +52,7 @@ def create_run(
             prevents the operation. The caller may retry with the same ID.
         StorageFailure: An unexpected storage failure prevents the operation.
     """
-    run = PlannedRun._normalize_run(
+    run = PlannedRun(
         id=id,
         planned_date=planned_date,
         run_type=run_type,
