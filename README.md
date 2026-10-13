@@ -117,7 +117,7 @@ sections = [
 
 `Distance` and `Pace` validate during construction. They accept positive integers only, rejecting booleans, floats, Decimal values, and strings without coercion. Distances use whole metres; paces use whole seconds per kilometre. Neither has a domain upper limit. `Section` requires these validated value objects. Both input and saved runs use this same section model. Read numeric values through `section.distance.metres` and `section.target_pace.seconds_per_km`.
 
-`PlannedRun` validates and normalizes its fields during construction. It copies the non-empty section sequence into an immutable tuple, preserving order and repeated entries. `create_run` constructs this immutable model before saving. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+`PlannedRun` is a frozen dataclass with a generated constructor. Its `__post_init__` validates already-normalized fields without changing them. Direct construction requires an immutable, non-empty section tuple and notes that are trimmed and nonblank or `None`. `create_run` normalizes section sequences, notes, and local times before constructing the model, preserving section order and repeated entries. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank creation notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
 
 Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The future request adapter maps constructor errors to request fields and section indexes, adds HTTP location prefixes, and selects status codes. Unknown enum strings raise `ValueError` during `RunType(value)` parsing; adapters translate that error without exposing the input.
 
@@ -127,9 +127,19 @@ The October 13, 2026 review agreement revises the earlier [data decision](https:
 
 Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter; HTTP checks belong to the next implementation step.
 
+`run.to_dict()` produces a fresh portable dictionary with canonical UUID, date, and time strings, ordered sections with decimal-digit metre and pace strings, and separate optional notes. `PlannedRun.from_dict(data)` reconstructs a validated model from that complete canonical representation. It raises `ValueError` for invalid encoded structure or representation and `ValidationError` for invalid domain values. These methods have no JSON or SQLite dependency. Parsing raw HTTP creation requests and their optional fields remains the request adapter's job.
+
 ## SQLite storage
 
-Import `SQLiteRunStorage` from `aweille.adapters`:
+Create the database once before using the adapter. Its parent directory must exist:
+
+```sh
+uv run python -m aweille.adapters.create_database aweille.sqlite
+```
+
+The script creates the initial schema and planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. Migrations remain outside this workflow.
+
+Then import `SQLiteRunStorage` from `aweille.adapters`:
 
 ```python
 from aweille.adapters import SQLiteRunStorage
@@ -137,11 +147,11 @@ from aweille.adapters import SQLiteRunStorage
 storage = SQLiteRunStorage("aweille.sqlite", timeout=1.0)
 ```
 
-Construction initializes an empty file or checks its existing schema. The parent directory must exist. Storage recognizes its initial schema version and rejects incompatible files without changing them. Migrations, default-path selection, environment configuration, and application wiring belong to the API step.
+Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. Default-path selection, environment configuration, and application wiring belong to the API step; application startup does not create the schema automatically.
 
 The adapter implements `RunStorage.save/get`. Each operation closes its connections, and reads use a committed snapshot. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
 
-Sections use JSON with canonical decimal-digit strings for `distance_m` and `target_pace_seconds_per_km`, preserving exact integers without an imposed numeric limit. Reads construct validated core models. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain commit failure can be resolved by retrying the same ID.
+The adapter uses the model's dictionary representation, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. Reads use `PlannedRun.from_dict`. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain commit failure can be resolved by retrying the same ID.
 
 The default lock wait is one second, configurable through `timeout`. SQLite handles this bounded wait; the adapter adds no retry loop. Tests use real temporary files, short deliberate lock waits, and targeted driver fault injection. See [SQLite storage verification](docs/verification/sqlite-run-storage.md) and [testing research](docs/research/sqlite-storage-testing.md).
 

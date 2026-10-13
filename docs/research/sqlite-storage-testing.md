@@ -4,7 +4,7 @@ Researched on October 13, 2026, for [issue #6](https://github.com/ArnaudJalbert/
 
 ## Recommendation
 
-Use real SQLite files under pytest's `tmp_path` for the adapter's public `save`, `get`, and initialization tests. Keep the existing core fake and port mocks. Use targeted driver fault injection only for failures that are hard to reproduce reliably.
+Use real SQLite files under pytest's `tmp_path` for the adapter's public `save` and `get` tests. Prepare each file through the separate database-creation script. Check that script's public function and command-line entry point separately. Keep the existing core fake and port mocks. Use targeted driver fault injection only for failures that are hard to reproduce reliably.
 
 This is our recommendation from the facts below, not a universal testing rule stated by Python or SQLite. It also follows this repository's [contributor workflow](../../CONTRIBUTING.md#tests), which separates core tests from real adapter checks. No extra database or mocking framework is needed.
 
@@ -24,7 +24,7 @@ SQLite discourages shared-cache mode and documents different locking semantics. 
 
 `tmp_path` supplies a unique directory per test function. Use a fresh, small database there and close connections during fixture teardown. Share setup code rather than a writable database across tests. Pytest supports function-scoped fixtures and teardown after `yield`. [Pytest temporary files](https://docs.pytest.org/en/stable/how-to/tmp_path.html#the-tmp-path-fixture), [pytest fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html#teardown-cleanup-aka-fixture-finalization)
 
-Keep adapter cases focused on round trips, range boundaries, unchanged existing IDs, commitment, reopening, incompatible files, concurrency, and error translation. The existing [core verification](../verification/planned-run-core.md) already covers business validation, retry comparison, conflicts, and sorting. Avoid repeating that matrix against SQLite.
+Keep adapter cases focused on round trips, range boundaries, unchanged existing IDs, commitment, reopening, unreadable files, concurrency, and error translation. Model tests cover dictionary encoding and decoding. The existing [core verification](../verification/planned-run-core.md) already covers business validation, retry comparison, conflicts, and sorting. Avoid repeating that matrix against SQLite. The implementation review moved schema creation out of storage; runtime schema compatibility checks are no longer part of the adapter.
 
 Use separate connections and events or barriers for concurrent cases, with bounded waits and worker cleanup. Python provides these synchronization primitives. Our recommendation is to avoid sleeps and repeated races, which add time without proving the intended ordering. [Python threading documentation](https://docs.python.org/3.13/library/threading.html#event-objects)
 

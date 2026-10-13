@@ -13,6 +13,7 @@ from uuid import UUID
 
 import pytest
 from aweille.adapters import SQLiteRunStorage
+from aweille.adapters.create_database import create_database
 from aweille.core import (
     Distance,
     Pace,
@@ -25,10 +26,10 @@ from aweille.core import (
 
 
 def test_saved_run_survives_reopening_with_exact_sections_and_notes(
-    tmp_path: Path,
+    database_path: Path,
 ) -> None:
     run = _run()
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     storage = SQLiteRunStorage(path)
 
     assert storage.save(run) == (run, True)
@@ -36,10 +37,10 @@ def test_saved_run_survives_reopening_with_exact_sections_and_notes(
 
 
 def test_existing_id_returns_original_without_overwriting_changed_data(
-    tmp_path: Path,
+    database_path: Path,
 ) -> None:
     run = _run()
-    storage = SQLiteRunStorage(tmp_path / "runs.sqlite")
+    storage = SQLiteRunStorage(database_path)
     storage.save(run)
 
     assert storage.save(run) == (run, False)
@@ -48,7 +49,7 @@ def test_existing_id_returns_original_without_overwriting_changed_data(
 
 
 def test_huge_integer_targets_and_absent_optional_fields_round_trip(
-    tmp_path: Path,
+    database_path: Path,
 ) -> None:
     run = replace(
         _run(),
@@ -57,38 +58,27 @@ def test_huge_integer_targets_and_absent_optional_fields_round_trip(
         user_note=None,
         trainer_note=None,
     )
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     assert SQLiteRunStorage(path).save(run) == (run, True)
     assert SQLiteRunStorage(path).get(date(2026, 10, 14), date(2026, 10, 15)) == [run]
 
 
-@pytest.mark.parametrize(
-    "incompatibility",
-    ["unrelated_schema", "future_version", "missing_index", "invalid_file"],
-)
-def test_incompatible_storage_is_rejected_without_changing_the_file(
-    tmp_path: Path, incompatibility: str
+@pytest.mark.parametrize("invalid_file", [False, True])
+def test_unreadable_storage_fails_when_used_without_changing_the_file(
+    tmp_path: Path, invalid_file: bool
 ) -> None:
     path = tmp_path / "runs.sqlite"
-    if incompatibility == "invalid_file":
+    if invalid_file:
         path.write_bytes(b"not a SQLite database; PRIVATE")
     else:
-        if incompatibility != "unrelated_schema":
-            SQLiteRunStorage(path).save(_run())
         with closing(sqlite3.connect(path)) as connection, connection:
-            if incompatibility == "unrelated_schema":
-                connection.execute("CREATE TABLE sqlitex_private_data (value TEXT)")
-                connection.execute(
-                    "INSERT INTO sqlitex_private_data VALUES ('PRIVATE')"
-                )
-            elif incompatibility == "future_version":
-                connection.execute("PRAGMA user_version = 99")
-            else:
-                connection.execute("DROP INDEX runs_planned_date")
+            connection.execute("CREATE TABLE private_data (value TEXT)")
+            connection.execute("INSERT INTO private_data VALUES ('PRIVATE')")
     before = path.read_bytes()
+    storage = SQLiteRunStorage(path)
 
     with pytest.raises(StorageFailure) as failure:
-        SQLiteRunStorage(path)
+        storage.get(date(2026, 10, 14), date(2026, 10, 15))
 
     assert path.read_bytes() == before
     assert str(path) not in str(failure.value)
@@ -99,24 +89,14 @@ def test_incompatible_storage_is_rejected_without_changing_the_file(
     "changes",
     [
         {"sections": "PRIVATE invalid JSON"},
-        {"sections": '{"distance_m":"1000","target_pace_seconds_per_km":"390"}'},
-        {
-            "sections": '[{"distance_m":"1000",'
-            '"target_pace_seconds_per_km":"390","PRIVATE":true}]'
-        },
-        {"sections": '[{"distance_m":1000,"target_pace_seconds_per_km":"390"}]'},
-        {"sections": '[{"distance_m":"1e3","target_pace_seconds_per_km":"390"}]'},
-        {"sections": '[{"distance_m":"01000","target_pace_seconds_per_km":"390"}]'},
-        {"sections": "[]"},
         {"run_type": "PRIVATE"},
-        {"user_note": "  PRIVATE  "},
         {"planned_date": "2026-03-08", "planned_start_time": "02:30"},
     ],
 )
 def test_malformed_saved_runs_fail_reads_and_existing_id_retrieval(
-    tmp_path: Path, changes: dict[str, str]
+    database_path: Path, changes: dict[str, str]
 ) -> None:
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     run = _run()
     storage = SQLiteRunStorage(path)
     storage.save(run)
@@ -140,11 +120,11 @@ def test_malformed_saved_runs_fail_reads_and_existing_id_retrieval(
         assert str(path) not in str(failure.value)
 
 
-@pytest.mark.parametrize("operation", ["open", "save", "get"])
+@pytest.mark.parametrize("operation", ["save", "get"])
 def test_lock_contention_is_retryable_and_leaves_saved_data_unchanged(
-    tmp_path: Path, operation: str
+    database_path: Path, operation: str
 ) -> None:
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     run = _run()
     other = replace(run, id=UUID(int=1))
     storage = SQLiteRunStorage(path, timeout=0.02)
@@ -152,9 +132,7 @@ def test_lock_contention_is_retryable_and_leaves_saved_data_unchanged(
     with closing(sqlite3.connect(path)) as blocker, blocker:
         blocker.execute("BEGIN EXCLUSIVE")
         with pytest.raises(StorageUnavailable) as failure:
-            if operation == "open":
-                SQLiteRunStorage(path, timeout=0.02)
-            elif operation == "save":
+            if operation == "save":
                 storage.save(other)
             else:
                 storage.get(date(2026, 10, 14), date(2026, 10, 15))
@@ -164,8 +142,10 @@ def test_lock_contention_is_retryable_and_leaves_saved_data_unchanged(
     assert storage.save(other) == (other, True)
 
 
-def test_failed_write_rolls_back_and_storage_can_be_used_again(tmp_path: Path) -> None:
-    path = tmp_path / "runs.sqlite"
+def test_failed_write_rolls_back_and_storage_can_be_used_again(
+    database_path: Path,
+) -> None:
+    path = database_path
     storage = SQLiteRunStorage(path)
     run = _run()
     with closing(sqlite3.connect(path)) as connection, connection:
@@ -184,8 +164,10 @@ def test_failed_write_rolls_back_and_storage_can_be_used_again(tmp_path: Path) -
     assert SQLiteRunStorage(path).save(run) == (run, True)
 
 
-def test_range_reads_are_half_open_and_see_committed_data_only(tmp_path: Path) -> None:
-    path = tmp_path / "runs.sqlite"
+def test_range_reads_are_half_open_and_see_committed_data_only(
+    database_path: Path,
+) -> None:
+    path = database_path
     storage = SQLiteRunStorage(path)
     runs = [
         replace(_run(), id=UUID(int=index), planned_date=day)
@@ -218,9 +200,9 @@ def test_range_reads_are_half_open_and_see_committed_data_only(tmp_path: Path) -
 
 @pytest.mark.parametrize("committed_before_failure", [False, True])
 def test_commit_failure_preserves_atomic_data_and_can_be_resolved_by_retry(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, committed_before_failure: bool
+    database_path: Path, monkeypatch: pytest.MonkeyPatch, committed_before_failure: bool
 ) -> None:
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     storage = SQLiteRunStorage(path)
     run = _run()
 
@@ -253,10 +235,10 @@ def test_commit_failure_preserves_atomic_data_and_can_be_resolved_by_retry(
     assert storage.save(run) == (run, not committed_before_failure)
 
 
-def test_independent_processes_initialize_and_insert_one_id_without_overwriting(
-    tmp_path: Path,
+def test_independent_processes_insert_one_id_without_overwriting(
+    database_path: Path,
 ) -> None:
-    path = tmp_path / "runs.sqlite"
+    path = database_path
     context = multiprocessing.get_context("spawn")
     barrier = context.Barrier(2)
     runs = (_run(), replace(_run(), user_note="Different proposal"))
@@ -294,40 +276,43 @@ def test_independent_processes_initialize_and_insert_one_id_without_overwriting(
             sender.close()
 
 
-def test_missing_parent_is_reported_as_unavailable_without_creating_directories(
+def test_construction_does_not_open_create_or_initialize_storage(
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "missing" / "runs.sqlite"
+    storage = SQLiteRunStorage(path)
+    assert not path.parent.exists()
     with pytest.raises(StorageUnavailable) as failure:
-        SQLiteRunStorage(path)
+        storage.get(date(2026, 10, 14), date(2026, 10, 15))
     assert not path.parent.exists()
     assert str(path) not in str(failure.value)
 
     path.parent.mkdir()
-    assert SQLiteRunStorage(path).save(_run()) == (_run(), True)
+    create_database(path)
+    assert storage.save(_run()) == (_run(), True)
 
 
 def test_relative_path_keeps_the_original_file_after_working_directory_changes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    database_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.chdir(database_path.parent)
     storage = SQLiteRunStorage("runs.sqlite")
-    other_directory = tmp_path / "elsewhere"
+    other_directory = database_path.parent / "elsewhere"
     other_directory.mkdir()
     monkeypatch.chdir(other_directory)
 
     assert storage.save(_run()) == (_run(), True)
-    assert SQLiteRunStorage(tmp_path / "runs.sqlite").get(
+    assert SQLiteRunStorage(database_path).get(
         date(2026, 10, 14), date(2026, 10, 15)
     ) == [_run()]
 
 
 @pytest.mark.parametrize("operation", ["save", "get"])
 def test_missing_database_is_not_recreated_by_an_operation(
-    tmp_path: Path, operation: str
+    database_path: Path, operation: str
 ) -> None:
-    path = tmp_path / "runs.sqlite"
-    moved = tmp_path / "moved.sqlite"
+    path = database_path
+    moved = database_path.with_name("moved.sqlite")
     storage = SQLiteRunStorage(path)
     storage.save(_run())
     path.rename(moved)
@@ -344,9 +329,9 @@ def test_missing_database_is_not_recreated_by_an_operation(
 
 
 def test_text_encoding_failure_is_safe_and_leaves_storage_unchanged(
-    tmp_path: Path,
+    database_path: Path,
 ) -> None:
-    storage = SQLiteRunStorage(tmp_path / "runs.sqlite")
+    storage = SQLiteRunStorage(database_path)
     original = _run()
     storage.save(original)
     unsupported = replace(
