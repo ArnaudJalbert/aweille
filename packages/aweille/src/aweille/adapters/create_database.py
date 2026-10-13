@@ -1,4 +1,4 @@
-"""Create a new SQLite database before starting Aweille."""
+"""Provide the installed database setup command for Aweille."""
 
 import argparse
 import sqlite3

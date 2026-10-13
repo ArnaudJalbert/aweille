@@ -4,7 +4,7 @@ Verified locally on October 13, 2026, with Python 3.13.14 for [Implement SQLite 
 
 ## Interfaces and checks
 
-Tests use `SQLiteRunStorage(path, *, timeout=1.0)`, `save`, and `get`. Tests also exercise the public model dictionary methods and the function and CLI in the repository's `scripts/create_database.py`. The CLI check runs from a separate working directory. Each case uses a real file under pytest's `tmp_path`. Raw SQLite connections prepare incompatible schemas, malformed rows, locks, and rejected writes; assertions observe behavior through the public adapter. The incompatible-file check also verifies that rejected storage remains byte-for-byte unchanged.
+Tests use `SQLiteRunStorage(path, *, timeout=1.0)`, `save`, and `get`. Tests also exercise the public model dictionary methods, `aweille.adapters.create_database`, and the installed `aweille-init-db` command. The CLI check runs from a separate working directory. Each case uses a real file under pytest's `tmp_path`. Raw SQLite connections prepare incompatible schemas, malformed rows, locks, and rejected writes; assertions observe behavior through the public adapter. The incompatible-file check also verifies that rejected storage remains byte-for-byte unchanged.
 
 Checks cover exact fields and notes, ordered repeated sections, targets beyond Python's integer conversion digit threshold, optional absent fields, unchanged existing IDs, half-open date ranges, committed visibility, reopening, and independent-process creation. Two spawned processes synchronize before submitting different data under one ID in a prepared database. Exactly one inserts; both receive the same winning record.
 
@@ -16,14 +16,15 @@ Failure cases cover unrelated schemas, non-SQLite files, malformed saved data, r
 
 | Check | Result |
 | --- | --- |
-| SQLite adapter and setup-script tests with `-q --durations=3` | 22 passed in 0.25 seconds; command wall time 0.319 seconds before the script relocation. |
-| Full pytest suite with core, adapter, and script branch coverage and `--durations=5` | 116 passed in 0.35 seconds after the script relocation; command wall time 0.365 seconds. |
+| SQLite adapter and setup-command tests with `-q --durations=3` | 22 passed in 0.53 seconds; command wall time 0.533 seconds. |
+| Full pytest suite with core and adapter branch coverage and `--durations=5` | 116 passed in 0.37 seconds after packaging the setup command; command wall time 0.464 seconds. |
 | Core and SQLite adapter coverage | 100% of statements and branches. |
-| Overall core, adapters, and setup-script coverage | 97% across 289 statements and 58 branches. |
+| Overall core and adapters coverage | 97% across 289 statements and 58 branches. |
 | `uv run ty check` | Passed. |
 | `uv run ruff check .` | Passed. |
 | `uv run ruff format --check .` | Passed. |
 | `git diff --check` | Passed. |
+| Built wheel installed in an isolated environment | Setup command created a database from outside the checkout and refused an existing file without changing it. |
 
 The setup CLI runs in a subprocess, so its entry code is absent from parent-process coverage. The CLI test verifies creation and refusal to overwrite an existing file. Fixtures and the rollback regression cover the creation function in the parent process.
 
@@ -35,4 +36,4 @@ The standards review found no issues. Spec review caught text-encoding error tra
 
 ## Scope
 
-Storage assumes the database has been prepared correctly and performs no schema creation or compatibility checks. From the repository root, run `uv run python scripts/create_database.py aweille.sqlite` once before application startup. The setup script refuses existing files and removes its new file if creation fails. Reopen tests verify ordinary persistence, not survival of power loss. Application configuration, HTTP, and browser acceptance checks remain in later tickets.
+Storage assumes the database has been prepared correctly and performs no schema creation or compatibility checks. From the repository root, run `uv run aweille-init-db aweille.sqlite` once before application startup. Installed applications can use `aweille-init-db <path>` without a source checkout. The command refuses existing files and removes its new file if creation fails. Reopen tests verify ordinary persistence, not survival of power loss. Application configuration, HTTP, and browser acceptance checks remain in later tickets.

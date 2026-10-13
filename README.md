@@ -134,10 +134,10 @@ Tests use the public constructors and use cases, with an in-memory storage fake 
 Create the database once before using the adapter. Its parent directory must exist:
 
 ```sh
-uv run python scripts/create_database.py aweille.sqlite
+uv run aweille-init-db aweille.sqlite
 ```
 
-The repository script in `scripts/create_database.py` creates the initial schema and planned-date index. It is separate from the `aweille` package. It refuses an existing path without changing it and removes its new file if setup fails. Migrations remain outside this workflow.
+The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.adapters.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates the initial schema and planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. Migrations remain outside this workflow.
 
 Then import `SQLiteRunStorage` from `aweille.adapters`:
 

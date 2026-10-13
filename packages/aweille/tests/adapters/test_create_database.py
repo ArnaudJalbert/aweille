@@ -1,6 +1,6 @@
+import shutil
 import sqlite3
 import subprocess
-import sys
 from datetime import date
 from functools import partial
 from pathlib import Path
@@ -9,17 +9,17 @@ from typing import Any, Literal
 
 import pytest
 from aweille.adapters import SQLiteRunStorage
+from aweille.adapters.create_database import create_database
 from aweille.core import create_run
-
-from scripts.create_database import create_database
 
 
 def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(
     tmp_path: Path, run_input: dict[str, Any]
 ) -> None:
     path = tmp_path / "runs.sqlite"
-    script = Path(__file__).resolve().parents[4] / "scripts" / "create_database.py"
-    command = [sys.executable, str(script), str(path)]
+    executable = shutil.which("aweille-init-db")
+    assert executable is not None, "The installed database setup command is missing"
+    command = [executable, str(path)]
     created = subprocess.run(
         command, cwd=tmp_path, capture_output=True, text=True, timeout=5
     )
