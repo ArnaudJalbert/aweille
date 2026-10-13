@@ -2,7 +2,7 @@ import pytest
 
 
 def test_normalized_retry_and_conflict_preserve_original(api_client, run_request):
-    original = api_client.post("/api/runs", json=run_request)
+    original = api_client.post("/v1/runs", json=run_request)
     assert original.status_code == 201
     retry = {
         **run_request,
@@ -11,13 +11,13 @@ def test_normalized_retry_and_conflict_preserve_original(api_client, run_request
         "user_note": " \n ",
         "trainer_note": None,
     }
-    response = api_client.post("/api/runs", json=retry)
+    response = api_client.post("/v1/runs", json=retry)
     assert response.status_code == 200
     assert response.json() == original.json()
-    response = api_client.post("/api/runs", json={**retry, "run_type": "long"})
+    response = api_client.post("/v1/runs", json={**retry, "run_type": "long"})
     assert response.status_code == 409
     assert isinstance(response.json()["detail"], str)
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == [
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == [
         original.json()
     ]
 
@@ -63,13 +63,13 @@ def test_normalized_retry_and_conflict_preserve_original(api_client, run_request
 def test_invalid_creation_is_rejected_without_saving(
     api_client, run_request, changes, location
 ):
-    response = api_client.post("/api/runs", json={**run_request, **changes})
+    response = api_client.post("/v1/runs", json={**run_request, **changes})
     assert response.status_code == 422
     problem = response.json()["detail"][0]
     assert problem["loc"] == ["body", *location]
     assert set(problem) == {"loc", "type", "msg"}
     assert "invalid-private-input" not in response.text
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == []
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == []
 
 
 @pytest.mark.parametrize(
@@ -93,22 +93,22 @@ def test_invalid_creation_is_rejected_without_saving(
 def test_invalid_section_rejects_whole_run(api_client, run_request, field, value):
     section = {"distance_m": "1000", "target_pace_seconds_per_km": "390"}
     run_request["sections"].append({**section, field: value})
-    response = api_client.post("/api/runs", json=run_request)
+    response = api_client.post("/v1/runs", json=run_request)
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["body", "sections", 1, field]
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == []
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == []
 
 
 @pytest.mark.parametrize("field", ["id", "planned_date", "run_type", "sections"])
 def test_missing_required_field(api_client, run_request, field):
     del run_request[field]
-    response = api_client.post("/api/runs", json=run_request)
+    response = api_client.post("/v1/runs", json=run_request)
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["body", field]
 
 
 def test_invalid_uuid_error_does_not_echo_input(api_client, run_request):
-    response = api_client.post("/api/runs", json={**run_request, "id": "Q"})
+    response = api_client.post("/v1/runs", json={**run_request, "id": "Q"})
     assert response.status_code == 422
     assert response.json()["detail"] == [
         {
@@ -121,7 +121,7 @@ def test_invalid_uuid_error_does_not_echo_input(api_client, run_request):
 
 def test_nonexistent_montreal_time_has_field_location(api_client, run_request):
     run_request.update(planned_date="2026-03-08", planned_start_time="02:30")
-    response = api_client.post("/api/runs", json=run_request)
+    response = api_client.post("/v1/runs", json=run_request)
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["body", "planned_start_time"]
 
@@ -140,7 +140,7 @@ def test_nonexistent_montreal_time_has_field_location(api_client, run_request):
     ],
 )
 def test_invalid_range_query(api_client, query, field):
-    response = api_client.get(f"/api/runs?{query}")
+    response = api_client.get(f"/v1/runs?{query}")
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["query", field]
     assert "private-input" not in response.text
@@ -158,7 +158,7 @@ def test_range_boundaries_and_date_time_uuid_order(api_client, run_request):
     ]
     for number, planned_date, planned_start_time in scenarios:
         response = api_client.post(
-            "/api/runs",
+            "/v1/runs",
             json={
                 **run_request,
                 "id": f"00000000-0000-0000-0000-{number:012d}",
@@ -167,7 +167,7 @@ def test_range_boundaries_and_date_time_uuid_order(api_client, run_request):
             },
         )
         assert response.status_code == 201
-    response = api_client.get("/api/runs?start=2026-10-12&end=2026-10-19")
+    response = api_client.get("/v1/runs?start=2026-10-12&end=2026-10-19")
     assert response.status_code == 200
     assert [run["id"] for run in response.json()] == [
         "00000000-0000-0000-0000-000000000002",
@@ -176,7 +176,7 @@ def test_range_boundaries_and_date_time_uuid_order(api_client, run_request):
         "00000000-0000-0000-0000-000000000005",
         "00000000-0000-0000-0000-000000000006",
     ]
-    assert api_client.get("/api/runs?start=2026-11-01&end=2026-11-02").json() == []
+    assert api_client.get("/v1/runs?start=2026-11-01&end=2026-11-02").json() == []
 
 
 def test_exact_large_targets_and_notes_survive_http(api_client, run_request):
@@ -188,10 +188,10 @@ def test_exact_large_targets_and_notes_survive_http(api_client, run_request):
         user_note="  first line\n  second line  ",
         sections=[{"distance_m": digits, "target_pace_seconds_per_km": digits}],
     )
-    response = api_client.post("/api/runs", json=run_request)
+    response = api_client.post("/v1/runs", json=run_request)
     assert response.status_code == 201
     saved = response.json()
     assert saved["sections"] == run_request["sections"]
     assert saved["user_note"] == "first line\n  second line"
     assert saved["planned_start_time"] == "01:30"
-    assert api_client.get("/api/runs?start=2026-11-01&end=2026-11-02").json() == [saved]
+    assert api_client.get("/v1/runs?start=2026-11-01&end=2026-11-02").json() == [saved]

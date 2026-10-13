@@ -14,15 +14,15 @@ def test_missing_database_returns_retryable_errors_without_recreating(
     moved = database_path.with_name("moved.sqlite")
     database_path.rename(moved)
     for response in (
-        api_client.post("/api/runs", json=run_request),
-        api_client.get("/api/runs?start=2026-10-14&end=2026-10-15"),
+        api_client.post("/v1/runs", json=run_request),
+        api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15"),
     ):
         assert response.status_code == 503
         assert isinstance(response.json()["detail"], str)
         assert str(database_path) not in response.text
     assert not database_path.exists()
     moved.rename(database_path)
-    assert api_client.post("/api/runs", json=run_request).status_code == 201
+    assert api_client.post("/v1/runs", json=run_request).status_code == 201
 
 
 def test_lock_contention_can_be_resolved_by_retry(
@@ -30,11 +30,11 @@ def test_lock_contention_can_be_resolved_by_retry(
 ):
     with closing(sqlite3.connect(database_path)) as blocker:
         blocker.execute("BEGIN EXCLUSIVE")
-        response = api_client.post("/api/runs", json=run_request)
+        response = api_client.post("/v1/runs", json=run_request)
         assert response.status_code == 503
         blocker.rollback()
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == []
-    assert api_client.post("/api/runs", json=run_request).status_code == 201
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == []
+    assert api_client.post("/v1/runs", json=run_request).status_code == 201
 
 
 def test_failed_write_has_safe_error_and_no_partial_save(
@@ -45,13 +45,13 @@ def test_failed_write_has_safe_error_and_no_partial_save(
             "CREATE TRIGGER reject_run AFTER INSERT ON runs "
             "BEGIN SELECT RAISE(ABORT, 'PRIVATE SQL failure'); END"
         )
-    response = api_client.post("/api/runs", json=run_request)
+    response = api_client.post("/v1/runs", json=run_request)
     assert response.status_code == 500
     assert set(response.json()) == {"detail"}
     assert "PRIVATE" not in response.text
     assert "INSERT" not in response.text
     assert str(database_path) not in response.text
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == []
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == []
 
 
 @pytest.mark.parametrize("operation", ["save", "get"])
@@ -65,9 +65,9 @@ def test_unexpected_port_failure_is_safe_and_logged(
         create_app(storage=storage), raise_server_exceptions=False
     ) as client:
         response = (
-            client.post("/api/runs", json=run_request)
+            client.post("/v1/runs", json=run_request)
             if operation == "save"
-            else client.get("/api/runs?start=2026-10-14&end=2026-10-15")
+            else client.get("/v1/runs?start=2026-10-14&end=2026-10-15")
         )
     assert response.status_code == 500
     assert response.json() == {

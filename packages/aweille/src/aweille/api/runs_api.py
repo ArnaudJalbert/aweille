@@ -9,7 +9,7 @@ from .run_request import RunRequest
 router = APIRouter(route_class=CreationRoute)
 
 
-@router.post("/api/runs", status_code=201)
+@router.post("/runs", status_code=201)
 def post_run(data: RunRequest, request: Request, response: Response) -> dict[str, Any]:
     """Create a planned run from JSON and return its committed representation.
 
@@ -33,7 +33,7 @@ def post_run(data: RunRequest, request: Request, response: Response) -> dict[str
     return run.to_dict()
 
 
-@router.get("/api/runs")
+@router.get("/runs")
 def get_runs(
     query: Annotated[RangeQuery, Query()], request: Request
 ) -> list[dict[str, Any]]:

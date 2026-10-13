@@ -45,7 +45,7 @@ def create_app(*, storage: RunStorage | None = None) -> FastAPI:
         app.add_exception_handler(error, failure_response)
     app.state.create_run = partial(create_run, storage)
     app.state.read_runs = partial(read_runs, storage)
-    app.include_router(router)
+    app.include_router(router, prefix="/v1")
     return app
 
 

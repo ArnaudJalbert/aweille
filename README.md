@@ -159,6 +159,8 @@ The default lock wait is one second, configurable through `timeout`. SQLite hand
 
 ## Local HTTP API
 
+Version 1 exposes `POST /v1/runs` for creation and `GET /v1/runs?start=YYYY-MM-DD&end=YYYY-MM-DD` for range reads. FastAPI registers the `/runs` resource under the `/v1` prefix.
+
 Prepare the default persistent database once, then start the API on loopback:
 
 ```sh
@@ -175,7 +177,7 @@ The factory defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another
 Create the representative interval run:
 
 ```sh
-curl -i http://127.0.0.1:8000/api/runs \
+curl -i http://127.0.0.1:8000/v1/runs \
   -H 'Content-Type: application/json' \
   --data-binary @- <<'JSON'
 {
@@ -193,7 +195,7 @@ curl -i http://127.0.0.1:8000/api/runs \
 }
 JSON
 
-curl 'http://127.0.0.1:8000/api/runs?start=2026-10-12&end=2026-10-19'
+curl 'http://127.0.0.1:8000/v1/runs?start=2026-10-12&end=2026-10-19'
 ```
 
 Creation returns `201` and the normalized run after commit. Replaying the same normalized run with its original ID returns `200`; changed data under that ID returns `409` without overwriting it. Time and notes may be omitted or null. Reads return a plain JSON array covering `[start, end)`, ordered by date, then start time with untimed runs last, then UUID. Both query dates are required; unknown fields and query parameters are rejected.

@@ -35,17 +35,17 @@ def test_create_normalize_and_read_after_restart(database_path: Path, monkeypatc
         "trainer_note": "Finish relaxed.",
     }
     with TestClient(create_app()) as client:
-        response = client.post("/api/runs", json=payload)
+        response = client.post("/v1/runs", json=payload)
         assert response.status_code == 201
         assert response.json() == expected
-        response = client.get("/api/runs?start=2026-10-12&end=2026-10-19")
+        response = client.get("/v1/runs?start=2026-10-12&end=2026-10-19")
         assert response.status_code == 200
         assert response.json() == [expected]
     with TestClient(create_app()) as client:
-        assert client.get("/api/runs?start=2026-10-12&end=2026-10-19").json() == [
+        assert client.get("/v1/runs?start=2026-10-12&end=2026-10-19").json() == [
             expected
         ]
-        retry = client.post("/api/runs", json=payload)
+        retry = client.post("/v1/runs", json=payload)
         assert retry.status_code == 200
         assert retry.json() == expected
 
@@ -83,10 +83,10 @@ def test_default_and_tilde_database_paths_persist(
     else:
         monkeypatch.setenv("AWEILLE_DB_PATH", configured)
     with TestClient(create_app()) as client:
-        saved = client.post("/api/runs", json=run_request)
+        saved = client.post("/v1/runs", json=run_request)
         assert saved.status_code == 201
     with TestClient(create_app()) as client:
-        assert client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == [
+        assert client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == [
             saved.json()
         ]
 
@@ -102,8 +102,8 @@ def test_relative_path_is_resolved_once_at_startup(
     monkeypatch.chdir(elsewhere)
     monkeypatch.setenv("AWEILLE_DB_PATH", "missing.sqlite")
     with TestClient(app) as client:
-        assert client.post("/api/runs", json=run_request).status_code == 201
-        assert len(client.get("/api/runs?start=2026-10-14&end=2026-10-15").json()) == 1
+        assert client.post("/v1/runs", json=run_request).status_code == 201
+        assert len(client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json()) == 1
     assert not (elsewhere / database_path.name).exists()
 
 
@@ -116,8 +116,8 @@ def test_unprepared_file_is_not_repaired_at_startup_or_during_requests(
     monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
     with TestClient(create_app()) as client:
         for response in (
-            client.post("/api/runs", json=run_request),
-            client.get("/api/runs?start=2026-10-14&end=2026-10-15"),
+            client.post("/v1/runs", json=run_request),
+            client.get("/v1/runs?start=2026-10-14&end=2026-10-15"),
         ):
             assert response.status_code == 500
             assert "PRIVATE" not in response.text

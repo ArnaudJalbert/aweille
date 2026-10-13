@@ -10,7 +10,7 @@ import pytest
 )
 def test_invalid_json_has_safe_body_error(api_client, content):
     response = api_client.post(
-        "/api/runs", content=content, headers={"content-type": "application/json"}
+        "/v1/runs", content=content, headers={"content-type": "application/json"}
     )
     assert response.status_code == 422
     problem = response.json()["detail"][0]
@@ -24,7 +24,7 @@ def test_invalid_json_has_safe_body_error(api_client, content):
 def test_creation_requires_json(api_client, run_request, media_type):
     headers = {"content-type": media_type} if media_type else {}
     response = api_client.post(
-        "/api/runs", content=json.dumps(run_request), headers=headers
+        "/v1/runs", content=json.dumps(run_request), headers=headers
     )
     assert response.status_code == 415
     assert isinstance(response.json()["detail"], str)
@@ -49,7 +49,7 @@ def test_received_body_limit_including_missing_or_false_content_length(
             transport=httpx.ASGITransport(app=api_client.app),
             base_url="http://testserver",
         ) as client:
-            return await client.post("/api/runs", content=chunks(), headers=headers)
+            return await client.post("/v1/runs", content=chunks(), headers=headers)
 
     for declared_length in (None, "1"):
         response = asyncio.run(send_chunks(declared_length))
@@ -58,7 +58,7 @@ def test_received_body_limit_including_missing_or_false_content_length(
             assert isinstance(response.json()["detail"], str)
         else:
             assert response.status_code in (200, 201)
-    saved = api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json()
+    saved = api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json()
     assert len(saved) == (0 if extra_bytes else 1)
 
 
@@ -66,7 +66,7 @@ def test_limit_counts_utf8_bytes_with_content_length(api_client, run_request):
     run_request["user_note"] = "é" * 600_000
     body = json.dumps(run_request, ensure_ascii=False).encode()
     response = api_client.post(
-        "/api/runs", content=body, headers={"content-type": "application/json"}
+        "/v1/runs", content=body, headers={"content-type": "application/json"}
     )
     assert response.status_code == 413
-    assert api_client.get("/api/runs?start=2026-10-14&end=2026-10-15").json() == []
+    assert api_client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == []
