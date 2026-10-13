@@ -10,16 +10,16 @@ Checks cover exact fields and notes, ordered repeated sections, targets beyond P
 
 Failure cases cover unrelated schemas, non-SQLite files, malformed saved data, read-time domain failures, contention, rollback, missing parents, missing files, and unsupported text encoding. Setup tests verify successful CLI creation, refusal to overwrite existing files, and cleanup after failed initialization. A SQLite connection subclass injects failures before and after a commit, checking both rollback and retry after an uncertain successful commit. Tests do not assert SQL calls or private helper behavior.
 
-`PlannedRun` uses the generated frozen dataclass constructor. Its `__post_init__` validates and normalizes section sequences, notes, and local times once. `create_run` calls the constructor directly, preserving its existing public interface. A constructor regression verifies normalization and independence from the caller's section list. The model's public `to_dict` and class method `from_dict` own the canonical portable representation; decoding still rejects noncanonical saved values. SQLite maps that representation to columns and JSON. Instance helpers use `self`; decoding helpers use `cls` where they need the model class.
+`PlannedRun` uses the generated frozen dataclass constructor. Its `__post_init__` only validates fields. `create_run` normalizes section sequences, notes, and local times before calling the constructor directly, preserving its existing public interface. Constructor tests reject invalid and unnormalized fields; creation tests verify normalization and independence from the caller's section list. The model's public `to_dict` and class method `from_dict` own the canonical portable representation; decoding rejects noncanonical saved values. SQLite maps that representation to columns and JSON. Instance helpers use `self`; decoding helpers use `cls` where they need the model class.
 
 ## Results
 
 | Check | Result |
 | --- | --- |
 | All adapter tests with `-q --durations=3` | 22 passed in 0.25 seconds; command wall time 0.319 seconds. |
-| Full pytest suite with branch coverage and `--durations=5` | 113 passed in 0.38 seconds after the constructor revision; command wall time 0.480 seconds. |
+| Full pytest suite with branch coverage and `--durations=5` | 116 passed in 0.37 seconds after the constructor revision; command wall time 0.403 seconds. |
 | Core and SQLite adapter coverage | 100% of statements and branches. |
-| Overall core and adapters coverage | 97% across 282 statements and 54 branches. |
+| Overall core and adapters coverage | 97% across 289 statements and 58 branches. |
 | `uv run ty check` | Passed. |
 | `uv run ruff check .` | Passed. |
 | `uv run ruff format --check .` | Passed. |

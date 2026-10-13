@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -20,15 +20,15 @@ from .section import Section
 
 @dataclass(frozen=True)
 class PlannedRun:
-    """An immutable planned run that validates and normalizes domain fields.
+    """An immutable planned run that validates already-normalized domain fields.
 
     Args:
         id: Caller-supplied UUID.
         planned_date: Montreal calendar date.
         planned_start_time: Optional naive local time with minute precision.
         run_type: A RunType member.
-        sections: Non-empty ordered Section values, copied into an immutable tuple.
-        user_note: Optional user text, trimmed with blank notes treated as absent.
+        sections: Non-empty immutable tuple of ordered Section values.
+        user_note: Optional nonblank user text with outer whitespace trimmed.
         trainer_note: Optional trainer text with the same normalization rules.
 
     Raises:
@@ -40,7 +40,7 @@ class PlannedRun:
     planned_date: date
     planned_start_time: time | None
     run_type: RunType
-    sections: Sequence[Section]
+    sections: tuple[Section, ...]
     user_note: str | None
     trainer_note: str | None
 
@@ -50,18 +50,19 @@ class PlannedRun:
         self._validate_id(self.id)
         validate_date(self.planned_date, "planned_date")
         self._validate_start_time(self.planned_date, self.planned_start_time)
-        if self.planned_start_time is not None:
-            object.__setattr__(
-                self, "planned_start_time", self.planned_start_time.replace(fold=0)
+        if self.planned_start_time is not None and self.planned_start_time.fold:
+            raise_validation_error(
+                ("planned_start_time",),
+                "invalid_start_time",
+                "Start time must not select a daylight-saving occurrence.",
             )
         self._validate_run_type(self.run_type)
         self._validate_sections(self.sections)
-        object.__setattr__(self, "sections", tuple(self.sections))
         for field, note in (
             ("user_note", self.user_note),
             ("trainer_note", self.trainer_note),
         ):
-            object.__setattr__(self, field, self._normalize_note(note, field))
+            self._validate_note(note, field)
 
     def to_dict(self) -> dict[str, Any]:
         """Encode a normalized run as portable canonical values.
@@ -164,16 +165,12 @@ class PlannedRun:
             )
 
     @staticmethod
-    def _validate_sections(sections: Sequence[Section]) -> None:
-        if (
-            not isinstance(sections, Sequence)
-            or isinstance(sections, (str, bytes, bytearray))
-            or not sections
-        ):
+    def _validate_sections(sections: tuple[Section, ...]) -> None:
+        if not isinstance(sections, tuple) or not sections:
             raise_validation_error(
                 ("sections",),
                 "invalid_sections",
-                "Supply at least one ordered section.",
+                "Supply an immutable tuple with at least one ordered section.",
             )
         for index, section in enumerate(sections):
             if not isinstance(section, Section):
@@ -181,15 +178,17 @@ class PlannedRun:
                     ("sections", index), "invalid_section", "Supply a Section value."
                 )
 
-    def _normalize_note(self, note: str | None, field: str) -> str | None:
-        self._validate_note(note, field)
-        return note.strip() or None if note is not None else None
-
     @staticmethod
     def _validate_note(note: str | None, field: str) -> None:
         if note is not None and not isinstance(note, str):
             raise_validation_error(
                 (field,), "invalid_note", "Note must be plain text or absent."
+            )
+        if note is not None and (not note or note.strip() != note):
+            raise_validation_error(
+                (field,),
+                "invalid_note",
+                "Notes must be trimmed and nonblank, or absent.",
             )
 
     def _validate_start_time(self, planned_date: date, value: time | None) -> None:

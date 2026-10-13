@@ -20,8 +20,18 @@ from aweille.core import (
         ({"id": "invalid"}, "id"),
         ({"run_type": "easy"}, "run_type"),
         ({"sections": []}, "sections"),
+        ({"sections": [Section(Distance(1000), Pace(390))]}, "sections"),
         ({"user_note": 123}, "user_note"),
+        ({"user_note": "  Needs trimming  "}, "user_note"),
         ({"trainer_note": True}, "trainer_note"),
+        ({"trainer_note": ""}, "trainer_note"),
+        (
+            {
+                "planned_date": date(2026, 11, 1),
+                "planned_start_time": time(1, 30, fold=1),
+            },
+            "planned_start_time",
+        ),
         (
             {
                 "planned_date": date(2026, 11, 1),
@@ -31,7 +41,7 @@ from aweille.core import (
         ),
     ],
 )
-def test_planned_run_constructor_rejects_invalid_fields(
+def test_planned_run_constructor_rejects_invalid_or_unnormalized_fields(
     storage: RunStorage,
     run_input: dict[str, Any],
     changes: dict[str, Any],
@@ -43,29 +53,6 @@ def test_planned_run_constructor_rejects_invalid_fields(
         replace(run, **changes)
 
     assert failure.value.problems[0].loc == (field,)
-
-
-def test_planned_run_constructor_normalizes_and_copies_inputs(
-    run_input: dict[str, Any],
-) -> None:
-    run_input.update(
-        planned_date=date(2026, 11, 1),
-        planned_start_time=time(1, 30, fold=1),
-        user_note=" \n First  line\n\tSecond line. \t",
-        trainer_note=" \t ",
-    )
-    expected_sections = tuple(run_input["sections"])
-
-    run = PlannedRun(**run_input)
-    run_input["sections"].clear()
-
-    assert run.sections == expected_sections
-    assert isinstance(run.sections, tuple)
-    assert run.planned_start_time is not None
-    assert run.planned_start_time == time(1, 30)
-    assert run.planned_start_time.fold == 0
-    assert run.user_note == "First  line\n\tSecond line."
-    assert run.trainer_note is None
 
 
 def test_planned_run_dictionary_round_trip_preserves_exact_ordered_targets(

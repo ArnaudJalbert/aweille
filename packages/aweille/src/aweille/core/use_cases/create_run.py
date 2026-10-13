@@ -6,6 +6,7 @@ from ..errors.run_conflict import RunConflict
 from ..models.planned_run import PlannedRun
 from ..models.run_type import RunType
 from ..models.section import Section
+from ..raise_validation_error import raise_validation_error
 from ..run_storage import RunStorage
 
 
@@ -56,15 +57,33 @@ def create_run(
         id=id,
         planned_date=planned_date,
         run_type=run_type,
-        sections=sections,
-        planned_start_time=planned_start_time,
-        user_note=user_note,
-        trainer_note=trainer_note,
+        sections=_normalize_sections(sections),
+        planned_start_time=_normalize_start_time(planned_start_time),
+        user_note=_normalize_note(user_note),
+        trainer_note=_normalize_note(trainer_note),
     )
     stored_run, inserted = storage.save(run)
     if not inserted:
         _ensure_retry_matches(run, stored_run)
     return stored_run, inserted
+
+
+def _normalize_sections(sections: Sequence[Section]) -> tuple[Section, ...]:
+    if not isinstance(sections, Sequence) or isinstance(
+        sections, (str, bytes, bytearray)
+    ):
+        raise_validation_error(
+            ("sections",), "invalid_sections", "Supply at least one ordered section."
+        )
+    return tuple(sections)
+
+
+def _normalize_start_time(value: time | None) -> time | None:
+    return value.replace(fold=0) if type(value) is time else value
+
+
+def _normalize_note(note: str | None) -> str | None:
+    return note.strip() or None if isinstance(note, str) else note
 
 
 def _ensure_retry_matches(proposed: PlannedRun, stored: PlannedRun) -> None:
