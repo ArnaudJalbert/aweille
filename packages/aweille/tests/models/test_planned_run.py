@@ -114,7 +114,7 @@ def test_dictionary_decoder_rejects_malformed_or_noncanonical_values(
     data = run.to_dict()
     data.update(changes)
 
-    with pytest.raises((ValueError, ValidationError)) as failure:
+    with pytest.raises(ValueError) as failure:
         PlannedRun.from_dict(data)
 
     assert "PRIVATE" not in str(failure.value)

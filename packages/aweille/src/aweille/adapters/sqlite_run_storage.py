@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from aweille.core import PlannedRun, StorageFailure, StorageUnavailable, ValidationError
+from aweille.core import PlannedRun, StorageFailure, StorageUnavailable
 
 
 class SQLiteRunStorage:
@@ -118,6 +118,5 @@ class SQLiteRunStorage:
             KeyError,
             AttributeError,
             RecursionError,
-            ValidationError,
         ):
             raise StorageFailure("Saved run data is invalid.") from None

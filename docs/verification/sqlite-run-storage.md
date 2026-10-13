@@ -34,6 +34,8 @@ The test audit moved canonical encoding cases to the public model methods and re
 
 The standards review found no issues. Spec review caught text-encoding error translation and loss of structured domain errors in model decoding. Both were fixed with public-interface regressions. The adapter reports safe storage errors, and the model preserves domain validation details. The full suite and static checks passed after the fixes.
 
+The final review compared the full PR with `main` at `d926e1f`. Parallel standards and spec reviews each found zero issues. The lean pass removed redundant `ValidationError` entries where `ValueError` already covers that subclass, in the storage handler and a model rejection assertion. Both reviewers checked the cleanup. All 116 tests and required checks passed afterward, with statement and branch coverage unchanged.
+
 ## Scope
 
 Storage assumes the database has been prepared correctly and performs no schema creation or compatibility checks. From the repository root, run `uv run aweille-init-db aweille.sqlite` once before application startup. Installed applications can use `aweille-init-db <path>` without a source checkout. The command refuses existing files and removes its new file if creation fails. Reopen tests verify ordinary persistence, not survival of power loss. Application configuration, HTTP, and browser acceptance checks remain in later tickets.
