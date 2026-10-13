@@ -6,7 +6,9 @@ Verified locally on October 13, 2026, with Python 3.13.14 for [issue #5](https:/
 
 Tests call the public `Distance`, `Pace`, and `Section` constructors and the `create_run` and `read_runs` use cases. Numeric validation happens during construction. Use-case tests use an in-memory storage fake for saved behavior and mocks at the `RunStorage` port for failures. Assertions check returned values, errors, and saved behavior.
 
-## Results
+## Core-step results
+
+These measurements record the core step before SQLite storage and the model dictionary methods were added. [SQLite storage verification](sqlite-run-storage.md) records the current full-suite results and constructor contract.
 
 | Check | Result |
 | --- | --- |
@@ -33,4 +35,4 @@ Covered behavior:
 
 ## Remaining checks
 
-The fake verifies core behavior. Real SQLite transactions, concurrency, committed snapshots, HTTP parsing and errors, browser conversion and display, and restart persistence belong to the later adapter steps.
+The fake verifies core behavior. Real SQLite transactions, concurrency, committed snapshots, and reopening are now verified in [SQLite storage verification](sqlite-run-storage.md). HTTP parsing and errors, browser conversion and display, and a complete application restart remain future adapter checks.

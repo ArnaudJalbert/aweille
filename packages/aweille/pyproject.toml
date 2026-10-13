@@ -5,6 +5,9 @@ description = "Planned running workouts with exact targets and Montreal scheduli
 requires-python = ">=3.13"
 dependencies = []
 
+[project.scripts]
+aweille-init-db = "aweille.adapters.create_database:main"
+
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]
 build-backend = "uv_build"
