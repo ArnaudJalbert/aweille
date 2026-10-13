@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core is implemented. HTTP, SQLite persistence, and the web interface come next.
+This README defines the first version I want to build. The planned-run core and SQLite storage are implemented. HTTP and the web interface come next.
 
 I'm planning the first create, save, and display workflow in the [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) before starting implementation.
 
@@ -117,7 +117,7 @@ sections = [
 
 `Distance` and `Pace` validate during construction. They accept positive integers only, rejecting booleans, floats, Decimal values, and strings without coercion. Distances use whole metres; paces use whole seconds per kilometre. Neither has a domain upper limit. `Section` requires these validated value objects. Both input and saved runs use this same section model. Read numeric values through `section.distance.metres` and `section.target_pace.seconds_per_km`.
 
-`create_run` validates the run fields and non-empty section sequence before saving. It copies sections into an immutable tuple, preserving order and repeated entries. `PlannedRun` is immutable. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
+`PlannedRun` validates and normalizes its fields during construction. It copies the non-empty section sequence into an immutable tuple, preserving order and repeated entries. `create_run` constructs this immutable model before saving. Run IDs remain caller-supplied `UUID` values; `str(run.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset or selected daylight-saving occurrence. Blank notes become `None`; other notes retain internal spacing and line breaks after outer whitespace is trimmed.
 
 Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The future request adapter maps constructor errors to request fields and section indexes, adds HTTP location prefixes, and selects status codes. Unknown enum strings raise `ValueError` during `RunType(value)` parsing; adapters translate that error without exposing the input.
 
@@ -125,7 +125,25 @@ Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(st
 
 The October 13, 2026 review agreement revises the earlier [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787). Core inputs now use validated metre-based values, and the storage methods are named `save` and `get`. The future API replaces `distance_km` with `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`. Target pace remains the decimal-digit string `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, exponent notation, and whitespace remain invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
-Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). Real HTTP and SQLite checks belong to the next implementation step.
+Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter; HTTP checks belong to the next implementation step.
+
+## SQLite storage
+
+Import `SQLiteRunStorage` from `aweille.adapters`:
+
+```python
+from aweille.adapters import SQLiteRunStorage
+
+storage = SQLiteRunStorage("aweille.sqlite", timeout=1.0)
+```
+
+Construction initializes an empty file or checks its existing schema. The parent directory must exist. Storage recognizes its initial schema version and rejects incompatible files without changing them. Migrations, default-path selection, environment configuration, and application wiring belong to the API step.
+
+The adapter implements `RunStorage.save/get`. Each operation closes its connections, and reads use a committed snapshot. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
+
+Sections use JSON with canonical decimal-digit strings for `distance_m` and `target_pace_seconds_per_km`, preserving exact integers without an imposed numeric limit. Reads construct validated core models. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain commit failure can be resolved by retrying the same ID.
+
+The default lock wait is one second, configurable through `timeout`. SQLite handles this bounded wait; the adapter adds no retry loop. Tests use real temporary files, short deliberate lock waits, and targeted driver fault injection. See [SQLite storage verification](docs/verification/sqlite-run-storage.md) and [testing research](docs/research/sqlite-storage-testing.md).
 
 ## First-version completion
 
