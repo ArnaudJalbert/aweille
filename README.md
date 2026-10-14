@@ -70,7 +70,7 @@ The repository uses a [uv workspace](https://docs.astral.sh/uv/concepts/projects
 Within `aweille`:
 
 - `aweille/core` contains entities, value objects, ports, and use cases.
-- `aweille/api` contains HTTP routes, request models, error handling, and application wiring.
+- `aweille/api` contains HTTP routes, request and response models, error handling, and application wiring.
 - `aweille/adapters` contains storage adapters and database setup.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
@@ -82,14 +82,14 @@ I'll use a small hexagonal architecture within one package, with core business r
 | Module | Responsibility |
 | --- | --- |
 | `aweille/core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
-| `aweille/api` | HTTP routes, request models, error handling, and the application factory. |
+| `aweille/api` | HTTP routes, request and response models, error handling, the application factory, and local startup. |
 | `aweille/adapters` | Concrete port implementations, SQLite storage, and database setup. |
 
-Within `aweille/api`, `routes/` holds the HTTP handlers and creation transport guard; `schemas/` holds the Pydantic request models and shared field types. The application factory and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`.
+Within `aweille/api`, `routes/` holds the HTTP handlers and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`.
 
-Both `aweille/api` and `aweille/adapters` depend on core. The application factory also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
+Both `aweille/api` and `aweille/adapters` depend on core. The local startup module also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
-One factory in `aweille/api` constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
+The local entry point, `aweille.api.main:app`, constructs SQLite storage and passes it explicitly to `create_app(storage=...)`. This single application factory requires a core-owned `RunStorage` port and binds it to the use cases. HTTP handlers use those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
 
 The browser always calls the API for application data and changes. The trainer uses the same API. Page templates provide the interface structure; browser interactions go through the API. All business rules live in core, with HTTP and storage details in adapters.
 
@@ -125,7 +125,7 @@ sections = [
 
 Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The HTTP adapter uses strict Pydantic request models, reports field and section locations, and adds `body` or `query` prefixes. Unknown enum strings are rejected without exposing the input.
 
-Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds SQLite storage to the functions with `functools.partial`.
+Implement the core-owned `RunStorage` protocol to supply `save(run)` and `get(start, end)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds the supplied storage port to the functions with `functools.partial`.
 
 The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser will convert distances to and from kilometres exactly and format seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
@@ -151,7 +151,7 @@ from aweille.adapters import SQLiteRunStorage
 storage = SQLiteRunStorage("aweille.sqlite", timeout=1.0)
 ```
 
-Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. The application factory resolves the database path and rejects missing files; application startup does not create or repair the schema.
+Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. Local startup resolves the database path and rejects missing files; it does not create or repair the schema.
 
 The adapter implements `RunStorage.save/get`. Each operation closes its connections, and reads use a committed snapshot. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
 
@@ -169,12 +169,14 @@ Prepare the default persistent database once, then start the API on loopback:
 uv sync --locked --all-packages
 mkdir -p ~/.local/share/aweille
 uv run aweille-init-db ~/.local/share/aweille/aweille.sqlite3
-uv run uvicorn aweille.api.create_app:create_app --factory --host 127.0.0.1 --port 8000
+uv run uvicorn aweille.api.main:app --host 127.0.0.1 --port 8000
 ```
 
 For an installed package, use `aweille-init-db` and `uvicorn` without `uv run`. Setup refuses an existing file, so skip it when restarting with an already prepared database.
 
-The factory defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another prepared file, set `AWEILLE_DB_PATH` before starting Uvicorn. The factory expands `~` and resolves the path once; relative paths use the startup working directory. Empty values, `:memory:`, missing files, and directories fail startup with a configuration error. Schema and connection failures return safe HTTP errors during requests. Startup never creates or repairs storage. Remote deployment is outside this workflow.
+The local entry point defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another prepared file, set `AWEILLE_DB_PATH` before starting Uvicorn. It expands `~` and resolves the path once; relative paths use the startup working directory. Empty values, `:memory:`, missing files, and directories fail startup with a configuration error. Schema and connection failures return safe HTTP errors during requests. Startup never creates or repairs storage. Remote deployment is outside this workflow.
+
+When embedding or testing the application, call `create_app(storage=...)` with an initialized `RunStorage` implementation. The factory reads no database configuration and creates no storage adapter.
 
 Create the representative interval run:
 
@@ -200,7 +202,9 @@ JSON
 curl 'http://127.0.0.1:8000/v1/runs?start=2026-10-12&end=2026-10-19'
 ```
 
-Creation returns `201` and the normalized run after commit. Replaying the same normalized run with its original ID returns `200`; changed data under that ID returns `409` without overwriting it. Time and notes may be omitted or null. Reads return a plain JSON array covering `[start, end)`, ordered by date, then start time with untimed runs last, then UUID. Both query dates are required; unknown fields and query parameters are rejected.
+Creation returns `201` and the normalized run after commit. Replaying the same normalized run with its original ID returns `200`; changed data under that ID returns `409` without overwriting it. Time and notes may be omitted or null. Reads return a plain JSON array covering `[start, end)`, ordered by date, then start time with untimed runs last, then UUID. Both query dates are required; unknown fields and query parameters are rejected. Repeated scalar query parameters use their last value, following FastAPI's behavior.
+
+Both endpoints return validated `RunResponse` models, with `SectionResponse` models preserving canonical distance and pace strings. The response includes all fields, including null time and notes. FastAPI documents creation, identical retries, and the read array in `/openapi.json`.
 
 Validation and malformed JSON return `422` with `detail` problems containing `loc`, `type`, and `msg`. Other errors have a short `detail` string: `413` for a creation body over 1 MiB of received bytes, `415` for a non-JSON content type, `503` for temporary storage unavailability, and `500` for other operation failures. Exactly 1 MiB is permitted, including streamed requests without Content-Length. Responses omit raw input values and internal diagnostics; diagnostics go to local logs.
 

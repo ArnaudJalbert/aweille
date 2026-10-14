@@ -7,7 +7,11 @@ from fastapi.routing import APIRoute
 
 
 class CreationRoute(APIRoute):
-    """Apply creation transport rules before FastAPI parses and validates fields."""
+    """Enforce the 1 MiB stream limit and the required 415/422 transport errors.
+
+    These checks run before FastAPI validates request fields. FastAPI's defaults
+    do not cap JSON bodies and use different statuses for some decoding errors.
+    """
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
         """Wrap the normal FastAPI handler with a bounded creation request.

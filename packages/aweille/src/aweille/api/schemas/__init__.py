@@ -1,1 +1,1 @@
-"""Pydantic request models and encoded field types."""
+"""Pydantic request and response models and encoded field types."""

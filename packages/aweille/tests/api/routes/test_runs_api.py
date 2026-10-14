@@ -1,6 +1,35 @@
 import pytest
 
 
+def test_openapi_describes_normalized_run_responses(api_client):
+    document = api_client.get("/openapi.json").json()
+    resource = document["paths"]["/v1/runs"]
+    created = resource["post"]["responses"]["201"]["content"]["application/json"][
+        "schema"
+    ]
+    retry = resource["post"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    read = resource["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert retry == created
+    assert read["type"] == "array"
+    assert read["items"] == created
+    models = document["components"]["schemas"]
+    run = models[created["$ref"].split("/")[-1]]
+    assert set(run["required"]) == {
+        "id",
+        "planned_date",
+        "planned_start_time",
+        "run_type",
+        "sections",
+        "user_note",
+        "trainer_note",
+    }
+    section = models[run["properties"]["sections"]["items"]["$ref"].split("/")[-1]]
+    assert section["properties"]["distance_m"]["type"] == "string"
+    assert section["properties"]["target_pace_seconds_per_km"]["type"] == "string"
+
+
 def test_normalized_retry_and_conflict_preserve_original(api_client, run_request):
     original = api_client.post("/v1/runs", json=run_request)
     assert original.status_code == 201
@@ -136,7 +165,6 @@ def test_nonexistent_montreal_time_has_field_location(api_client, run_request):
         ("start=2026-10-12&end=2026-10-12", "end"),
         ("start=2026-10-19&end=2026-10-12", "end"),
         ("start=2026-10-12&end=2026-10-19&strat=private-input", "strat"),
-        ("start=2026-10-12&start=2026-10-13&end=2026-10-19", "start"),
     ],
 )
 def test_invalid_range_query(api_client, query, field):
@@ -144,6 +172,16 @@ def test_invalid_range_query(api_client, query, field):
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["query", field]
     assert "private-input" not in response.text
+
+
+def test_repeated_query_dates_use_last_value(api_client, run_request):
+    created = api_client.post("/v1/runs", json=run_request)
+    assert created.status_code == 201
+    response = api_client.get(
+        "/v1/runs?start=2026-10-15&start=2026-10-14&end=2026-10-15"
+    )
+    assert response.status_code == 200
+    assert response.json() == [created.json()]
 
 
 def test_range_boundaries_and_date_time_uuid_order(api_client, run_request):
