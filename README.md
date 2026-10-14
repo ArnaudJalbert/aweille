@@ -178,6 +178,20 @@ The local entry point defaults to `~/.local/share/aweille/aweille.sqlite3`. To u
 
 When embedding or testing the application, call `create_app(storage=...)` with an initialized `RunStorage` implementation. The factory reads no database configuration and creates no storage adapter.
 
+### Run locally with Docker
+
+Start Docker Desktop, then run:
+
+```sh
+./scripts/start-service.sh
+```
+
+The script builds from `uv.lock`, starts the service in the background, and waits for it to become healthy. Open [Aweille](http://localhost:8080/). Port 8080 is bound to localhost. Use `AWEILLE_PORT=8081 ./scripts/start-service.sh` to choose another port.
+
+Docker mounts `~/.local/share/aweille` at `/data`, using the existing `aweille.sqlite3` file. Rebuilding or replacing the container preserves your runs. The launcher requires a prepared database and never initializes or replaces it. Set `AWEILLE_DATA_DIR` to use another directory containing `aweille.sqlite3`. The container runs with your user and group IDs so new SQLite files remain writable from the host.
+
+From the repository root, use `docker compose logs -f` to follow logs, `docker compose stop` to stop the service, and the start script to rebuild and start it again. Docker's [unless-stopped restart policy](https://docs.docker.com/engine/containers/start-containers-automatically/) brings the service back when Docker starts, unless you stopped it explicitly. Docker Desktop must be running; the app can continue running after you close your terminal.
+
 Create the representative interval run:
 
 ```sh
