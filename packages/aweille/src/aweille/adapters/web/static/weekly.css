@@ -102,7 +102,6 @@ textarea { min-height: 64px; resize: vertical; }
 .form-card .notice { margin: 16px 0 0; }
 .field-error { color: #991717; font-size: 13px; overflow-wrap: anywhere; }
 [aria-invalid="true"] { border: 2px solid var(--negative); }
-.save-success { color: var(--positive); margin-bottom: 20px; }
 @media (max-width: 760px) {
   .brand { padding-inline: max(14px, calc((100% - 700px) / 2 + 14px)); }
   .shell { padding: 0 14px; margin-top: 24px; }

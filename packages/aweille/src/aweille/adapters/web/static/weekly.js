@@ -177,9 +177,7 @@ async function loadWeek(monday) {
   } else {
     try {
       renderDays(monday, result.runs);
-      status.textContent = "Run saved.";
-      status.className = "save-success";
-      status.hidden = new URLSearchParams(location.search).get("saved") !== "1";
+      status.hidden = true;
     } catch {
       showReadError("The server returned an unreadable response. Try again.");
     }
@@ -217,7 +215,7 @@ function selectWeek(monday, push = true) {
   }
   selectedWeek = monday;
   const url = new URL(location.href);
-  if (push) url.searchParams.delete("saved");
+  url.searchParams.delete("saved");
   url.searchParams.set("week", dateString(monday));
   if (url.href !== location.href) {
     history[push ? "pushState" : "replaceState"](null, "", url);

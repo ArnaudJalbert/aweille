@@ -188,7 +188,7 @@ async function saveRun(event) {
     const data = await response.json().catch(() => null);
     saving = false;
     if ((response.status === 201 || response.status === 200) && data?.id === id && data?.planned_date === payload.planned_date) {
-      location.assign(`${weekUrl(data.planned_date)}&saved=1`);
+      location.assign(weekUrl(data.planned_date));
       return;
     }
     if (response.ok) throw new Error("Unreadable save response");

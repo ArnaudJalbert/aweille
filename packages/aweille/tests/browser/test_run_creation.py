@@ -55,8 +55,9 @@ def test_manual_creation_read_display_restart_and_identical_retry(
     }
     read_url = f"{live_server.url}/v1/runs?start=2026-10-12&end=2026-10-19"
     saved = submitted
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12&saved=1")
-    expect(page.get_by_role("status")).to_have_text("Run saved.")
+    expect(page.get_by_role("heading", level=3)).to_have_text("Interval run @ 07:30")
+    expect(page.get_by_text("Run saved.", exact=True)).to_have_count(0)
+    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
 
     for restart in (False, True):
         if restart:
@@ -112,7 +113,7 @@ def test_section_editing_exact_conversion_and_save_to_changed_week(
     with page.expect_response("**/v1/runs") as response:
         page.get_by_role("button", name="Save run", exact=True).click()
     assert response.value.status == 201
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19&saved=1")
+    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19")
     saved = page.request.get(
         f"{live_server.url}/v1/runs?start=2026-10-19&end=2026-10-26"
     ).json()
@@ -255,7 +256,7 @@ def test_nonexistent_montreal_time_returns_real_field_error_and_can_be_corrected
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
     page.get_by_label("Start time").fill("03:30")
     page.get_by_role("button", name="Save run", exact=True).click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-03-02&saved=1")
+    expect(page).to_have_url(f"{live_server.url}/?week=2026-03-02")
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run @ 03:30")
 
 
