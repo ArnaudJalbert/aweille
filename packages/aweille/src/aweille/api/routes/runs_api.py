@@ -2,9 +2,9 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
+from ..schemas.range_query import RangeQuery
+from ..schemas.run_request import RunRequest
 from .creation_route import CreationRoute
-from .range_query import RangeQuery
-from .run_request import RunRequest
 
 router = APIRouter(route_class=CreationRoute)
 

@@ -17,7 +17,7 @@ from aweille.core import (
 )
 
 from .api_errors import conflict_response, failure_response, validation_response
-from .runs_api import router
+from .routes.runs_api import router
 
 
 def create_app(*, storage: RunStorage | None = None) -> FastAPI:

@@ -85,6 +85,8 @@ I'll use a small hexagonal architecture within one package, with core business r
 | `aweille/api` | HTTP routes, request models, error handling, and the application factory. |
 | `aweille/adapters` | Concrete port implementations, SQLite storage, and database setup. |
 
+Within `aweille/api`, `routes/` holds the HTTP handlers and creation transport guard; `schemas/` holds the Pydantic request models and shared field types. The application factory and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`.
+
 Both `aweille/api` and `aweille/adapters` depend on core. The application factory also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
 One factory in `aweille/api` constructs concrete dependencies and injects them into use cases through core-owned ports. The API uses those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
