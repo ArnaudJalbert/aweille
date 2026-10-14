@@ -112,6 +112,10 @@ function renderDays(monday, runs) {
     title.id = `day-${key}`;
     title.append(element("span", `${monthName(date, "short")} ${date.getUTCDate()}`));
     header.append(title);
+    const add = element("a", "Add run", "button positive");
+    add.href = `/runs/new?${new URLSearchParams({ date: key, week: dateString(monday) })}`;
+    add.setAttribute("aria-label", `Add run for ${weekday}, ${monthName(date)} ${date.getUTCDate()}`);
+    header.append(add);
     const body = element("div", undefined, "day-body");
     const planned = runs.filter(run => run.planned_date === key);
     body.append(...planned.map(renderRun));
@@ -173,7 +177,9 @@ async function loadWeek(monday) {
   } else {
     try {
       renderDays(monday, result.runs);
-      status.hidden = true;
+      status.textContent = "Run saved.";
+      status.className = "save-success";
+      status.hidden = new URLSearchParams(location.search).get("saved") !== "1";
     } catch {
       showReadError("The server returned an unreadable response. Try again.");
     }
@@ -211,6 +217,7 @@ function selectWeek(monday, push = true) {
   }
   selectedWeek = monday;
   const url = new URL(location.href);
+  if (push) url.searchParams.delete("saved");
   url.searchParams.set("week", dateString(monday));
   if (url.href !== location.href) {
     history[push ? "pushState" : "replaceState"](null, "", url);

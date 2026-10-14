@@ -42,7 +42,7 @@ def test_api_created_run_is_displayed_after_real_restart(
     expect(wednesday.get_by_text("Trainer note", exact=True)).to_be_visible()
     expect(wednesday.get_by_text("Finish relaxed.")).to_be_visible()
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(6)
-    expect(page.get_by_role("link", name="Add run")).to_have_count(0)
+    expect(page.get_by_role("link", name="Add run")).to_have_count(7)
 
     live_server.restart()
     assert page.request.get(read_url).json() == [saved.json()]
@@ -309,6 +309,9 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
     page.keyboard.press("Tab")
     expect(page.get_by_role("link", name="Aweille")).to_be_focused()
     page.keyboard.press("Tab")
+    expect(page.get_by_role("link", name="Add run for Monday")).to_be_focused()
+    for _ in range(7):
+        page.keyboard.press("Tab")
     previous = page.get_by_role("button", name="Previous week")
     expect(previous).to_be_focused()
     assert previous.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"

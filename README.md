@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, create/read HTTP API, and weekly browser view are implemented. Manual browser creation comes next.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read HTTP API, weekly browser view, and manual creation form are implemented.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -222,7 +222,17 @@ The selected Monday stays in `?week=YYYY-MM-DD`. Previous week, This week, and N
 
 Each day shows every run and section in API order. Distances are displayed exactly in kilometres, and paces in `m:ss/km`, including large values. Optional start times appear beside the run type; untimed runs have no time label. Personal note and Trainer note remain separate plain text with line breaks.
 
-Reload or navigate to fetch newly API-created runs. An open tab keeps its selected week across Monday. Loading clears previous runs, failures offer Retry for the selected week, and late responses cannot replace a newer selection. JavaScript is required; a message explains when it cannot load the runs. Manual creation controls belong to the next step.
+Reload or navigate to fetch newly API-created runs. An open tab keeps its selected week across Monday. Loading clears previous runs, failures offer Retry for the selected week, and late responses cannot replace a newer selection. JavaScript is required; a message explains when it cannot load the runs.
+
+### Create a run in the browser
+
+With the server running, open [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12) and choose Wednesday's Add run. The separate form prefills October 14 and lets you change it. Choose Interval, enter the optional start time `07:30`, and fill the first section with distance `1` km and pace `6:30`. Add two sections with `1` km at `5:45` and `1` km at `6:30`. Enter `Keep the first section easy.` as the Personal note and `Finish relaxed.` as the Trainer note, then choose Save run.
+
+The form saves through `POST /v1/runs`, using the same API as external callers. It opens the saved run's week and displays `Run saved.` Sections keep their order and repeated entries; Remove, Move up, and Move down change that order before saving. The last section cannot be removed. Distances convert exactly to whole-metre strings, and paces to whole-second strings. Values such as `0.0001` km or `5:75` are rejected without rounding. Empty time and notes become absent values. Cancel returns to the originating week without saving.
+
+Save failures retain your fields and show errors beside affected inputs, with the overall explanation above Save run. A lost response, timeout, or server failure may leave the save uncertain. Retrying unchanged values uses the same UUID and payload, so it can confirm a committed run without creating a duplicate. If you change the values after an uncertain save and receive a conflict, use View submitted week to inspect the earlier run. When uncertain attempts span different weeks, the form keeps a link to each possible week. It never overwrites a saved run or generates a replacement ID on retry. Requests are limited to 1 MiB; reduce notes or sections if the API reports that limit.
+
+Stop and restart the server using the same database file, then reopen the week. The saved run remains available through the browser and the range-read API above.
 
 Install the browser used by the test suite, then run the focused checks:
 
@@ -231,7 +241,7 @@ uv run playwright install chromium
 uv run pytest packages/aweille/tests/browser
 ```
 
-These checks use the public browser and HTTP API. The representative-run scenario uses real SQLite and stops and restarts Uvicorn with the same database. Read failures and overlapping responses are injected at HTTP. Phone layout, keyboard focus, Montreal date boundaries, exact formatting, and plain-text notes are also checked.
+These checks use the public browser and HTTP API. Separate API and manual creation scenarios use fresh real SQLite files, stop and restart Uvicorn with the same file, and retry the original creation without duplication. Read failures, lost save responses, conflicts, and reported field errors are injected at HTTP. Phone layout, keyboard focus, section editing, Montreal date boundaries, exact conversion and formatting, and plain-text notes are also checked.
 
 ## First-version completion
 
