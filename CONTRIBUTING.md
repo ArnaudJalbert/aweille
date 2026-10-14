@@ -16,6 +16,14 @@ Use uv with the Python version selected by `.python-version`. Montreal schedulin
 uv sync --locked --all-packages
 ```
 
+The full test suite includes Chromium browser checks. Install the matching browser after syncing and after Playwright updates:
+
+```sh
+uv run playwright install chromium
+```
+
+The browser download is separate from `uv.lock`. Browser tests start Uvicorn against temporary SQLite files and use public page interactions and HTTP requests.
+
 ## Write the change
 
 Keep changes focused on current requirements. Reuse existing code and the standard library before adding dependencies or abstractions. Refactors preserve public interfaces and observable behavior unless the task asks to change them.

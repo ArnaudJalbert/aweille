@@ -5,6 +5,7 @@ description = "Planned running workouts with exact targets and Montreal scheduli
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.143.0",
+    "jinja2>=3.1.6",
     "pydantic>=2.14.1",
     "uvicorn>=0.54.0",
 ]

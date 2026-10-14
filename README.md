@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, and create/read HTTP API are implemented. The web interface comes next.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read HTTP API, and weekly browser view are implemented. Manual browser creation comes next.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -71,7 +71,7 @@ Within `aweille`:
 
 - `aweille/core` contains entities, value objects, ports, and use cases.
 - `aweille/api` contains HTTP routes, request and response models, error handling, and application wiring.
-- `aweille/adapters` contains storage adapters and database setup.
+- `aweille/adapters` contains storage adapters, database setup, and browser templates and assets.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
 
@@ -83,9 +83,9 @@ I'll use a small hexagonal architecture within one package, with core business r
 | --- | --- |
 | `aweille/core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
 | `aweille/api` | HTTP routes, request and response models, error handling, the application factory, and local startup. |
-| `aweille/adapters` | Concrete port implementations, SQLite storage, and database setup. |
+| `aweille/adapters` | Concrete port implementations, SQLite storage, database setup, and browser templates and assets. |
 
-Within `aweille/api`, `routes/` holds the HTTP handlers and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`.
+Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handler, and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `adapters/web`; browser checks live in `tests/browser`.
 
 Both `aweille/api` and `aweille/adapters` depend on core. The local startup module also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
@@ -213,6 +213,25 @@ Stop Uvicorn and start it again with the same database path, then repeat the rea
 ```sh
 uv run pytest packages/aweille/tests/api
 ```
+
+## Weekly browser view
+
+With the local server running, open [Aweille](http://127.0.0.1:8000/) in a browser. The view defaults to the current Monday-Sunday week in Montreal, using the browser's clock. To open the representative run's week, use [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12).
+
+The selected Monday stays in `?week=YYYY-MM-DD`. Previous week, This week, and Next week controls sit below Sunday. Browser history and reload preserve selection. A valid non-Monday date selects its containing week; invalid or incomplete calendar ranges show an explanation and a This week recovery control.
+
+Each day shows every run and section in API order. Distances are displayed exactly in kilometres, and paces in `m:ss/km`, including large values. Optional start times appear beside the run type; untimed runs have no time label. Personal note and Trainer note remain separate plain text with line breaks.
+
+Reload or navigate to fetch newly API-created runs. An open tab keeps its selected week across Monday. Loading clears previous runs, failures offer Retry for the selected week, and late responses cannot replace a newer selection. JavaScript is required; a message explains when it cannot load the runs. Manual creation controls belong to the next step.
+
+Install the browser used by the test suite, then run the focused checks:
+
+```sh
+uv run playwright install chromium
+uv run pytest packages/aweille/tests/browser
+```
+
+These checks use the public browser and HTTP API. The representative-run scenario uses real SQLite and stops and restarts Uvicorn with the same database. Read failures and overlapping responses are injected at HTTP. Phone layout, keyboard focus, Montreal date boundaries, exact formatting, and plain-text notes are also checked.
 
 ## First-version completion
 
