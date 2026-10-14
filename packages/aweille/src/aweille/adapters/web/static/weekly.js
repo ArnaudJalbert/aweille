@@ -112,7 +112,7 @@ function renderDays(monday, runs) {
     title.id = `day-${key}`;
     title.append(element("span", `${monthName(date, "short")} ${date.getUTCDate()}`));
     header.append(title);
-    const add = element("a", "Add run", "button positive");
+    const add = element("a", "Add run", "button add-run");
     add.href = `/runs/new?${new URLSearchParams({ date: key, week: dateString(monday) })}`;
     add.setAttribute("aria-label", `Add run for ${weekday}, ${monthName(date)} ${date.getUTCDate()}`);
     header.append(add);

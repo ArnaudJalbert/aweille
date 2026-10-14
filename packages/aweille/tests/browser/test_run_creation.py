@@ -507,7 +507,7 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
         page.get_by_role("link", name="Cancel", exact=True).evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(216, 227, 235)"
+        == "rgb(255, 255, 255)"
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 
