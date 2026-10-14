@@ -7,6 +7,12 @@ Aweille plans running training and keeps planned targets separate from actual re
 **Planned run**:
 A running workout planned for a date, with an optional start time, one run type, and an ordered list of sections. Its targets describe the intended run, separately from any actual results.
 
+**Planned-run edit**:
+A change to an existing planned run's date, start time, run type, ordered sections, or user and trainer notes. The run keeps its identity when edited, including when rescheduled.
+
+**Planned-run deletion**:
+Permanent removal of a planned run. Deletion leaves no workout in training history and is separate from skipping a workout.
+
 **Section**:
 One part of a planned run, with a distance and a target pace. Its position in the list defines when it comes within the run; repeated sections remain separate entries.
 
