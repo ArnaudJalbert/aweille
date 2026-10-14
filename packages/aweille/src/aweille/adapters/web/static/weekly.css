@@ -61,8 +61,8 @@ p { margin: 6px 0; }
 .sections .pace { text-align: right; }
 .sections span { overflow-wrap: anywhere; min-width: 0; }
 .notes { display: grid; gap: 6px; border-top: 1px solid #ddd; padding-top: 8px; }
-.note-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: .08em; }
-.notes p { font-family: Georgia, serif; white-space: pre-wrap; overflow-wrap: anywhere; margin: 2px 0; }
+.note-label { font: 13px/1.5 Georgia, serif; color: #666; }
+.notes p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 2px 0; }
 .notice { border: 1px solid #999; border-radius: 10px; background: #fff; padding: 18px 20px; margin-bottom: 20px; overflow-wrap: anywhere; }
 .notice strong { display: block; }
 .notice button { margin-top: 12px; }
