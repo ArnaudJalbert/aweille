@@ -3,7 +3,11 @@ name = "aweille"
 version = "0.1.0"
 description = "Planned running workouts with exact targets and Montreal scheduling."
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.143.0",
+    "pydantic>=2.14.1",
+    "uvicorn>=0.54.0",
+]
 
 [project.scripts]
 aweille-init-db = "aweille.adapters.create_database:main"
