@@ -8,6 +8,8 @@ The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records t
 
 The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the next design decisions. [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185) records the agreed edit semantics for later implementation; the application currently supports creation and range reads only.
 
+[Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288) records the agreed revision, stale-write, retry, and deleted-identity rules for later implementation. Revisions and update/delete operations are not yet implemented.
+
 ## Purpose
 
 I want a simple framework to improve my running gradually. I like Runna's simplicity, but I find it expensive and hard to personalize. I want more flexibility, a web interface, and an app I can run locally without a hosting subscription.
