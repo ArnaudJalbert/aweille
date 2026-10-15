@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aweille</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='weekly.css') }}">
+  <script type="module" src="{{ url_for('static', path='weekly.js') }}"></script>
+</head>
+<body>
+  <header class="brand"><a href="/">Aweille</a></header>
+  <main class="shell">
+    <header class="page-heading"><h1 id="week-heading" tabindex="-1"></h1></header>
+    <div id="status" class="notice" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to load your runs.</div>
+    <div id="days" class="days"></div>
+    <nav id="week-navigation" class="week-nav" aria-label="Week navigation" hidden>
+      <button id="previous-week" type="button">Previous week</button>
+      <button id="this-week" type="button">This week</button>
+      <button id="next-week" type="button">Next week</button>
+    </nav>
+  </main>
+</body>
+</html>

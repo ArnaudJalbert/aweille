@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, and create/read HTTP API are implemented. The web interface comes next.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read HTTP API, weekly browser view, and manual creation form are implemented.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -71,7 +71,7 @@ Within `aweille`:
 
 - `aweille/core` contains entities, value objects, ports, and use cases.
 - `aweille/api` contains HTTP routes, request and response models, error handling, and application wiring.
-- `aweille/adapters` contains storage adapters and database setup.
+- `aweille/adapters` contains storage adapters, database setup, and browser templates and assets.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
 
@@ -83,9 +83,9 @@ I'll use a small hexagonal architecture within one package, with core business r
 | --- | --- |
 | `aweille/core` | Entities, value objects, use cases, abstract port definitions, and all business rules. |
 | `aweille/api` | HTTP routes, request and response models, error handling, the application factory, and local startup. |
-| `aweille/adapters` | Concrete port implementations, SQLite storage, and database setup. |
+| `aweille/adapters` | Concrete port implementations, SQLite storage, database setup, and browser templates and assets. |
 
-Within `aweille/api`, `routes/` holds the HTTP handlers and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`.
+Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handler, and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `adapters/web`; browser checks live in `tests/browser`.
 
 Both `aweille/api` and `aweille/adapters` depend on core. The local startup module also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
@@ -178,6 +178,20 @@ The local entry point defaults to `~/.local/share/aweille/aweille.sqlite3`. To u
 
 When embedding or testing the application, call `create_app(storage=...)` with an initialized `RunStorage` implementation. The factory reads no database configuration and creates no storage adapter.
 
+### Run locally with Docker
+
+Start Docker Desktop, then run:
+
+```sh
+./scripts/start-service.sh
+```
+
+The script builds from `uv.lock`, starts the service in the background, and waits for it to become healthy. Open [Aweille](http://localhost:8080/). Port 8080 is bound to localhost. Use `AWEILLE_PORT=8081 ./scripts/start-service.sh` to choose another port.
+
+Docker mounts `~/.local/share/aweille` at `/data`, using the existing `aweille.sqlite3` file. Rebuilding or replacing the container preserves your runs. The launcher requires a prepared database and never initializes or replaces it. Set `AWEILLE_DATA_DIR` to use another directory containing `aweille.sqlite3`. The container runs with your user and group IDs so new SQLite files remain writable from the host.
+
+From the repository root, use `docker compose logs -f` to follow logs, `docker compose stop` to stop the service, and the start script to rebuild and start it again. Docker's [unless-stopped restart policy](https://docs.docker.com/engine/containers/start-containers-automatically/) brings the service back when Docker starts, unless you stopped it explicitly. Docker Desktop must be running; the app can continue running after you close your terminal.
+
 Create the representative interval run:
 
 ```sh
@@ -213,6 +227,35 @@ Stop Uvicorn and start it again with the same database path, then repeat the rea
 ```sh
 uv run pytest packages/aweille/tests/api
 ```
+
+## Weekly browser view
+
+With the local server running, open [Aweille](http://127.0.0.1:8000/) in a browser. The view defaults to the current Monday-Sunday week in Montreal, using the browser's clock. To open the representative run's week, use [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12).
+
+The selected Monday stays in `?week=YYYY-MM-DD`. Previous week, This week, and Next week controls sit below Sunday. Browser history and reload preserve selection. A valid non-Monday date selects its containing week; invalid or incomplete calendar ranges show an explanation and a This week recovery control.
+
+Each day shows every run and section in API order. Distances are displayed exactly in kilometres, and paces in `m:ss/km`, including large values. Optional start times appear beside the run type; untimed runs have no time label. Personal note and Trainer note remain separate plain text with line breaks.
+
+Reload or navigate to fetch newly API-created runs. An open tab keeps its selected week across Monday. Loading clears previous runs, failures offer Retry for the selected week, and late responses cannot replace a newer selection. JavaScript is required; a message explains when it cannot load the runs.
+
+### Create a run in the browser
+
+With the server running, open [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12) and choose Wednesday's Add run. The separate form prefills October 14 and lets you change it. Choose Interval, enter the optional start time `07:30`, and fill the first section with distance `1` km and pace `6:30`. Add two sections with `1` km at `5:45` and `1` km at `6:30`. Enter `Keep the first section easy.` as the Personal note and `Finish relaxed.` as the Trainer note, then choose Save run.
+
+The form saves through `POST /v1/runs`, using the same API as external callers. It opens the saved run's week. Sections keep their order and repeated entries; Remove, Move up, and Move down change that order before saving. The last section cannot be removed. Distances convert exactly to whole-metre strings, and paces to whole-second strings. Values such as `0.0001` km or `5:75` are rejected without rounding. Empty time and notes become absent values. Cancel returns to the originating week without saving.
+
+Save failures retain your fields and show errors beside affected inputs, with the overall explanation above Save run. A lost response, timeout, or server failure may leave the save uncertain. Retrying unchanged values uses the same UUID and payload, so it can confirm a committed run without creating a duplicate. If you change the values after an uncertain save and receive a conflict, use View submitted week to inspect the earlier run. When uncertain attempts span different weeks, the form keeps a link to each possible week. It never overwrites a saved run or generates a replacement ID on retry. Requests are limited to 1 MiB; reduce notes or sections if the API reports that limit.
+
+Stop and restart the server using the same database file, then reopen the week. The saved run remains available through the browser and the range-read API above.
+
+Install the browser used by the test suite, then run the focused checks:
+
+```sh
+uv run playwright install chromium
+uv run pytest packages/aweille/tests/browser
+```
+
+These checks use the public browser and HTTP API. Separate API and manual creation scenarios use fresh real SQLite files, stop and restart Uvicorn with the same file, and retry the original creation without duplication. Read failures, lost save responses, conflicts, and reported field errors are injected at HTTP. Phone layout, keyboard focus, section editing, Montreal date boundaries, exact conversion and formatting, and plain-text notes are also checked.
 
 ## First-version completion
 
