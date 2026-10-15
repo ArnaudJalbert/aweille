@@ -2,7 +2,7 @@
 
 Agreed design as of October 15, 2026, for later implementation. The application currently supports creation and range reads on schema version 1. Revisions, update/delete operations, and the upgrade command described here are not implemented yet.
 
-This document collects the core, SQLite, and HTTP implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); browser behavior remains a separate decision.
+This document collects the core, SQLite, HTTP, and browser implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); the browser agreement is recorded in [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22).
 
 ## Immutable model and compatibility
 
@@ -207,8 +207,76 @@ Use the existing agreed HTTP seam: `create_app(storage=...)` through TestClient 
 - POST retries after edits/restoration/deletion; reload after uncertain writes; safe operation-specific storage errors. Use targeted port fault injection for an intervening edit/deletion between core's load and atomic write, observing public HTTP outcomes.
 - OpenAPI paths, request/response schemas, header contracts, nullable/omitted fields, success/error statuses, and examples matching observed HTTP behavior.
 
-Browser interaction and acceptance remain owned by [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22). No new browser test seam is agreed by this HTTP decision.
+The browser section below records the agreed interaction and acceptance handoff for [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22); this HTTP decision alone does not agree a new browser test seam.
+
+## Browser flows and acceptance
+
+Agreed with Arnaud on October 15, 2026. This section extends the existing compact weekly view and manual creation form for later implementation. It does not redesign their layout. The existing weekly-view and manual-creation implementations remain prerequisites for the build.
+
+### Entry, loading, and editing
+
+Add one accessible `Edit` link to each weekly run card, identifying its run in the accessible name. Open `/runs/{id}/edit?week=YYYY-MM-DD`, carrying the originating selected Monday. Keep deletion on the edit page, without a Delete action on weekly cards. Reuse the creation form's fields, ordered section controls, exact kilometre/pace conversion, separate plain-text notes, responsive layout, and keyboard behavior. Label this mode `Edit a planned run` with `Save changes`; keep Add run and its POST behavior intact.
+
+The edit page is an HTML shell. Load current saved data through `GET /v1/runs/{id}`, rather than relying on the weekly card's older snapshot or reading storage in the page handler. Keep fields, Save, and Delete disabled while the initial read is pending. Prefill every field from a valid complete response, retaining canonical identity and the exact revision string separately from editable inputs. Present sections in their saved order, with repetitions intact; convert distances and paces exactly, including very large values. Null time and notes become empty form values.
+
+An initial read failure offers Retry and return to the originating week; it never enables an empty editor. An invalid or missing run shows an explanation and a return action, without Save/Delete or automatic creation under another UUID. A failed, late, or unreadable read must not overwrite a more recent successful load. Validate any supplied origin week using the existing date/week rules and build local return URLs; do not accept arbitrary return URLs. With no usable origin, use the loaded run's week when available, otherwise the normal current-week page.
+
+Retain the last successfully loaded saved fields and revision as the edit baseline. Save through PATCH, sending only editable fields that differ from that baseline after the existing form-to-API conversions, plus `If-Match` constructed from the baseline revision. Do not include ID or revision in the JSON. Send null when clearing time or notes; send the complete ordered section list when sections change. Leave omitted fields out, including the other caller's unchanged note. Core still owns note normalization and resulting-workout validation. Saving an unchanged or normalized-identical form may succeed without a revision increment; no new UUID is generated.
+
+During a save, preserve and disable the editable controls and competing Save/Delete actions, announce progress, and prevent duplicate submissions. Reuse the creation form's bounded wait for a response. A request timeout stops waiting; it does not prove the server stopped processing. A valid `200` must contain the expected run identity, complete saved fields, and canonical revision. Treat an unexpected/unreadable success response as uncertain, rather than navigating on assumed saved values.
+
+### Navigation and unsaved changes
+
+After a confirmed successful edit, open the saved run's Monday-to-Sunday week using the returned date, including when rescheduled into another week. Fetch that week again, showing the committed normalized content in API order. After Cancel or confirmed successful deletion, return to the originating week and fetch it again. A rescheduled run disappears from its former range and appears in its destination range; it keeps its UUID.
+
+Cancel sends no write. If editable values have changed since the last successful load, confirm before discarding them. Install the browser's ordinary unsaved-changes warning for leaving, closing, or reloading a dirty editor; use a discard confirmation for the explicit Cancel action. Browser-controlled warnings remain subject to the browser's own behavior. Leaving while a write is in flight must not claim to cancel or roll back it. Successful save/delete navigation must not trigger an obsolete discard warning.
+
+Drafts remain in the current page's memory only. There is no autosave, local draft storage, recovery after closing the page, or automatic merging. Keep draft values and section order through validation failures and recovery attempts until the user explicitly discards them or a confirmed successful write completes the flow.
+
+### Delete confirmation
+
+`Delete run` opens an inline confirmation within the editor. Show the last loaded saved date and run type, rather than a possibly unsaved date/type currently typed in the form. Explain that deletion permanently removes the whole planned run and cannot be undone; if the form is dirty, also explain that its unsaved edits will be discarded. Offer `Delete permanently` and `Keep run`. Opening or cancelling this confirmation sends no write, leaves draft fields intact, and never saves them first.
+
+Move focus to `Keep run` when the confirmation opens. While it is open, disable editing and Save so its target and revision remain the loaded baseline. `Keep run` restores editing and returns focus to `Delete run`. Confirming sends bodyless DELETE for the same UUID with the baseline `If-Match`. Do not silently reload and substitute a newer revision before deletion.
+
+While deletion is pending, announce progress and disable competing form/confirmation actions to prevent duplicate requests. Only a confirmed `204` completes the normal deletion flow, returning to the originating week with a fresh read. Preserve safe failure explanations and the draft on errors. A stale deletion must go through the same reload recovery as a stale edit, followed by a fresh explicit deletion confirmation if the user still wants to delete the newly loaded run.
+
+### Validation, missing state, and recovery
+
+Reuse the existing overall status and field-error presentation. Keep all entered values after local validation or API `422` failures, attach available body/section problems to the corresponding inputs, and focus the first invalid field. Report a `413` body limit with instructions to reduce notes or sections. These definite rejected writes allow corrections and another submission using the same baseline revision; the server can still reject that revision if another caller changed the run meanwhile. Other definite request errors receive a safe explanation without silently changing identity or revision. An unexpected missing/malformed precondition (`428` or a header-related `422`) requires reload before another write, rather than asking the user to edit an HTTP header.
+
+For `412`, keep the draft, explain that the saved run changed, and disable further Save/Delete until a successful reload. Do not automatically merge, overwrite the form, adopt the newer revision, or retry. Offer `Reload saved run` and return to the originating week. The latter uses the normal dirty-draft discard confirmation.
+
+Use the same reload-required state after a timeout, network interruption, lost/unreadable response, or `500`/`503` during Save/Delete. Explain that the result could not be confirmed. Keep the draft for inspection/copying, and do not offer direct write retry even with the old revision. This browser policy is deliberately more conservative than the API's permitted same-revision retry behavior. Known validation errors remain correctable without this extra reload.
+
+`Reload saved run` warns before replacing unsaved edits. Only after the user agrees does it fetch current state through single-run GET. While loading, prevent form edits and competing writes; a failed reload retains the draft, baseline, and reload-required state. A valid `200` replaces the form and baseline with current saved fields/revision, clears old field errors, and restores normal editing. It never automatically resubmits the previous draft. The user reviews the loaded values and explicitly saves or starts a new deletion confirmation if desired.
+
+A `404` from an edit/deletion or recovery read means the run is unavailable. Retain the draft for inspection, disable writes, and offer return to the originating week. Never recreate the run or claim this particular request deleted it. After an uncertain deletion, a reload returning `404` confirms absence without identifying which caller removed it. A reload returning `200` shows current saved state; any subsequent deletion needs a new confirmation. If another caller changes it again, the next stale write repeats this recovery rather than bypassing the precondition.
+
+### Refresh and accessibility
+
+Trainer/other-tab changes appear through manual page reload or week navigation. Returning from the editor, including browser Back and a restored page, fetches the selected week again instead of retaining a cached stale card. Do not poll, add background refresh, or replace the open editor's values on focus. Keep the selected week stable across Monday, as today.
+
+Preserve existing loading/error behavior: clear old weekly results during a new read, offer Retry for the selected week, retain navigation, and prevent late reads from replacing a newer selection. A failed refresh after a successful write must show the read failure rather than resurrect stale cards or resend the write. Keep existing Add run, JavaScript-unavailable messages, plain-text note rendering, exact formatting, phone layout, and keyboard access. Distinguish initial loading, Save/Delete progress, validation failure, stale state, uncertain result, and missing state in accessible status messages. Keep visible focus meaningful as controls appear/disappear; after a recovery load, focus the editor heading or status explaining the loaded state.
+
+### Public browser verification handoff
+
+Use the existing public browser and HTTP seams: Playwright interactions with the rendered pages against real Uvicorn and temporary file-backed SQLite; the shared API represents trainer/other-tab actions. Restart the server against the same database for persistence checks. Inject HTTP read/write failures and lost responses at the HTTP boundary, including letting a real write commit before hiding its response. Do not assert private JavaScript helpers, internal call sequences, or raw database state for normal behavior.
+
+Extend existing scenarios where they already cover the behavior. Protect these distinct acceptance cases:
+
+- A trainer/API-created run opens through its card's Edit link with current fields, both notes, ordered repeated sections, and exact large targets. A direct edit link works; initial loading/failure/missing-state controls cannot submit a blank form.
+- Edit only one field and observe that omitted fields and identity survive through API reload and the weekly view. Check clearing time/notes, section reorder/replacement, normalized no-op behavior, and unchanged revisions for no-ops through public responses.
+- Save a date change across weeks, see the run in the destination, and read the former week without it. Cancel returns to origin without a write. Returning through browser Back refetches the selected week, including when a restored page would otherwise show stale cards.
+- Opening/abandoning delete confirmation preserves the saved run and draft. Confirming deletion removes the run from browser/API reads and returns to origin. Exercise a trainer change or deletion after the editor loaded: stale actions cannot overwrite/delete newer state, and missing actions cannot recreate it.
+- Stale edit/delete retains the draft and blocks writes. Cancelling reload preserves the draft. A failed reload also preserves it and remains blocked; an accepted successful reload replaces it with current state and requires a new explicit action. Include a trainer note edit competing with a browser user-note edit to protect whole-run revision semantics.
+- Lost responses after committed and uncommitted edits/deletions, server failures, and unreadable successes retain the draft and require GET recovery rather than write retry. Recovery reflects current state or absence without claiming who committed it. A no-op with a lost response follows the same browser recovery policy.
+- Validation and oversized-request errors preserve values and meaningful field/overall errors, allowing correction. Include the Montreal spring-forward retained-time error and correction in one edit; preserve existing fall-back behavior. Slow initial reads and writes expose progress and prevent duplicate/competing actions.
+- Unsaved Cancel/reload warnings respect Keep/Discard, and successful write navigation avoids false discard warnings. Delete confirmation and recovery actions are keyboard accessible with visible focus; phone layout remains usable. Notes stay plain text, including loaded and retained draft values.
+- After stopping and restarting against the same file, edited fields/revisions and deleted absence remain visible through the browser/API; a POST under the reserved deleted UUID still conflicts. Preserve existing creation retry, range ordering, exact formatting, selected-week navigation, failure recovery, and JavaScript-unavailable coverage.
+
+These browser checks complement the core/storage concurrency and migration checks and the HTTP/OpenAPI checks already agreed above; they do not duplicate every rule at every seam. Skipping, results, undo, batch editing, drag-to-reschedule, live collaboration, draft persistence, and a new visual design remain outside this handoff.
 
 ## Handoff
 
-The core, SQLite, and HTTP contracts and their public test seams are agreed. The HTTP handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21). [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22) still owns browser behavior. Application implementation follows this planning effort.
+The core, SQLite, HTTP, and browser contracts and their public test seams are agreed. The handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) and [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22), completing the [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17). Application implementation follows this planning effort.
