@@ -2,13 +2,13 @@
 
 Agreed design as of October 15, 2026, for later implementation. The application currently supports creation and range reads on schema version 1. Revisions, update/delete operations, and the upgrade command described here are not implemented yet.
 
-This document collects the core and SQLite implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). HTTP and browser contracts remain separate decisions.
+This document collects the core, SQLite, and HTTP implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); browser behavior remains a separate decision.
 
 ## Immutable model and compatibility
 
 Keep the frozen `PlannedRun` dataclass and add `revision: int = 1`. A revision must be a positive Python integer, without an upper limit; reject booleans, strings, floats, and other coercions. The generated constructor continues to validate already-normalized fields without changing them. Direct construction and decoding can reconstruct a saved revision, but creation and editing cannot choose a persisted revision. Storage owns its lifecycle.
 
-Extend `to_dict()` and `from_dict()` with a required canonical `revision` field encoded as a positive decimal-digit string, such as `"1"`. Reject signs, whitespace, leading zeroes, and zero. Conversion must remain exact beyond Python's integer/string digit threshold, using the existing exact-number approach. Missing revision is invalid in the new canonical representation; the explicit database upgrade supplies it for existing storage. This is an agreed representation change. HTTP revision encoding remains a separate decision.
+Extend `to_dict()` and `from_dict()` with a required canonical `revision` field encoded as a positive decimal-digit string, such as `"1"`. Reject signs, whitespace, leading zeroes, and zero. Conversion must remain exact beyond Python's integer/string digit threshold, using the existing exact-number approach. Missing revision is invalid in the new canonical representation; the explicit database upgrade supplies it for existing storage. This is an agreed representation change. The HTTP section below specifies the transport encoding.
 
 Keep `create_run` returning `(run, inserted)` and `read_runs` returning runs with the existing range and ordering semantics. Returned runs now include their persisted revision. Creation starts at 1. Changed normalized workout content increments the stored revision by one; an empty or normalized-identical edit keeps it. Restoring old content increments the revision rather than restoring an old revision.
 
@@ -108,6 +108,107 @@ Protect these distinct cases without duplicating existing assertions:
 - Reopen persistence of revisions and reservations; transaction rollback; uncertain committed edits, no-ops, and deletions; safe storage failures and continued usability after faults.
 - Upgrade preservation and initial revisions; valid-v2 idempotence; missing/unrelated/malformed/unsupported rejection; rollback of a failed upgrade; new-v2 initialization; startup compatibility rejection without migration; and CLI behavior.
 
+## HTTP contract
+
+Agreed with Arnaud on October 15, 2026. This section specifies later implementation through the same API used by the browser and trainer.
+
+### Resources and successful responses
+
+| Method and resource | Request | Success |
+| --- | --- | --- |
+| `POST /v1/runs` | Existing creation JSON, without a revision. | `201` with the complete run for insertion; `200` with the current complete run for a matching normalized retry. |
+| `GET /v1/runs?start=YYYY-MM-DD&end=YYYY-MM-DD` | Existing required date range. | `200` array, with unchanged half-open range and ordering semantics. |
+| `GET /v1/runs/{id}` | UUID path parameter. | `200` with one complete run and its `ETag`. |
+| `PATCH /v1/runs/{id}` | Partial field object and required `If-Match`. | `200` with the complete saved run and its `ETag`, including for an empty or normalized-identical edit. |
+| `DELETE /v1/runs/{id}` | Required `If-Match`; no request body. | `204` with no response body or run `ETag`, after committed deletion. |
+
+All run objects use the existing normalized response shape plus required `revision`, a canonical positive ASCII decimal-digit string matching `[1-9][0-9]*`, such as `"3"`. Keep all other fields, including nullable time and notes, present. Distances and paces retain their existing exact decimal-string encodings. Revisions have no application-imposed numeric maximum; keep them as strings in JavaScript and convert exactly in Python, including beyond its integer/string digit threshold.
+
+Single-run GET and PATCH successes return a strong `ETag` equal to the quoted revision, such as `ETag: "3"`. Serialize a given revision's single-run JSON representation consistently. The collection has no per-run response-header validator; callers quote an item's `revision` to construct `If-Match`. POST responses need no `ETag`; a new insertion adds `Location: /v1/runs/{canonical-id}`. All `/v1/runs` resource responses, including errors, use `Cache-Control: no-store` so reloads reach the API. Conditional GET and `304` caching are outside this handoff.
+
+### Partial field object
+
+PATCH accepts only `planned_date`, `planned_start_time`, `run_type`, `sections`, `user_note`, and `trainer_note`. Every field is optional; `{}` is a valid edit. Preserve omission when forwarding arguments to `update_run`; never fill absent fields with `None` or request-model defaults.
+
+- Omission retains the current field. Explicit `null` clears time or either note; it is invalid for date, run type, or sections.
+- Supplying sections replaces the complete nonempty ordered list. Preserve repeated sections and use the existing section request shape and strict distance/pace encoding.
+- Retain creation's UUID, date, `HH:MM`, run-type, plain-text note, exact target, and unknown-field validation. Trim notes and normalize blank notes to absence through core. Either caller may edit either note.
+- The path supplies identity. Reject body `id`, `revision`, `expected_revision`, and all other unknown fields with `422`. Reject unknown query parameters on the new single-run endpoints; neither revision nor editable fields are accepted in the query.
+- Core validates the complete resulting run. A date-only move that retains `02:30` on a Montreal spring-forward date fails without saving; clearing or replacing time in the same request can make the edit valid.
+
+The body is Aweille's partial field object, not an array of JSON Patch operations or a generic JSON Merge Patch document. There is no PUT, bulk edit, section-specific resource, or deletion receipt in this contract.
+
+Example for a live run at revision `"3"`:
+
+```http
+PATCH /v1/runs/00000000-0000-0000-0000-000000000001 HTTP/1.1
+Content-Type: application/json
+If-Match: "3"
+
+{"planned_date":"2026-10-18","planned_start_time":null,"user_note":"  Keep it easy.  "}
+```
+
+If this changes normalized content, return the complete run with `revision: "4"`, `ETag: "4"`, the new date, null time, and `user_note: "Keep it easy."`; all omitted fields retain their saved values. An identical edit against current revision `"4"` returns `200` at revision `"4"`. Repeating the original request with `If-Match: "3"` returns `412` even if the fields now match.
+
+### Required revision precondition
+
+PATCH and DELETE require exactly one `If-Match` field containing exactly one quoted canonical revision, such as `"3"`. Header names are case-insensitive; permit ordinary HTTP whitespace around the field value, without whitespace inside the quotes. Reject repeated header fields and tag lists, including repeated identical tags. Reject wildcard `*`, weak tags such as `W/"3"`, unquoted numbers, zero, signs, leading zeroes, non-ASCII digits, and arbitrary opaque tags. This deliberately narrow API accepts one expected revision, rather than the full set of HTTP If-Match forms.
+
+A missing header returns `428` with a safe explanation to reload and send the quoted revision. A present but empty, malformed, or unsupported header returns `422`, with location `["header", "if-match"]`. Do not use `If-Unmodified-Since` or a body/query revision as a substitute. Parse the accepted revision exactly and pass it as `expected_revision`; only storage assigns the next saved revision.
+
+For a well-formed request, a deleted or never-existing ID returns `404`, including repeated deletion. A live run with another revision returns `412`, including an empty or normalized-identical edit. Check current state atomically with the write/no-op decision through the agreed core/storage operations. No automatic merge or substitution of a newer revision is allowed.
+
+The use of strong validators and `412` follows [HTTP conditional requests](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.1); the missing-header outcome uses [428 Precondition Required](https://www.rfc-editor.org/rfc/rfc6585.html#section-3). Rejection of otherwise valid wildcard/list forms is this API's explicit single-revision restriction.
+
+### Transport, validation, and safe errors
+
+Extend the existing received-byte guard from POST to PATCH. Require `application/json` or an `application/*+json` content type, case-insensitively and allowing media-type parameters. The standardized `application/json-patch+json` and `application/merge-patch+json` formats are unsupported and return `415` on PATCH. Other accepted suffix types still carry the field object defined here.
+
+Keep the 1 MiB (1,048,576 received bytes) body limit, including streamed bodies with absent or inaccurate Content-Length. Exactly the limit is allowed. Return `413` above it and `415` for missing/unsupported JSON content type. Malformed JSON, invalid UTF-8, non-finite constants, excessive parser nesting, absent bodies, and non-object documents return safe `422` body problems. DELETE requires no Content-Type; reject any nonempty received body with a safe `422` at `["body"]`, stopping at the first received byte rather than buffering it.
+
+Perform transport and request parsing before invoking core. For a request passing transport checks, reject malformed path/header/query/body fields with `422`; if those fields are otherwise valid but If-Match is absent, return `428`. Do not access storage for these failures. There is no promised ordering among multiple schema problems.
+
+After parsing, core's validation order applies: load, reject missing state, reject stale revision, then normalize and validate the resulting workout. Transport/schema failures may therefore precede missing/stale outcomes. For example, a numeric note returns `422` before core; a syntactically valid date change producing a spring-forward gap reaches core, where missing/stale state takes precedence. The final atomic storage check may still return missing/stale after core's first read.
+
+| Outcome | Status | Body |
+| --- | --- | --- |
+| Invalid transport/request/domain fields | `422` | Existing `detail` problem array with only `loc`, `type`, and safe `msg`. |
+| Oversized POST/PATCH body | `413` | Safe `detail` string. |
+| Missing/unsupported POST/PATCH JSON content type | `415` | Safe `detail` string. |
+| Missing required If-Match | `428` | `{"detail":"Reload the run and supply its quoted revision in If-Match."}` |
+| Deleted or never-existing run | `404` | `{"detail":"Planned run not found."}` |
+| Stale live-run revision | `412` | `{"detail":"The planned run has changed; reload it before another edit or deletion."}` |
+| POST with different current content or a reserved deleted ID | `409` | `{"detail":"The ID cannot be used for this planned run."}` |
+| Temporary storage unavailability | `503` | Safe `detail` string with operation-appropriate recovery guidance. |
+| Other storage or unexpected operation failure | `500` | Existing safe unexpected-failure `detail` string. |
+
+Request errors locate UUIDs at `["path", "id"]`, header problems at `["header", "if-match"]`, and body/section problems under `["body", ...]`. Preserve range-query locations under `query`. Map core editable-field errors to body paths, core identity errors to path, and expected-revision errors to the header. Invalid header problems use a stable `type: "revision_precondition"`; the message describes the required single quoted positive canonical revision without echoing the supplied value.
+
+Error responses never include raw request values, current workout content/revision, tombstone details, SQL, paths, or driver diagnostics. A missing/deleted distinction is not exposed. Keep diagnostics in local logs. Replace the current blanket 503 instruction to retry with the same ID: reads may retry; POST may retry the same ID and payload; PATCH/DELETE callers reload and review after uncertain failures. A `500`, `503`, lost response, or timeout never proves a write rolled back.
+
+### Reloads, retries, and compatibility
+
+Recover through `GET /v1/runs/{id}`, even after the run moves outside the selected week. A `200` supplies current fields/revision; a `404` confirms absence. Neither proves which request produced the current state. After stale or uncertain writes, reload and review before deciding whether another write is needed. Never silently retry with the new revision.
+
+Retrying the same expected revision can succeed if no change committed or a no-op preserved it. A committed changing edit retried at its old revision is `412`; a committed deletion retried is `404`. Delete success has no replay receipt. POST compares supplied normalized workout fields against current content, excluding revision: matching content returns `200` at the current revision; differing content returns `409`; a reserved deleted ID always returns `409`. Recreating a deleted workout requires a fresh UUID.
+
+Keep `/v1`, existing creation inputs, `201`/`200` creation outcomes, array range reads, date/time/section encodings, ordering, and validation envelope. The required response `revision` field is an explicit additive contract change; strict response decoders must be updated alongside the browser/trainer. Creation continues rejecting unknown fields, including caller-supplied `revision`; copying a complete response into POST is not a valid creation request. The reserved-ID `409` extends creation behavior, and its message must cover both live conflicts and deleted identities. No old response shape or revision-free write compatibility mode is required for this local app. Database preparation and upgrade follow the earlier core/SQLite agreement.
+
+### OpenAPI and public verification handoff
+
+The later implementation must extend `/openapi.json` with the single-run GET/PATCH/DELETE paths, UUID path parameters, exact string revision in every complete response, optional PATCH properties with precise nullability and forbidden extras, and required single-tag If-Match headers on PATCH/DELETE. Revision is response-only; document that it is forbidden in write bodies. Include successful GET/PATCH `ETag`, insertion `Location`, response cache policy, the empty DELETE `204`, all applicable error statuses and safe error schemas, and examples of partial edits, clearing, no-ops, stale writes, missing preconditions, and reload recovery. Retain POST's shared `200`/`201` response model and range GET's array of that model. Do not advertise standardized patch formats or caching behavior the application does not support.
+
+Use the existing agreed HTTP seam: `create_app(storage=...)` through TestClient and real temporary file-backed SQLite, with storage-port fault injection for failures. Inspect OpenAPI through public `GET /openapi.json`. Protect distinct behavior without duplicating core/storage checks:
+
+- Complete creation/range/single-read/edit response consistency, revision strings and ETags, exact large revisions, Location, cache policy, UUID validation, missing reads after deletion, successful single-run reads after rescheduling, and exclusion from the old date range after a move.
+- Partial-field omission versus null, normalized no-op success, ordered/repeated section replacement, forbidden identity/revision fields, and complete-result validation without partial changes.
+- Missing/malformed/repeated/unsupported preconditions, current/stale edits and deletions, stale no-ops, repeated deletion, and transport/schema versus core validation precedence.
+- PATCH's JSON content types, streamed byte boundary, malformed/non-object JSON and safe field paths; DELETE's body rejection. Extend shared existing transport checks rather than duplicating every POST case.
+- POST retries after edits/restoration/deletion; reload after uncertain writes; safe operation-specific storage errors. Use targeted port fault injection for an intervening edit/deletion between core's load and atomic write, observing public HTTP outcomes.
+- OpenAPI paths, request/response schemas, header contracts, nullable/omitted fields, success/error statuses, and examples matching observed HTTP behavior.
+
+Browser interaction and acceptance remain owned by [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22). No new browser test seam is agreed by this HTTP decision.
+
 ## Handoff
 
-The core/SQLite contract and public test seams are agreed. [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) still owns HTTP methods, revision transport, response shapes, reload access, and status codes. [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22) still owns browser behavior. Application implementation follows this planning effort.
+The core, SQLite, and HTTP contracts and their public test seams are agreed. The HTTP handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21). [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22) still owns browser behavior. Application implementation follows this planning effort.
