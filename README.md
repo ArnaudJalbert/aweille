@@ -10,6 +10,8 @@ The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/awei
 
 [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288) records the agreed revision, stale-write, retry, and deleted-identity rules for later implementation. Revisions and update/delete operations are not yet implemented.
 
+[Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195) records the agreed public use cases, errors, atomic storage operations, revision representation, explicit database upgrade, and test seams for later implementation. The current application still uses schema version 1; the planned upgrade command is not yet available. HTTP and browser contracts remain separate decisions.
+
 ## Purpose
 
 I want a simple framework to improve my running gradually. I like Runna's simplicity, but I find it expensive and hard to personalize. I want more flexibility, a web interface, and an app I can run locally without a hosting subscription.
