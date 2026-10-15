@@ -6,10 +6,6 @@ This README defines the first version I want to build. The planned-run core, SQL
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
-The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the next design decisions. [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185) records the agreed edit semantics for later implementation; the application currently supports creation and range reads only.
-
-[Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288) records the agreed revision, stale-write, retry, and deleted-identity rules for later implementation. Revisions and update/delete operations are not yet implemented.
-
 ## Purpose
 
 I want a simple framework to improve my running gradually. I like Runna's simplicity, but I find it expensive and hard to personalize. I want more flexibility, a web interface, and an app I can run locally without a hosting subscription.
@@ -100,6 +96,8 @@ The browser always calls the API for application data and changes. The trainer u
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
+
+The agreed design for [planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) is documented separately for future implementation.
 
 ## Public core interface
 
