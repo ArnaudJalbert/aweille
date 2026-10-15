@@ -11,7 +11,7 @@ A running workout planned for a date, with an optional start time, one run type,
 A partial change to an existing planned run's date, start time, run type, ordered sections, or user and trainer notes, preserving any fields not supplied. The run keeps its identity when edited, including when rescheduled.
 
 **Planned-run deletion**:
-Permanent removal of a planned run. Deletion leaves no workout in training history and is separate from skipping a workout.
+Permanent removal of a planned run, whose identity cannot be reused. Deletion leaves no workout in training history and is separate from skipping a workout.
 
 **Section**:
 One part of a planned run, with a distance and a target pace. Its position in the list defines when it comes within the run; repeated sections remain separate entries.
