@@ -21,10 +21,40 @@ _ETAG = {
         "schema": {"type": "string"},
     }
 }
+_RECOVERY_RESPONSE_EXAMPLES = {
+    412: {
+        "stale-write": {
+            "summary": "Reload after a stale write",
+            "value": {
+                "detail": "The planned run has changed; reload it before another "
+                "edit or deletion."
+            },
+        }
+    },
+    428: {
+        "missing-if-match": {
+            "summary": "Supply the missing precondition",
+            "value": {
+                "detail": "Reload the run and supply its quoted revision in If-Match."
+            },
+        }
+    },
+}
 _EDIT_ERRORS = {
     status: {
         "model": ProblemResponse if status == 422 else MessageResponse,
         "description": description,
+        **(
+            {
+                "content": {
+                    "application/json": {
+                        "examples": _RECOVERY_RESPONSE_EXAMPLES[status]
+                    }
+                }
+            }
+            if status in _RECOVERY_RESPONSE_EXAMPLES
+            else {}
+        ),
     }
     for status, description in {
         404: "Run not found.",
@@ -140,14 +170,56 @@ def _revision(request: Request) -> int:
 @router.get(
     "/runs/{id}",
     responses={
-        200: {"headers": _ETAG},
+        200: {
+            "headers": _ETAG,
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "reload-recovery": {
+                            "summary": "Reload the current run and use its new ETag",
+                            "value": {
+                                "id": "54d97d4d-fadb-4d50-926e-af1bb26c711a",
+                                "planned_date": "2026-10-14",
+                                "planned_start_time": "07:30",
+                                "run_type": "easy",
+                                "sections": [
+                                    {
+                                        "distance_m": "5000",
+                                        "target_pace_seconds_per_km": "390",
+                                    }
+                                ],
+                                "user_note": "Keep it easy.",
+                                "trainer_note": "Finish relaxed.",
+                                "revision": "2",
+                            },
+                        }
+                    }
+                }
+            },
+        },
         **{status: _EDIT_ERRORS[status] for status in (404, 422, 500, 503)},
     },
 )
 def get_run(
     id: UUID, query: Annotated[_NoQuery, Query()], request: Request, response: Response
 ) -> RunResponse:
-    """Read a single live run, including its strong revision validator."""
+    """Read one live run and return its current revision as a strong ETag.
+
+    Args:
+        id: Run UUID parsed from the path by FastAPI.
+        query: Empty query model; extra parameters are rejected.
+        request: Request supplying the bound read use case.
+        response: Response receiving the quoted revision ETag.
+
+    Returns:
+        Complete normalized run with its exact string revision.
+
+    Raises:
+        RequestValidationError: Path UUID or query parameters are invalid.
+        RunNotFound: No run exists for the UUID (HTTP 404).
+        StorageUnavailable: Storage cannot currently read (HTTP 503).
+        StorageFailure: Storage cannot read or decode the run (HTTP 500).
+    """
     run = request.app.state.read_run(id=id)
     response.headers["ETag"] = f'"{run.to_dict()["revision"]}"'
     return RunResponse.model_validate(run.to_dict())
@@ -193,7 +265,28 @@ def patch_run(
     request: Request,
     response: Response,
 ) -> RunResponse:
-    """Apply only supplied fields against one exact expected revision."""
+    """Edit supplied fields only when If-Match names the saved revision.
+
+    Args:
+        id: Run UUID parsed from the path by FastAPI.
+        data: Validated partial edit; omitted fields retain saved values.
+        query: Empty query model; extra parameters are rejected.
+        request: Request supplying If-Match and the bound update use case.
+        response: Response receiving the resulting quoted revision ETag.
+
+    Returns:
+        Complete normalized run with the new revision, or the same revision
+        when normalized values did not change.
+
+    Raises:
+        RequestValidationError: Path, query, or patch body is invalid (HTTP 422).
+        HTTPException: If-Match is missing (HTTP 428) or malformed (HTTP 422).
+        ValidationError: The complete edited run is invalid (HTTP 422).
+        RunNotFound: The run is absent (HTTP 404).
+        RunRevisionConflict: The revision is stale (HTTP 412).
+        StorageUnavailable: Storage cannot currently read or write (HTTP 503).
+        StorageFailure: Storage cannot read or write the run (HTTP 500).
+    """
     run = request.app.state.update_run(
         id=id, expected_revision=_revision(request), **data.core_inputs()
     )

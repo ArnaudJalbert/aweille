@@ -74,7 +74,18 @@ class SQLiteRunStorage:
         return stored, inserted
 
     def load(self, id: UUID) -> PlannedRun | None:
-        """Read one committed run without changing the database."""
+        """Load one run from the committed database state.
+
+        Args:
+            id: UUID of the saved run.
+
+        Returns:
+            The validated saved run, or None if the UUID is absent.
+
+        Raises:
+            StorageUnavailable: Contention or unavailability prevents reading.
+            StorageFailure: Saved data is invalid or the read fails.
+        """
         with self._connection() as connection:
             row = connection.execute(
                 "SELECT * FROM runs WHERE id = ?", (str(id),)
@@ -82,7 +93,23 @@ class SQLiteRunStorage:
             return self._decode_run(row) if row is not None else None
 
     def replace(self, run: PlannedRun, *, expected_revision: int) -> PlannedRun:
-        """Atomically check the current revision and replace changed fields."""
+        """Replace a run atomically when its saved revision matches.
+
+        Args:
+            run: Validated candidate with the same UUID as the saved run.
+            expected_revision: Revision the caller observed before editing.
+
+        Returns:
+            The committed run with its incremented revision, or the unchanged
+            saved run and revision when the candidate is a no-op.
+
+        Raises:
+            RunNotFound: The UUID is absent.
+            RunRevisionConflict: The saved revision differs from the expected one.
+            StorageUnavailable: Contention or unavailability prevents replacing.
+            StorageFailure: Saved data is invalid or the write fails; a failed
+                response does not establish whether a commit occurred.
+        """
         with self._connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(

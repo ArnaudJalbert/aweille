@@ -235,6 +235,82 @@ def test_montreal_gap_validation_retains_draft_for_correction(
     assert saved["planned_start_time"] is None
 
 
+def test_api_field_errors_survive_dismissed_discard_prompts(
+    page: Page, live_server: LiveServer
+) -> None:
+    run_id = "00000000-0000-0000-0000-000000000032"
+    assert (
+        page.request.post(
+            f"{live_server.url}/v1/runs",
+            data={
+                "id": run_id,
+                "planned_date": "2026-10-14",
+                "run_type": "easy",
+                "sections": [
+                    {"distance_m": "1000", "target_pace_seconds_per_km": "390"}
+                ],
+            },
+        ).status
+        == 201
+    )
+    page.goto(f"{live_server.url}/runs/{run_id}/edit?week=2026-10-12")
+    expect(page.get_by_role("button", name="Save changes")).to_be_enabled()
+    page.get_by_label("Personal note").fill("draft")
+    page.route(
+        "**/v1/runs/*",
+        lambda route: (
+            route.fulfill(
+                status=422,
+                json={
+                    "detail": [
+                        {
+                            "loc": ["body", "sections", 0, "distance_m"],
+                            "type": "value_error",
+                            "msg": "Distance rejected by API",
+                        },
+                        {
+                            "loc": ["body", "user_note"],
+                            "type": "value_error",
+                            "msg": "Note rejected by API",
+                        },
+                    ]
+                },
+            )
+            if route.request.method == "PATCH"
+            else route.continue_()
+        ),
+    )
+    page.get_by_role("button", name="Save changes").click()
+    distance = page.get_by_role("group", name="Section 1").get_by_label("Distance (km)")
+    note = page.get_by_label("Personal note")
+    expect(distance).to_have_attribute("aria-invalid", "true")
+    expect(note).to_have_attribute("aria-invalid", "true")
+    for action in ("Cancel", "Reload"):
+        dialogs = []
+
+        def dismiss(dialog, recorded=dialogs):
+            recorded.append((dialog.type, dialog.message))
+            dialog.dismiss()
+
+        page.once("dialog", dismiss)
+        if action == "Cancel":
+            page.get_by_role("link", name="Cancel").click()
+            assert dialogs == [("confirm", "Discard your unsaved changes?")]
+        else:
+            page.evaluate("location.reload()")
+            assert len(dialogs) == 1 and dialogs[0][0] == "beforeunload"
+        expect(page).to_have_url(
+            f"{live_server.url}/runs/{run_id}/edit?week=2026-10-12"
+        )
+        expect(note).to_have_value("draft")
+        expect(distance).to_have_attribute("aria-invalid", "true")
+        expect(note).to_have_attribute("aria-invalid", "true")
+        error_id = distance.get_attribute("aria-describedby")
+        assert error_id is not None
+        expect(page.locator(f"#{error_id}")).to_have_text("Distance rejected by API")
+        expect(page.locator("#user_note-error")).to_have_text("Note rejected by API")
+
+
 def test_lost_success_requires_reload_and_keeps_draft_on_failed_read(
     page: Page, live_server: LiveServer
 ) -> None:

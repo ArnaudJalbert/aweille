@@ -5,6 +5,7 @@ import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
+from uuid import UUID
 
 from aweille.core import PlannedRun, StorageFailure, StorageUnavailable, ValidationError
 
@@ -66,6 +67,17 @@ def validate_database(
     if not check_data:
         return
     try:
+        if version == 2:
+            for (reserved_id,) in connection.execute("SELECT id FROM deleted_run_ids"):
+                if (
+                    not isinstance(reserved_id, str)
+                    or str(UUID(reserved_id)) != reserved_id
+                ):
+                    raise ValueError("Invalid reserved run ID")
+            if connection.execute(
+                "SELECT 1 FROM runs JOIN deleted_run_ids USING (id) LIMIT 1"
+            ).fetchone():
+                raise ValueError("Run ID is both live and reserved")
         for row in connection.execute("SELECT * FROM runs"):
             data = dict(
                 zip(

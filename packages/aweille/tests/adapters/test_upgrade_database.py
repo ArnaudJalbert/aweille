@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from aweille.adapters import SQLiteRunStorage
+from aweille.adapters.create_database import create_database
 from aweille.adapters.upgrade_database import upgrade_database
 from aweille.core import StorageFailure, create_run, read_run
 
@@ -71,6 +72,44 @@ def test_invalid_database_is_never_migrated(tmp_path: Path) -> None:
     before = path.read_bytes()
     with pytest.raises(StorageFailure):
         upgrade_database(path)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "reserved_id", ["not-a-uuid", "54D97D4D-FADB-4D50-926E-AF1BB26C711A"]
+)
+def test_upgrade_rejects_malformed_v2_reserved_id_unchanged(
+    tmp_path: Path, reserved_id: str
+) -> None:
+    path = tmp_path / "runs.sqlite"
+    create_database(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "INSERT INTO deleted_run_ids (id) VALUES (?)", (reserved_id,)
+        )
+    before = path.read_bytes()
+
+    with pytest.raises(StorageFailure):
+        upgrade_database(path)
+
+    assert path.read_bytes() == before
+
+
+def test_upgrade_rejects_v2_id_both_live_and_reserved_unchanged(
+    tmp_path: Path, run_input: dict[str, Any]
+) -> None:
+    path = tmp_path / "runs.sqlite"
+    version_one(path, run_input)
+    upgrade_database(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "INSERT INTO deleted_run_ids (id) VALUES (?)", (str(run_input["id"]),)
+        )
+    before = path.read_bytes()
+
+    with pytest.raises(StorageFailure):
+        upgrade_database(path)
+
     assert path.read_bytes() == before
 
 
