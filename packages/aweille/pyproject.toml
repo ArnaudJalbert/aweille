@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 aweille-init-db = "aweille.adapters.create_database:main"
+aweille-upgrade-db = "aweille.adapters.upgrade_database:main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

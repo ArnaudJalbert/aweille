@@ -21,3 +21,4 @@ class RunResponse(BaseModel):
     sections: list[SectionResponse] = Field(min_length=1)
     user_note: str | None
     trainer_note: str | None
+    revision: Annotated[str, Field(pattern=r"^[1-9][0-9]*$")]

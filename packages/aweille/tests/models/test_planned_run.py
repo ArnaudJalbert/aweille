@@ -77,6 +77,7 @@ def test_planned_run_dictionary_round_trip_preserves_exact_ordered_targets(
         ],
         "user_note": "Keep the first section easy.",
         "trainer_note": "Finish relaxed.",
+        "revision": "1",
     }
 
     assert run.to_dict() == expected

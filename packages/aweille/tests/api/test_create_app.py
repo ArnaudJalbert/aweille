@@ -31,6 +31,7 @@ def test_create_normalize_and_read_after_restart(database_path: Path):
         ],
         "user_note": "Keep the first section easy.",
         "trainer_note": "Finish relaxed.",
+        "revision": "1",
     }
     with TestClient(create_app(storage=SQLiteRunStorage(database_path))) as client:
         response = client.post("/v1/runs", json=payload)

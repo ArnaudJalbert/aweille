@@ -1,10 +1,11 @@
+from dataclasses import replace
 from datetime import date
 from types import SimpleNamespace
 from typing import cast
 from uuid import UUID
 
 import pytest
-from aweille.core import PlannedRun, RunStorage
+from aweille.core import PlannedRun, RunNotFound, RunRevisionConflict, RunStorage
 
 
 @pytest.fixture
@@ -22,7 +23,21 @@ def storage() -> RunStorage:
             reversed([r for r in runs.values() if start <= r.planned_date < end])
         )
 
+    def load(id: UUID) -> PlannedRun | None:
+        return runs.get(id)
+
+    def replace_run(run: PlannedRun, *, expected_revision: int) -> PlannedRun:
+        current = runs.get(run.id)
+        if current is None:
+            raise RunNotFound
+        if current.revision != expected_revision:
+            raise RunRevisionConflict
+        if current.to_dict() | {"revision": "1"} != run.to_dict() | {"revision": "1"}:
+            current = replace(run, revision=current.revision + 1)
+            runs[run.id] = current
+        return current
+
     return cast(
         RunStorage,
-        SimpleNamespace(save=save, get=get),
+        SimpleNamespace(save=save, get=get, load=load, replace=replace_run),
     )

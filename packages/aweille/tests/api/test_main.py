@@ -70,14 +70,8 @@ def test_unprepared_file_is_not_repaired_at_startup_or_during_requests(
     path = tmp_path / "unprepared.sqlite"
     path.write_bytes(contents)
     monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
-    with TestClient(_load_local_app()) as client:
-        for response in (
-            client.post("/v1/runs", json=run_request),
-            client.get("/v1/runs?start=2026-10-14&end=2026-10-15"),
-        ):
-            assert response.status_code == 500
-            assert "PRIVATE" not in response.text
-            assert str(path) not in response.text
+    with pytest.raises(ValueError, match="aweille-upgrade-db"):
+        _load_local_app()
     assert path.read_bytes() == contents
 
 

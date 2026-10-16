@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, create/read HTTP API, weekly browser view, and manual creation form are implemented.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit HTTP API, weekly browser view, and manual creation and editing forms are implemented.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -105,6 +105,8 @@ Import the models, storage port, errors, and use cases from `aweille.core`.
 
 - `create_run(storage, *, id, planned_date, run_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_run, inserted)`. `inserted` is true only after storage commits a new run. An identical normalized retry returns the existing run and false; changed data under the same ID raises `RunConflict`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
+- `read_run(storage, *, id)` returns one run or raises `RunNotFound`.
+- `update_run(storage, *, id, expected_revision, planned_date=UNSET, planned_start_time=UNSET, run_type=UNSET, sections=UNSET, user_note=UNSET, trainer_note=UNSET)` changes only supplied fields. The current revision must match exactly or `RunRevisionConflict` is raised. Changed normalized content increments the revision; no-ops do not.
 
 Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is a `RunType` enum member: `EASY`, `HARD`, `INTERVAL`, or `LONG`. The enum's string values remain `easy`, `hard`, `interval`, and `long`; adapters can parse them with `RunType(value)`.
 
@@ -143,7 +145,7 @@ Create the database once before using the adapter. Its parent directory must exi
 uv run aweille-init-db aweille.sqlite
 ```
 
-The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.adapters.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates the initial schema and planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. Migrations remain outside this workflow.
+The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.adapters.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates schema version 2 and the planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. To explicitly upgrade an existing version-1 database with the application stopped, run `uv run aweille-upgrade-db aweille.sqlite`; it validates before changing anything and accepts valid version-2 databases unchanged. Startup refuses incompatible databases without migrating them.
 
 Then import `SQLiteRunStorage` from `aweille.adapters`:
 

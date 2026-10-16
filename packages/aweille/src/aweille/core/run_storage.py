@@ -1,11 +1,12 @@
 from datetime import date
 from typing import Protocol
+from uuid import UUID
 
 from .models.planned_run import PlannedRun
 
 
 class RunStorage(Protocol):
-    """Storage adapters implement these two synchronous planned-run operations.
+    """Storage adapters implement synchronous planned-run reads and writes.
 
     Translate temporary contention or unavailability to StorageUnavailable,
     and unexpected failures to StorageFailure, with safe explanatory messages.
@@ -28,6 +29,14 @@ class RunStorage(Protocol):
                 the operation. The caller may retry with the same ID.
             StorageFailure: An unexpected storage failure prevents the operation.
         """
+        ...
+
+    def load(self, id: UUID) -> PlannedRun | None:
+        """Read a single committed run, or None if absent."""
+        ...
+
+    def replace(self, run: PlannedRun, *, expected_revision: int) -> PlannedRun:
+        """Atomically check revision and replace changed content."""
         ...
 
     def get(self, start: date, end: date) -> list[PlannedRun]:
