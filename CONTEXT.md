@@ -1,11 +1,21 @@
 # Aweille
 
-Aweille plans running training and keeps planned targets separate from actual results.
+Aweille plans training and keeps planned targets separate from actual results.
 
 ## Language
 
+**Training block**:
+One independently planned occurrence of training, such as a run, stretching routine, strength workout, or yoga practice. Several blocks can share a day, with each scheduled, moved, or skipped independently.
+_Avoid_: Section, training cycle
+
+**Training kind**:
+The activity a training block represents, such as running, stretching, strength training, or yoga. A training kind is distinct from the run type of a running block.
+
+**Strength training**:
+Training using resistance, including bodyweight exercises or equipment. This is the specific activity meant by a strength workout, rather than a name for all training.
+
 **Planned run**:
-A running workout planned for a date, with an optional start time, one run type, and an ordered list of sections. Its targets describe the intended run, separately from any actual results.
+A training block for running, planned for a date with an optional start time, one run type, and an ordered list of sections. Its targets describe the intended run, separately from any actual results.
 
 **Planned-run edit**:
 A partial change to an existing planned run's date, start time, run type, ordered sections, or user and trainer notes, preserving any fields not supplied. The run keeps its identity when edited, including when rescheduled.
