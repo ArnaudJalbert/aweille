@@ -57,7 +57,7 @@ Arnaud liked the initial study and asked for font options. The [font comparison]
 
 ## Planning handoff
 
-The [running-app redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) owns the unresolved weekly composition, sidebar integration, form/deletion/recovery presentations, and final tokens and implementation sequence. The selected typography and independent collapsed details remain standing decisions.
+The [running-app redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) records the accepted [schedule composition](schedule-layout.md), [sidebar integration](sidebar-integration.md), and [form/deletion/recovery presentation](run-form-presentation.md). Day starts expanded and Week collapsed, superseding the initial all-collapsed specimen. The reviewed form study uses light-green main actions and a lighter red Delete run button. Final token consolidation and the implementation sequence remain in [the handoff decision](https://github.com/ArnaudJalbert/aweille/issues/47).
 
 The [approved sidebar](https://github.com/ArnaudJalbert/aweille/issues/29) still requires full desktop collapse, an initially closed mobile overlay drawer, accessible dismissal/focus handling, and Aweille branding only inside the sidebar without a slogan. Integrate those preferences with the new design rather than copying the study's top branding. The earlier requirement to retain the existing weekly appearance is superseded. Final custom-logo artwork remains in the [logo exploration](https://github.com/ArnaudJalbert/aweille/issues/31).
 
