@@ -36,7 +36,7 @@ Arnaud selected IBM Plex Sans with IBM Plex Mono on October 17, 2026. [DESIGN.md
 
 The reference study inspected all twelve board images on October 17, 2026. [Reference notes](docs/design/visual-direction.md) record the observations and image sources. The [prototype](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html) uses explicitly illustrative planned runs, with no connection to saved training data.
 
-Arnaud accepted the [schedule composition and interaction rules](docs/design/schedule-layout.md) and [sidebar integration](docs/design/sidebar-integration.md) on October 17, 2026. Day is the default, with a Week switcher, a time column, expanded Day details, and calendar navigation. The sidebar collapses fully on desktop and becomes a closed-by-default drawer on phones. The [redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) tracks the remaining form/recovery presentation and token/handoff decisions. Its planning completion will not mean the production redesign has shipped.
+Arnaud accepted the [schedule composition and interaction rules](docs/design/schedule-layout.md) and [sidebar integration](docs/design/sidebar-integration.md) on October 17, 2026. Day is the default, with a Week switcher, a time column, expanded Day details, and calendar navigation. The sidebar collapses fully on desktop and becomes a closed-by-default drawer on phones. The [redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) records the approved [form/deletion/recovery presentation](docs/design/run-form-presentation.md) and tracks the remaining token/handoff decision. Its planning completion will not mean the production redesign has shipped.
 
 ## Product Principles
 

@@ -28,7 +28,7 @@ Switching to a narrow layout closes the drawer. Returning to desktop restores th
 
 ## Form boundary and implementation
 
-The integration study places create/edit in the content column to exercise navigation beside forms. Approval settles the sidebar, menu placement, and surrounding spacing. Full form geometry, section controls, deletion confirmation, validation, pending writes, and recovery presentation remain owned by [the form decision](https://github.com/ArnaudJalbert/aweille/issues/46). The specimen does not settle those choices or replace production behavior contracts.
+The integration study places create/edit in the content column to exercise navigation beside forms. Approval settles the sidebar, menu placement, and surrounding spacing. The subsequent [approved form decision](run-form-presentation.md) settles form geometry, section controls, sticky actions, deletion confirmation, validation, pending writes, and recovery presentation. The sidebar specimen alone does not settle those choices or replace production behavior contracts.
 
 Reuse [Add responsive collapsible left navigation from variant A](https://github.com/ArnaudJalbert/aweille/issues/29) for implementation. Extend acceptance to edit and deletion/recovery flows, and replace its old appearance/navigation assumptions with the selected schedule. Keep prototype controls, fixtures, local save feedback, and comparison assets off main.
 
