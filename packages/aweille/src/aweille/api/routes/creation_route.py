@@ -24,6 +24,19 @@ class CreationRoute(APIRoute):
         async def handle(request: Request) -> Response:
             if request.method in ("POST", "PATCH"):
                 request = _CreationRequest(request.scope, receive=request.receive)
+            elif request.method == "DELETE":
+                async for chunk in request.stream():
+                    if chunk:
+                        raise HTTPException(
+                            422,
+                            [
+                                {
+                                    "loc": ["body"],
+                                    "type": "body_forbidden",
+                                    "msg": "Deletion requires an empty body.",
+                                }
+                            ],
+                        )
             return await handler(request)
 
         return handle

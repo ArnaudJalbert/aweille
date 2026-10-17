@@ -5,14 +5,23 @@ from typing import cast
 from uuid import UUID
 
 import pytest
-from aweille.core import PlannedRun, RunNotFound, RunRevisionConflict, RunStorage
+from aweille.core import (
+    PlannedRun,
+    RunConflict,
+    RunNotFound,
+    RunRevisionConflict,
+    RunStorage,
+)
 
 
 @pytest.fixture
 def storage() -> RunStorage:
     runs: dict[UUID, PlannedRun] = {}
+    deleted: set[UUID] = set()
 
     def save(run: PlannedRun) -> tuple[PlannedRun, bool]:
+        if run.id in deleted:
+            raise RunConflict
         if run.id in runs:
             return runs[run.id], False
         runs[run.id] = run
@@ -37,7 +46,18 @@ def storage() -> RunStorage:
             runs[run.id] = current
         return current
 
+    def delete(id: UUID, *, expected_revision: int) -> None:
+        current = runs.get(id)
+        if current is None:
+            raise RunNotFound
+        if current.revision != expected_revision:
+            raise RunRevisionConflict
+        del runs[id]
+        deleted.add(id)
+
     return cast(
         RunStorage,
-        SimpleNamespace(save=save, get=get, load=load, replace=replace_run),
+        SimpleNamespace(
+            save=save, get=get, load=load, replace=replace_run, delete=delete
+        ),
     )

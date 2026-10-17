@@ -1,6 +1,6 @@
 # Planned-run editing and deletion
 
-Agreed design as of October 15, 2026. Issue #32 implements planned-run editing on schema version 2; deletion remains separate issue #33. This document retains the complete editing-and-deletion handoff.
+Agreed design as of October 15, 2026. Issues #32 and #33 implement planned-run editing and permanent deletion on schema version 2. This document retains the complete editing-and-deletion contract.
 
 This document collects the core, SQLite, HTTP, and browser implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); the browser agreement is recorded in [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22).
 

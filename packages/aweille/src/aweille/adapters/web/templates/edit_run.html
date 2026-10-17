@@ -10,7 +10,7 @@
 <body>
   <header class="brand"><a href="/">Aweille</a></header>
   <main class="shell">
-    <header class="page-heading"><h1>Edit a planned run</h1></header>
+    <header class="page-heading"><h1 tabindex="-1">Edit a planned run</h1></header>
     <form id="run-form" class="form-card" novalidate>
       <fieldset id="form-fields" disabled>
         <div class="field-grid">
@@ -48,11 +48,22 @@
           </div>
         </section>
       </fieldset>
-      <div id="save-status" class="notice" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
+      <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
       <footer class="form-footer">
         <a id="cancel" class="button" href="/">Cancel</a>
         <button id="save-run" class="positive" type="submit" disabled>Save changes</button>
       </footer>
+      <section class="form-section" aria-label="Delete run">
+        <button id="delete-run" class="negative" type="button" disabled>Delete run</button>
+        <section id="delete-confirmation" class="notice" aria-labelledby="delete-heading" hidden>
+          <h2 id="delete-heading">Permanently delete this run?</h2>
+          <p id="delete-target"></p>
+          <p>This permanently removes the whole planned run and cannot be undone.</p>
+          <p id="delete-draft-warning" hidden>Your unsaved edits will be discarded.</p>
+          <button id="confirm-delete" class="negative" type="button">Delete permanently</button>
+          <button id="keep-run" type="button">Keep run</button>
+        </section>
+      </section>
       <div id="recovery" hidden><button type="button" id="reload-run">Reload saved run</button><button type="button" id="retry-load">Retry</button></div>
     </form>
     <template id="section-template">

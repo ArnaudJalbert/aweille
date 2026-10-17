@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit HTTP API, weekly browser view, and manual creation and editing forms are implemented.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit/delete HTTP API, weekly browser view, and manual creation and editing forms are implemented.
 
 The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
 
@@ -97,7 +97,7 @@ The browser always calls the API for application data and changes. The trainer u
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
 
-The agreed design for [planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) is documented separately for future implementation.
+The implemented [planned-run editing and deletion contract](docs/design/planned-run-editing-and-deletion.md) records the agreed behavior and test seams.
 
 ## Public core interface
 
@@ -107,6 +107,7 @@ Import the models, storage port, errors, and use cases from `aweille.core`.
 - `read_runs(storage, *, start, end)` returns all runs in `[start, end)`, ordered by local date, local start time (untimed runs last), and canonical UUID string. `end` must be later than `start`.
 - `read_run(storage, *, id)` returns one run or raises `RunNotFound`.
 - `update_run(storage, *, id, expected_revision, planned_date=UNSET, planned_start_time=UNSET, run_type=UNSET, sections=UNSET, user_note=UNSET, trainer_note=UNSET)` changes only supplied fields. The current revision must match exactly or `RunRevisionConflict` is raised. Changed normalized content increments the revision; no-ops do not.
+- `delete_run(storage, *, id, expected_revision)` permanently removes a matching run and reserves its UUID. A stale revision raises `RunRevisionConflict`; an absent or already-deleted run raises `RunNotFound`. Creation under a reserved UUID raises `RunConflict`.
 
 Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Run type is a `RunType` enum member: `EASY`, `HARD`, `INTERVAL`, or `LONG`. The enum's string values remain `easy`, `hard`, `interval`, and `long`; adapters can parse them with `RunType(value)`.
 
@@ -129,7 +130,7 @@ sections = [
 
 Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The HTTP adapter uses strict Pydantic request models, reports field and section locations, and adds `body` or `query` prefixes. Unknown enum strings are rejected without exposing the input.
 
-Implement the core-owned `RunStorage` protocol with `save(run)`, `get(start, end)`, `load(id)`, and `replace(run, *, expected_revision)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. `load` returns the committed run for a UUID or `None` when absent. `replace` checks the saved revision atomically: it raises `RunNotFound` if absent or `RunRevisionConflict` if stale, returns the unchanged run on a normalized no-op, and otherwise commits the replacement with an incremented revision. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds the supplied storage port to the functions with `functools.partial`.
+Implement the core-owned `RunStorage` protocol with `save(run)`, `get(start, end)`, `load(id)`, `replace(run, *, expected_revision)`, and `delete(id, *, expected_revision)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. `load` returns the committed run for a UUID or `None` when absent. `replace` checks the saved revision atomically: it raises `RunNotFound` if absent or `RunRevisionConflict` if stale, returns the unchanged run on a normalized no-op, and otherwise commits the replacement with an incremented revision. `delete` checks existence and revision in the same transaction that removes workout content and permanently reserves only the UUID. It returns only after commit. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds the supplied storage port to the functions with `functools.partial`.
 
 The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser will convert distances to and from kilometres exactly and format seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
@@ -157,15 +158,15 @@ storage = SQLiteRunStorage("aweille.sqlite", timeout=1.0)
 
 Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. Local startup resolves the database path and rejects missing files; it does not create or repair the schema.
 
-The adapter implements `RunStorage.save/get/load/replace`. Each operation closes its connections; reads use committed data and range reads use one committed snapshot. `replace` acquires a write transaction before comparing revisions, so a competing edit cannot silently overwrite a newer run. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
+The adapter implements `RunStorage.save/get/load/replace/delete`. Each operation closes its connections; reads use committed data and range reads use one committed snapshot. `replace` acquires a write transaction before comparing revisions, so a competing edit cannot silently overwrite a newer run. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
 
-The adapter uses the model's dictionary representation, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. Reads use `PlannedRun.from_dict`. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain `save` outcome can be checked by retrying the same ID and payload; after an uncertain `replace`, reload and review before another edit.
+The adapter uses the model's dictionary representation, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. Reads use `PlannedRun.from_dict`. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain `save` outcome can be checked by retrying the same ID and payload; after an uncertain `replace` or `delete`, reload and review before another write. Deletion and ID reservation commit together and survive restart. Deleted runs are excluded from all reads, and their UUIDs cannot be reused.
 
 The default lock wait is one second, configurable through `timeout`. SQLite handles this bounded wait; the adapter adds no retry loop. Tests use real temporary files, short deliberate lock waits, and targeted driver fault injection. See [SQLite storage verification](docs/verification/sqlite-run-storage.md) and [testing research](docs/research/sqlite-storage-testing.md).
 
 ## Local HTTP API
 
-Version 1 exposes `POST /v1/runs` for creation, `GET /v1/runs?start=YYYY-MM-DD&end=YYYY-MM-DD` for range reads, `GET /v1/runs/{id}` for a single run, and `PATCH /v1/runs/{id}` for partial edits. FastAPI registers the `/runs` resource under the `/v1` prefix.
+Version 1 exposes `POST /v1/runs` for creation, `GET /v1/runs?start=YYYY-MM-DD&end=YYYY-MM-DD` for range reads, `GET /v1/runs/{id}` for a single run, `PATCH /v1/runs/{id}` for partial edits, and bodyless `DELETE /v1/runs/{id}` for permanent deletion. FastAPI registers the `/runs` resource under the `/v1` prefix.
 
 Prepare the default persistent database once, then start the API on loopback:
 
@@ -233,7 +234,9 @@ curl -i -X PATCH http://127.0.0.1:8000/v1/runs/54d97d4d-fadb-4d50-926e-af1bb26c7
 
 Single-run GET returns `200` with the complete run and an `ETag` containing its quoted revision, or `404` if absent. PATCH requires exactly one `If-Match` header containing that quoted positive revision. It changes only supplied fields; send null to clear an optional time or note. Non-nullable fields cannot be cleared, and sections replace the whole ordered list. A normalized no-op returns `200` with the unchanged revision and ETag; a change increments the revision and returns the complete run and new ETag. A missing header returns `428`, a malformed or repeated header `422`, a stale revision `412`, and an absent run `404`. After a stale or uncertain write, GET the run by ID and review its current fields and ETag before deciding whether to edit again. The server does not automatically retry an edit with a new revision.
 
-Successful responses use validated `RunResponse` models, with `SectionResponse` models preserving canonical distance and pace strings. Each complete response includes all fields, including null time and notes. `/openapi.json` documents creation, identical retries, range and single-run reads, partial edits, and examples for stale writes, missing preconditions, and reload recovery. Run API responses use `Cache-Control: no-store`.
+DELETE requires the same single quoted `If-Match` revision as PATCH and returns an empty `204` without an ETag after commit. It rejects any received body with `422`; no Content-Type is required. Missing/malformed preconditions return `428`/`422`, stale live revisions return `412`, and missing or already-deleted runs return `404`. A repeated deletion is not a successful retry. POST under the deleted UUID returns `409`, even after restarting. After uncertain deletion, GET confirms current state or absence but not which caller removed the run. Recreating a workout needs a fresh UUID.
+
+Successful run responses use validated `RunResponse` models, with `SectionResponse` models preserving canonical distance and pace strings. Each complete response includes all fields, including null time and notes. `/openapi.json` documents creation, identical retries, range and single-run reads, partial edits, permanent deletion, and examples for stale writes, missing preconditions, and reload recovery. Run API responses use `Cache-Control: no-store`.
 
 Validation and malformed JSON return `422` with `detail` problems containing `loc`, `type`, and `msg`. Other errors have a short `detail` string: `413` for a POST or PATCH body over 1 MiB of received bytes, `415` for a non-JSON POST or PATCH content type, `503` for temporary storage unavailability, and `500` for other operation failures. Exactly 1 MiB is permitted, including streamed requests without Content-Length. Responses omit raw input values and internal diagnostics; diagnostics go to local logs.
 
@@ -271,6 +274,14 @@ uv run pytest packages/aweille/tests/browser
 ```
 
 These checks use the public browser and HTTP API. Separate API and manual creation scenarios use fresh real SQLite files, stop and restart Uvicorn with the same file, and retry the original creation without duplication. Read failures, lost save responses, conflicts, and reported field errors are injected at HTTP. Phone layout, keyboard focus, section editing, Montreal date boundaries, exact conversion and formatting, and plain-text notes are also checked.
+
+### Edit or delete a run in the browser
+
+Choose a run card's Edit link. The editor loads saved fields and the current revision through the API. Save changes sends only changed fields, then opens the saved run's week. Cancel returns to the originating week without a write and asks before discarding a dirty draft.
+
+Delete run opens inline confirmation using the saved date and type, not draft values. Keep run preserves the draft without writing. Delete permanently discards unsaved edits and sends bodyless DELETE with the loaded revision, then returns to a freshly fetched originating week. Deletion cannot be undone.
+
+Stale or uncertain edits/deletions keep the draft and block writes until Reload saved run succeeds with confirmation to discard changes. Failed reloads retain the draft; missing runs offer return without claiming which caller deleted them. Drafts exist only in page memory. Browser checks cover confirmation, cancellation, competing writes, lost responses, timeouts, recovery, phone layout, focus, restart persistence, and reserved-ID conflicts.
 
 ## First-version completion
 

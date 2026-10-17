@@ -133,7 +133,7 @@ def test_repeated_precondition_and_patch_transport(
 def test_openapi_edit_contract(api_client: Any) -> None:
     document = api_client.get("/openapi.json").json()
     resource = document["paths"]["/v1/runs/{id}"]
-    assert set(resource) == {"get", "patch"}
+    assert set(resource) == {"get", "patch", "delete"}
     patch = resource["patch"]
     model = document["components"]["schemas"]["RunPatch"]
     assert "required" not in model
@@ -251,6 +251,12 @@ def test_huge_revision_remains_exact_through_sqlite_and_http(
     assert response.status_code == 200
     assert response.json()["revision"] == "1" + "0" * 4999 + "1"
     assert response.headers["etag"] == f'"{response.json()["revision"]}"'
+    assert (
+        api_client.delete(
+            url, headers={"If-Match": response.headers["etag"]}
+        ).status_code
+        == 204
+    )
 
 
 def test_missing_run_and_unknown_query_have_safe_locations(

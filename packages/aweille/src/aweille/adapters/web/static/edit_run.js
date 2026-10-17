@@ -5,9 +5,15 @@ const fields = document.querySelector("#form-fields");
 const sections = document.querySelector("#section-list");
 const status = document.querySelector("#save-status");
 const save = document.querySelector("#save-run");
+const deleteButton = document.querySelector("#delete-run");
+const confirmation = document.querySelector("#delete-confirmation");
+const confirmDelete = document.querySelector("#confirm-delete");
+const keepRun = document.querySelector("#keep-run");
 const params = new URLSearchParams(location.search);
 const id = location.pathname.split("/")[2];
 let saving = false;
+let loading = true;
+let confirmingDelete = false;
 let baseline = null;
 let reloadRequired = false;
 let readVersion = 0;
@@ -31,7 +37,7 @@ function weekUrl(value) {
 
 function showStatus(title, message) {
   status.hidden = false;
-  const informational = title === "Changes saved" || title.startsWith("Loading") || title.startsWith("Reloading") || title.startsWith("Saving changes");
+  const informational = title === "Changes saved" || title.startsWith("Loading") || title.startsWith("Reloading") || title.startsWith("Saving changes") || title.startsWith("Deleting run");
   status.setAttribute("role", informational ? "status" : "alert");
   status.setAttribute("aria-live", informational ? "polite" : "assertive");
   const heading = document.createElement("strong");
@@ -60,12 +66,26 @@ function validRun(data) {
     [data.user_note, data.trainer_note].every(note => note === null || typeof note === "string");
 }
 
+function updateControls() {
+  fields.disabled = loading || saving || confirmingDelete || !baseline;
+  save.disabled = fields.disabled || reloadRequired;
+  deleteButton.disabled = fields.disabled || reloadRequired;
+  confirmDelete.disabled = saving;
+  keepRun.disabled = saving;
+  document.querySelector("#reload-run").disabled = loading || saving;
+  document.querySelector("#retry-load").disabled = loading || saving;
+}
+
+function closeConfirmation() {
+  confirmingDelete = false;
+  confirmation.hidden = true;
+}
+
 function prefill(run) {
   baseline = run;
   populate(run);
   reloadRequired = false;
-  fields.disabled = false;
-  save.disabled = false;
+  closeConfirmation();
   status.hidden = true;
   document.querySelector("#recovery").hidden = true;
   document.querySelector("#cancel").href = editorWeek();
@@ -94,7 +114,8 @@ function leave(url) {
 
 function blockWrites(title, message) {
   reloadRequired = true;
-  save.disabled = true;
+  closeConfirmation();
+  updateControls();
   document.querySelector("#recovery").hidden = false;
   document.querySelector("#retry-load").hidden = true;
   showStatus(title, message);
@@ -110,8 +131,10 @@ function showSaveError(response, data) {
 
 async function loadRun(reloading = false) {
   const version = ++readVersion;
-  fields.disabled = true;
-  save.disabled = true;
+  loading = true;
+  if (baseline) reloadRequired = true;
+  closeConfirmation();
+  updateControls();
   document.querySelector("#recovery").hidden = true;
   showStatus(reloading ? "Reloading saved run..." : "Loading run...", "Please wait.");
   let response;
@@ -121,6 +144,8 @@ async function loadRun(reloading = false) {
     data = await response.json();
   } catch {
     if (version !== readVersion) return;
+    loading = false;
+    updateControls();
     showStatus("Could not load run", "A network error prevented loading. Retry when ready.");
     document.querySelector("#recovery").hidden = false;
     document.querySelector("#retry-load").hidden = false;
@@ -128,6 +153,7 @@ async function loadRun(reloading = false) {
     return;
   }
   if (version !== readVersion) return;
+  loading = false;
   if (response.status === 404 || response.status === 422 && data?.detail?.some?.(problem => problem.loc?.[0] === "path")) {
     blockWrites("Run unavailable", "This planned run is unavailable. Your draft is still here.");
     document.querySelector("#recovery").hidden = true;
@@ -144,11 +170,28 @@ async function loadRun(reloading = false) {
     document.querySelector("#retry-load").hidden = false;
     if (baseline) fields.disabled = false;
   }
+  updateControls();
+}
+
+function showWriteFailure(response, data, deleting = false) {
+  const action = deleting ? "Deletion" : "Saving";
+  if (response.status === 404) {
+    blockWrites("Run unavailable", "The run is no longer available. Your draft is still here.");
+    document.querySelector("#recovery").hidden = true;
+  }
+  else if (response.status === 412) blockWrites("Saved run changed", "Your draft is intact. Reload the saved run before another edit or deletion.");
+  else if (response.status === 428 || (response.status === 422 && data?.detail?.some?.(problem => problem.loc?.[0] === "header")))
+    blockWrites("Reload required", "The revision could not be confirmed. Reload before another edit or deletion.");
+  else if (response.status >= 500 || response.ok || !data)
+    blockWrites(`${action} could not be confirmed`, "Your draft is intact. Reload the saved run to review the outcome.");
+  else if (response.status === 413) showStatus("Could not save this run", "Reduce the notes or sections and try again.");
+  else if (deleting) showStatus("Could not delete this run", "Deletion was rejected. Your draft is still here.");
+  else showSaveError(response, data);
 }
 
 async function saveRun(event) {
   event.preventDefault();
-  if (saving || reloadRequired || !baseline) return;
+  if (loading || saving || confirmingDelete || reloadRequired || !baseline) return;
   const { payload, errors } = readPayload();
   showValidation(errors);
   const changes = payload && draftChanges(payload);
@@ -158,8 +201,7 @@ async function saveRun(event) {
     return;
   }
   saving = true;
-  fields.disabled = true;
-  save.disabled = true;
+  updateControls();
   form.setAttribute("aria-busy", "true");
   showStatus("Saving changes...", "Please wait.");
   try {
@@ -179,27 +221,60 @@ async function saveRun(event) {
       location.assign(destination);
       return;
     }
-    if (response.status === 404) {
-      blockWrites("Run unavailable", "The run is no longer available. Your draft is still here.");
-      document.querySelector("#recovery").hidden = true;
-    }
-    else if (response.status === 412) blockWrites("Saved run changed", "Your draft is intact. Reload the saved run before another edit.");
-    else if (response.status === 428 || (response.status === 422 && data?.detail?.some?.(problem => problem.loc?.[0] === "header")))
-      blockWrites("Reload required", "The revision could not be confirmed. Reload before editing.");
-    else if (response.status >= 500 || response.ok) blockWrites("Saving could not be confirmed", "Your draft is intact. Reload the saved run to review the outcome.");
-    else if (response.status === 413) showStatus("Could not save this run", "Reduce the notes or sections and try again.");
-    else showSaveError(response, data, changes.planned_date ?? baseline.planned_date);
+    showWriteFailure(response, data);
   } catch {
     blockWrites("Saving could not be confirmed", "The response was lost or unreadable. Reload the saved run before another edit.");
   } finally {
     saving = false;
     form.setAttribute("aria-busy", "false");
-    fields.disabled = !baseline;
-    save.disabled = reloadRequired || !baseline;
+    updateControls();
     updateSections();
   }
 }
 
+async function deleteRun() {
+  if (loading || saving || reloadRequired || !baseline || !confirmingDelete) return;
+  saving = true;
+  updateControls();
+  form.setAttribute("aria-busy", "true");
+  showStatus("Deleting run...", "Please wait. Leaving this page does not cancel deletion.");
+  try {
+    const response = await fetch(`/v1/runs/${encodeURIComponent(id)}`, {
+      method: "DELETE", headers: { "If-Match": `"${baseline.revision}"` },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (response.status === 204) {
+      leave(editorWeek());
+      return;
+    }
+    const data = await response.json().catch(() => null);
+    showWriteFailure(response, data, true);
+  } catch {
+    blockWrites("Deletion could not be confirmed", "Your draft is intact. Reload the saved run to review the outcome.");
+  } finally {
+    saving = false;
+    closeConfirmation();
+    updateControls();
+    form.setAttribute("aria-busy", "false");
+    status.focus();
+  }
+}
+
+deleteButton.onclick = () => {
+  if (loading || saving || reloadRequired || !baseline) return;
+  confirmingDelete = true;
+  document.querySelector("#delete-target").textContent = `${baseline.planned_date} · ${baseline.run_type[0].toUpperCase()}${baseline.run_type.slice(1)} run`;
+  document.querySelector("#delete-draft-warning").hidden = !dirty();
+  confirmation.hidden = false;
+  updateControls();
+  keepRun.focus();
+};
+keepRun.onclick = () => {
+  closeConfirmation();
+  updateControls();
+  deleteButton.focus();
+};
+confirmDelete.onclick = deleteRun;
 form.onsubmit = saveRun;
 sections.onclick = editSections;
 document.querySelector("#add-section").onclick = () => addSection();
@@ -207,8 +282,9 @@ document.querySelector("#cancel").onclick = event => {
   event.preventDefault();
   if (!dirty() || confirm("Discard your unsaved changes?")) leave(editorWeek());
 };
-document.querySelector("#reload-run").onclick = () => {
-  if (!dirty() || confirm("Discard your unsaved draft and reload the saved run?")) loadRun(true);
-};
-document.querySelector("#retry-load").onclick = () => loadRun(Boolean(baseline));
+function reloadRun() {
+  if (!dirty() || confirm("Discard your unsaved draft and reload the saved run?")) loadRun(Boolean(baseline));
+}
+document.querySelector("#reload-run").onclick = reloadRun;
+document.querySelector("#retry-load").onclick = reloadRun;
 loadRun();

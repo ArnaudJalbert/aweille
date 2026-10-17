@@ -39,6 +39,21 @@ class RunStorage(Protocol):
         """Atomically check revision and replace changed content."""
         ...
 
+    def delete(self, id: UUID, *, expected_revision: int) -> None:
+        """Atomically remove workout content and permanently reserve its UUID.
+
+        Args:
+            id: UUID of the live run to remove.
+            expected_revision: Revision that must match the committed run.
+
+        Raises:
+            RunNotFound: The UUID is absent or already deleted.
+            RunRevisionConflict: The live revision differs from the expected one.
+            StorageUnavailable: Storage is temporarily unavailable.
+            StorageFailure: Storage failed; a possible commit remains uncertain.
+        """
+        ...
+
     def get(self, start: date, end: date) -> list[PlannedRun]:
         """Return all runs in [start, end) from one committed snapshot, in any order.
 

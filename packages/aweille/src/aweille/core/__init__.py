@@ -13,6 +13,7 @@ from .models.run_type import RunType
 from .models.section import Section
 from .run_storage import RunStorage
 from .use_cases.create_run import create_run
+from .use_cases.delete_run import delete_run
 from .use_cases.read_run import read_run
 from .use_cases.read_runs import read_runs
 from .use_cases.update_run import update_run
@@ -32,6 +33,7 @@ __all__ = [
     "ValidationError",
     "ValidationProblem",
     "create_run",
+    "delete_run",
     "read_runs",
     "read_run",
     "update_run",

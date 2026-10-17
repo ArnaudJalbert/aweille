@@ -23,7 +23,7 @@ async def failure_response(request: Request, error: Exception) -> JSONResponse:
     if isinstance(error, StorageUnavailable):
         advice = (
             "Reload and review the saved run before writing again."
-            if request.method == "PATCH"
+            if request.method in ("PATCH", "DELETE")
             else "Reads can retry; creation can retry with the same ID and payload."
         )
         return JSONResponse(
