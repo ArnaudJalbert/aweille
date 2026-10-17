@@ -73,17 +73,20 @@ a { color: inherit; }
 .specimen h2 { font-size: 18px; font-weight: 500; margin: 0; }
 .eyebrow, .note-label { font-size: 14px; color: var(--muted-ink); }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
-.period-nav { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 16px; }
-.period-nav-top { border-top: 0; padding-top: 0; margin: 0 0 12px; }
+.period-nav { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); }
+.period-nav-top { border-top: 0; }
 .specimen .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 12px; border: 0; background: transparent; color: var(--ink); }
 .icon-button svg { width: 20px; height: 20px; flex-shrink: 0; }
+.specimen .period-nav .icon-button { align-items: flex-start; padding: 4px 12px 0; }
+.specimen .period-nav-top .icon-button { align-items: flex-end; padding: 0 12px 4px; }
+.period-nav .icon-button svg { width: 16px; height: 16px; }
 .icon-button:disabled { opacity: .35; cursor: default; }
 .schedule-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .view-switch { display: flex; gap: 4px; }
 .view-switch button { min-width: 64px; }
 .specimen .view-switch [aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .schedule-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 16px; }
-.schedule-heading { margin-bottom: 24px; }
+.schedule-heading { margin-bottom: 12px; }
 .specimen .schedule-heading h1 { margin: 0; }
 .specimen .heading-date { margin-top: 8px; color: var(--muted-ink); font-size: 14px; }
 .heading-actions { display: flex; align-items: center; gap: 8px; }
