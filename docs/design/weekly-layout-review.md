@@ -20,7 +20,7 @@ The specimen uses the existing run paths as intercepted links. A separate review
 
 Prefer the complete weekly log on phone and desktop. It exposes every day and every run summary together. The selected-day alternative gives details more width but hides the other days' summaries until selected. The narrow selected-day index wraps to preserve touch targets.
 
-Retain the approved initially collapsed, independent disclosures. Summaries show run type, optional time or an explicit time-not-set label, exact total distance, section count, and a shared target pace or varied-pace label. Edit remains a sibling control outside the disclosure. The ordered sections and separately labeled notes appear inside it.
+Retain the approved initially collapsed, independent disclosures. Summaries show run type, optional time or an explicit time-not-set label, exact total distance, section count, and a shared target pace or varied-pace label. Edit remains a sibling control outside the disclosure. Following Arnaud's feedback, Add run and Edit use compact orange buttons with dark labels, a 28px visible height, and a surrounding click area at least 44px high and wide. The earlier large outlined treatment is superseded. The smaller visible buttons keep the same destinations and focus behavior. The ordered sections and separately labeled notes appear inside it.
 
 Keep opened disclosures while selecting days within one week. Reset on a week change, reload, and return from create/edit/delete, including cancel. Store no disclosure preferences. Native summary controls support Enter and Space with a visible 3px focus outline. A selected-day control keeps focus after activation. Week controls keep focus during navigation. Retry and simulated editor return focus the week heading.
 
@@ -31,6 +31,8 @@ Move week controls above the schedule. Loading and errors hide the old runs whil
 The sidebar's design remains in its own decision. The 760px width option checks available space without implementing a sidebar or settling its threshold. The specimen keeps branding out of the page header, consistent with sidebar-only branding. Exact tokens and production font policy remain provisional.
 
 ## Evidence
+
+The compact-action revision was checked in both layouts at 320px, 390px, 760px, and 1280px. Visible buttons are 28px high with click areas at least 44px in both dimensions. Button text contrast is 4.92:1. Both actions still open their navigation previews, Escape restores focus, and keyboard focus remains visible. Expanded busy content fits without horizontal overflow. The screenshots below show this revision.
 
 | Composition | Desktop | Phone |
 | --- | --- | --- |
