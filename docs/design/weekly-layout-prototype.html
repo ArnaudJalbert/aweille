@@ -152,7 +152,13 @@ dialog code { overflow-wrap: anywhere; }
 .font-credits pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 @container screen (max-width: 560px) {
   .specimen h1 { font-size: 26px; }
-  .day { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-block: 16px; }
+  .day, .focus-layout .day { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding-block: 16px; }
+  .day-heading { display: contents; }
+  .day-heading h2 { grid-column: 1; grid-row: 1; }
+  .day-heading .date { grid-column: 1; grid-row: 2; }
+  .day-add, .day-content > [data-add] { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; }
+  .day-content { grid-column: 1 / -1; grid-row: 3; margin-top: 8px; }
+  .day-content:has(> [data-add]) { display: contents; }
   .focus-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .day-index { grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 4px; }
   .day-index button { display: block; text-align: center; padding: 8px 2px; }
@@ -186,7 +192,7 @@ dialog code { overflow-wrap: anywhere; }
       <li>Click or tap a run summary to open its edit pane, or focus it and press Enter. There is no separate Edit button. Keep time, run type, distance, section count, and shared or varied pace visible while details are closed.</li>
       <li>Each run opens independently with Enter, Space, or touch. Sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
-      <li>Add run replaces the empty-day placeholder. On a populated day, it sits below the day and date. It opens the create pane on that date. Adding a preview run updates the schedule and moves Add run below the date when the day becomes populated. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
+      <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
       <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the pane keeps the selected day. Saving selects the saved run’s day so the result is visible.</li>
       <li>Put week navigation above the schedule so a busy week does not push it out of reach. Loading and failures hide old runs, keep week navigation available, and offer retry. Retry moves focus to the week heading.</li>
     </ul>
