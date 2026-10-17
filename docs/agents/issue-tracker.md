@@ -19,6 +19,7 @@ PRs as a request surface: no.
 
 ## Wayfinding operations
 
+- Manage destination milestones with `gh api repos/ArnaudJalbert/aweille/milestones` (GET to find one; POST with `-f title="..." -f description="..."` to create one). Assign an issue with `gh issue edit <number> --milestone "<title>"`. Follow Wayfinder's milestone convention for maps, child tickets, and implementation follow-up.
 - Create the map as an issue labelled `wayfinder:map`. Its body contains Destination, Notes, Decisions so far, Not yet specified, and Out of scope.
 - Create each decision ticket as a GitHub sub-issue of the map using `gh api`. Label it `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`, or `wayfinder:task`.
 - Add blocking relationships through GitHub's native issue-dependency API: `gh api --method POST repos/ArnaudJalbert/aweille/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-database-id>`. Obtain the database ID with `gh api repos/ArnaudJalbert/aweille/issues/<number> --jq .id`.
