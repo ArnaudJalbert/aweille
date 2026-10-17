@@ -75,9 +75,9 @@ a { color: inherit; }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
 .week-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 24px; }
 .week-nav button { flex: 1 1 auto; }
-.day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 24px; }
+.day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 24px; }
 .day-heading { display: flex; flex-direction: column; align-items: start; gap: 4px; }
-.day-title { display: grid; grid-template-columns: 120px max-content; align-items: center; gap: 12px; }
+.day-add { margin-top: 8px; }
 .day-heading .date { font-size: 14px; color: var(--muted-ink); }
 .action { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; text-decoration: none; font-size: 13px; font-weight: 500; }
 .action-label { display: inline-block; padding: 4px 8px; border-radius: 3px; background: var(--orange); color: var(--ink); line-height: 20px; white-space: nowrap; }
@@ -186,7 +186,7 @@ dialog code { overflow-wrap: anywhere; }
       <li>Click or tap a run summary to open its edit pane, or focus it and press Enter. There is no separate Edit button. Keep time, run type, distance, section count, and shared or varied pace visible while details are closed.</li>
       <li>Each run opens independently with Enter, Space, or touch. Sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
-      <li>Keep existing destinations. Add run starts on its chosen date. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
+      <li>Add run replaces the empty-day placeholder. On a populated day, it sits below the day and date. It always starts on that date. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
       <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the edit pane keeps the selected day. Saving into another week uses the initial selection rule there.</li>
       <li>Put week navigation above the schedule so a busy week does not push it out of reach. Loading and failures hide old runs, keep week navigation available, and offer retry. Retry moves focus to the week heading.</li>
     </ul>
@@ -475,7 +475,8 @@ function runMarkup(r) {
 function dayMarkup(index) {
   const value = offset(monday,index);
   const runs = runsOn(index);
-  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><div class="day-title"><h2 id="day-${index}">${weekdays[index]}</h2><a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a></div><span class="date mono">${dayLabel(value)}</span></header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : '<p class="empty">No runs planned</p>'}</div></section>`;
+  const add = `<a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a>`;
+  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><h2 id="day-${index}">${weekdays[index]}</h2><span class="date mono">${dayLabel(value)}</span>${runs.length ? `<div class="day-add">${add}</div>` : ''}</header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : add}</div></section>`;
 }
 function renderContent() {
   const content = $('week-content');

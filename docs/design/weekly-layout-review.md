@@ -22,7 +22,7 @@ Prefer the complete weekly log on phone and desktop. It exposes every day and ev
 
 Retain the approved initially collapsed, independent disclosures. Summaries show run type, optional time or an explicit time-not-set label, exact total distance, section count, and a shared target pace or varied-pace label. Arnaud selected clicking the run to open its edit pane instead of a separate Edit button. The whole run summary is a native link, reachable with Tab and Enter. Hover and focus mark it as interactive. Show details remains a separate native disclosure, outside the link, so it never opens the editor or hides editing access behind expansion. Sections and labeled notes remain inside the disclosure.
 
-Add run stays beside its day heading, using the compact orange button with a 28px visible height and a click area at least 44px high and wide. There is no separate run-action column.
+Following Arnaud's next placement proposal, an empty day puts Add run in the content area instead of No runs planned. A day with one or more runs puts Add run below the day and date in the left column. There is exactly one date-scoped Add run per day. The compact orange button keeps its 28px visible height and click area at least 44px high and wide. On narrow screens the date column becomes the header above the runs, and the button follows the same content-dependent placement.
 
 Keep opened disclosures and the selected day while opening and closing the pane. Close, Cancel, and Escape return focus to the clicked run. Dirty pane values prompt before discard. A preview save in the same week refreshes the run, keeps disclosures, and returns focus to its summary. A preview save into another week shows the saved date's week, resets disclosures, and focuses the week heading. A week change and reload reset disclosures; no saved disclosure preference is implied. This replaces the earlier full-page-return proposal for edit cancellation.
 
@@ -34,7 +34,9 @@ The sidebar's design remains in its own decision. The 760px width option checks 
 
 ## Evidence
 
-The clickable-run revision was checked in both layouts at 320px, 390px, 760px, and 1280px. Click and Enter open the clicked run in the pane. Enter/Space on Show details expand only that run without opening the pane. Edit cancellation returns focus to the run and preserves disclosures. Preview edits, exact sample distance/pace values, rescheduling, and dirty-close keep/discard choices passed. The pane and expanded busy content fit without horizontal overflow; no browser errors occurred. The current screenshots show this revision.
+The conditional Add run placement was checked against empty, typical, and busy fixtures in both layouts at 320px and 1280px. Each visible day has exactly one Add run, located in the content area when empty or below its date when populated. Date-scoped activation and narrow-layout fit passed.
+
+The clickable-run revision was checked in both layouts at 320px, 390px, 760px, and 1280px. Click and Enter open the clicked run in the pane. Enter/Space on Show details expand only that run without opening the pane. Edit cancellation returns focus to the run and preserves disclosures. Preview edits, exact sample distance/pace values, rescheduling, and dirty-close keep/discard choices passed. The pane and expanded busy content fit without horizontal overflow; no browser errors occurred. The current screenshots also include the revised Add run placement.
 
 [Desktop edit pane](weekly-layout-review/desktop-editor-pane.png) and [phone edit pane](weekly-layout-review/phone-editor-pane.png) show the interaction specimen. Full production state coverage remains part of the later form decision.
 
