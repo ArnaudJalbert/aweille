@@ -57,6 +57,8 @@ The current study replaces orange accents with light green, as requested by Arna
 
 ## Verification and limits
 
+The form buttons now share Add run's IBM Plex Sans, 13px size, 500 weight, and 20px line height. Footer, confirmation, section, and recovery actions use the same typography while retaining 44px minimum targets.
+
 The green revision passed default/hover and disabled-state checks for Save/Add run at 320px, 390px, and 1280px without horizontal overflow. Dark ink contrast is 8.84:1 on the default green and 7.69:1 on hover. Delete stays red. All 48 form captures were refreshed without browser errors.
 
 The footer revision passed at 320px, 390px, and 1280px: Cancel, red Delete run, and Save remain on one row without horizontal overflow. Buttons retain 44px height; Delete is hidden for creation and disabled during blocked/pending/confirmation states. Keep run retains the draft and returns focus to the moved Delete button. The state captures reflect this placement.

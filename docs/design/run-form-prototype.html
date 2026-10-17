@@ -93,7 +93,8 @@ a { color: inherit; }
 .day-heading { display: flex; flex-direction: column; align-items: start; gap: 4px; }
 .day-add { margin-top: 8px; }
 .day-heading .date { font-size: 14px; color: var(--muted-ink); }
-.action { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; text-decoration: none; font-size: 13px; font-weight: 500; }
+.action, .editor-pane button { font: 500 13px/20px "IBM Plex Sans", Arial, sans-serif; }
+.action { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; text-decoration: none; }
 .action-label { display: inline-block; padding: 4px 8px; border-radius: 3px; background: var(--primary); color: var(--ink); line-height: 20px; white-space: nowrap; }
 .action:hover .action-label { background: var(--primary-hover); }
 .day-content { min-width: 0; }
@@ -255,7 +256,6 @@ html.drawer-open { overflow:hidden; }
 .editor-heading h2 { font-size:26px; font-weight:500; line-height:1.2; }
 .editor-heading { margin-bottom:16px; }
 .editor-pane .preview-note { color:var(--muted-ink); }
-.editor-pane .editor-footer button { font:inherit; }
 .skip-schedule { position:absolute; left:16px; top:-100px; z-index:5; padding:10px 16px; color:#202b28; background:#fafbf6; }
 .skip-schedule:focus { top:8px; }
 </style>
@@ -284,7 +284,7 @@ html.drawer-open { overflow:hidden; }
 .editor-pane textarea { min-height:112px; }
 .editor-pane input, .editor-pane textarea { scroll-margin-bottom:88px; }
 .editor-pane .editor-footer { position:sticky; bottom:0; z-index:2; background:#f0f1ea; border-top:1px solid #c2c8bd; margin:24px 0 0; padding:8px 0 max(8px,env(safe-area-inset-bottom)); gap:12px; }
-.editor-pane .editor-footer button { min-height:44px; padding:8px; font-size:14px; }
+.editor-pane .editor-footer button { min-height:44px; padding:8px; }
 .footer-secondary { display:flex; align-items:center; gap:8px; }
 .editor-pane .delete-button { background:#9d3027; border:1px solid #9d3027; color:#fff; }
 .confirmation-actions button { scroll-margin-bottom:88px; }

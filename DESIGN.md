@@ -85,6 +85,8 @@ The secondary and error colors have defined roles; they are not extra brand acce
 
 Use IBM Plex Sans for the name, headings, labels, notes, and buttons. Use IBM Plex Mono with tabular numerals for dates, times, distances, and paces. Arnaud selected this pairing on October 17, 2026, after reviewing the font comparison. The typefaces are a design choice, not an identification of the fonts in the Pinterest references.
 
+Add run and the run-form buttons share IBM Plex Sans at 13px, weight 500, with 20px line height. Keep their touch targets at least 44px high.
+
 The [font comparison](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-font-options.html) retains the IBM Plex, Geist, and Space Grotesk alternatives as reference. [Selection notes](docs/design/font-options.md) record the chosen roles and sources. The layout prototype embeds the selected fonts so its appearance does not depend on locally installed typefaces. Actual-device rendering remains an implementation check.
 
 Keep headings in sentence case. Prefer ordinary readable letters and numerals. Monospaced data does not imply terminal prompts or technical jargon in navigation.
