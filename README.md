@@ -6,12 +6,12 @@ This README defines the first version I want to build. The planned-run core, SQL
 
 The code and tests define implemented behavior. The original [create-and-display map](https://github.com/ArnaudJalbert/aweille/issues/1) and [editing-and-deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) preserve the planning decisions; their implementation workflows are complete. Older issue comments and verification reports describe dated stages, not current delivery status.
 
-Skipping, actual results, and end-to-end use with a selected trainer agent remain unimplemented. [Secure remote access](https://github.com/ArnaudJalbert/aweille/issues/35) and the [running-app redesign](https://github.com/ArnaudJalbert/aweille/issues/43) are separate planning efforts. Future non-running training blocks are agreed product scope, not capabilities of the current run API.
+Skipping, actual results, and end-to-end use with a selected trainer agent remain unimplemented. [Secure remote access](https://github.com/ArnaudJalbert/aweille/issues/35) remains in planning. The [running-app redesign handoff](docs/design/implementation-handoff.md) specifies three production PRs and their acceptance; the redesign has not shipped. Future non-running training blocks are agreed product scope, not capabilities of the current run API.
 
 ## Documentation
 
 - [CONTEXT.md](CONTEXT.md) defines domain terms, including agreed future training blocks.
-- [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the selected visual direction and provisional tokens. The redesign is not applied to the production app.
+- [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the accepted visual direction and exact implementation tokens. The redesign is not applied to the production app.
 - [Training blocks](docs/design/training-blocks.md) separates future mixed-training rules from today's run-only model.
 - [Planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
 - [CONTRIBUTING.md](CONTRIBUTING.md) defines the contributor workflow; [AGENTS.md](AGENTS.md) routes agent work to the relevant guidance.

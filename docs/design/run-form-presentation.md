@@ -10,7 +10,7 @@ Add section focuses the new distance input. Remove cannot remove the last sectio
 
 A compact sticky footer keeps Cancel and Delete run on the left, with Save run or Save changes on the right. Delete run is a solid red button immediately after Cancel and appears only for a loaded existing run. The footer remains available while scrolling long notes and many sections; give fields clearance above it. Preserve 44px targets and a single-row footer at 320px.
 
-Buttons match Add run: IBM Plex Sans, 13px, weight 500, 20px line height. This applies to footer, confirmation, section, and recovery actions. The reviewed specimen uses light green `#a8d5a2`, hover `#96c98f`, with dark ink for main actions, and lighter red `#bb4c43` with white text for Delete run. Error text and the outlined permanent-confirmation action keep darker red. Final token consolidation remains in [the implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47).
+Buttons match Add run: IBM Plex Sans, 13px, weight 500, 20px line height. This applies to footer, confirmation, section, and recovery actions. Main actions use light green `#a8d5a2`, hover `#96c98f`, with dark ink; Delete run uses lighter red `#bb4c43` with white text. Error text and the outlined permanent-confirmation action keep darker red. [DESIGN.md](../../DESIGN.md) consolidates exact tokens and responsive rules; the [implementation handoff](implementation-handoff.md) defines production PRs and acceptance. Its 46px fields, 4px radius, heading line height 1.15 and readable disabled states take precedence over older specimen differences. Keep the approved 640px form cap. Allow action wrapping under enlarged text rather than shrinking targets or clipping labels.
 
 ## State-to-presentation matrix
 
