@@ -14,6 +14,7 @@ from aweille.core import (
     StorageUnavailable,
     ValidationError,
     create_run,
+    delete_run,
     read_run,
     read_runs,
     update_run,
@@ -64,6 +65,7 @@ def _bind_use_cases(app: FastAPI, storage: RunStorage) -> None:
     app.state.read_runs = partial(read_runs, storage)
     app.state.read_run = partial(read_run, storage)
     app.state.update_run = partial(update_run, storage)
+    app.state.delete_run = partial(delete_run, storage)
 
 
 def _configure_cache_policy(app: FastAPI) -> None:

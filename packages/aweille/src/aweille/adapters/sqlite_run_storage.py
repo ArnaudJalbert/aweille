@@ -114,14 +114,9 @@ class SQLiteRunStorage:
         """
         with self._connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute(
-                "SELECT * FROM runs WHERE id = ?", (str(run.id),)
-            ).fetchone()
-            if row is None:
-                raise RunNotFound
-            current = self._decode_run(row)
-            if current.revision != expected_revision:
-                raise RunRevisionConflict
+            current = self._load_matching_revision(
+                connection, run.id, expected_revision=expected_revision
+            )
             if current.to_dict() | {"revision": "1"} == run.to_dict() | {
                 "revision": "1"
             }:
@@ -135,6 +130,30 @@ class SQLiteRunStorage:
                 self._encode_run(updated),
             )
         return updated
+
+    def delete(self, id: UUID, *, expected_revision: int) -> None:
+        """Remove a matching run and reserve only its UUID in one transaction.
+
+        Args:
+            id: UUID of the saved run.
+            expected_revision: Revision observed by the caller.
+
+        Raises:
+            RunNotFound: The UUID is absent or already deleted.
+            RunRevisionConflict: The live revision differs from the expected one.
+            StorageUnavailable: Contention or unavailability prevents deletion.
+            StorageFailure: Saved data is invalid or deletion fails; a failed
+                response does not establish whether a commit occurred.
+        """
+        with self._connection() as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._load_matching_revision(
+                connection, id, expected_revision=expected_revision
+            )
+            connection.execute("DELETE FROM runs WHERE id = ?", (str(id),))
+            connection.execute(
+                "INSERT INTO deleted_run_ids (id) VALUES (?)", (str(id),)
+            )
 
     def get(self, start: date, end: date) -> list[PlannedRun]:
         """Read runs in a half-open local-date range.
@@ -157,6 +176,19 @@ class SQLiteRunStorage:
                 (start.isoformat(), end.isoformat()),
             ).fetchall()
         return [self._decode_run(row) for row in rows]
+
+    def _load_matching_revision(
+        self, connection: sqlite3.Connection, id: UUID, *, expected_revision: int
+    ) -> PlannedRun:
+        row = connection.execute(
+            "SELECT * FROM runs WHERE id = ?", (str(id),)
+        ).fetchone()
+        if row is None:
+            raise RunNotFound
+        current = self._decode_run(row)
+        if current.revision != expected_revision:
+            raise RunRevisionConflict
+        return current
 
     @contextmanager
     def _connection(self) -> Generator[sqlite3.Connection]:

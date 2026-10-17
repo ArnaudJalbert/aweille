@@ -8,8 +8,8 @@ from ..errors.run_revision_conflict import RunRevisionConflict
 from ..models.planned_run import PlannedRun
 from ..models.run_type import RunType
 from ..models.section import Section
-from ..raise_validation_error import raise_validation_error
 from ..run_storage import RunStorage
+from ..validate_expected_revision import validate_expected_revision
 from .create_run import _normalize_note, _normalize_sections, _normalize_start_time
 from .read_run import read_run
 
@@ -49,12 +49,7 @@ def update_run(
         RunNotFound: The run is absent.
         RunRevisionConflict: A newer revision exists.
     """
-    if type(expected_revision) is not int or expected_revision < 1:
-        raise_validation_error(
-            ("expected_revision",),
-            "invalid_revision",
-            "Revision must be a positive integer.",
-        )
+    validate_expected_revision(expected_revision)
     current = read_run(storage, id=id)
     if current.revision != expected_revision:
         raise RunRevisionConflict

@@ -6,15 +6,15 @@ from fastapi import HTTPException, Request, Response
 from fastapi.routing import APIRoute
 
 
-class CreationRoute(APIRoute):
-    """Enforce the 1 MiB stream limit and the required 415/422 transport errors.
+class RunRequestRoute(APIRoute):
+    """Guard run writes with JSON transport limits and bodyless deletion.
 
     These checks run before FastAPI validates request fields. FastAPI's defaults
     do not cap JSON bodies and use different statuses for some decoding errors.
     """
 
     def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
-        """Wrap the normal FastAPI handler with a bounded creation request.
+        """Validate received bytes before FastAPI parses run request fields.
 
         Returns:
             Handler preserving native body and query parameter validation.
@@ -23,13 +23,26 @@ class CreationRoute(APIRoute):
 
         async def handle(request: Request) -> Response:
             if request.method in ("POST", "PATCH"):
-                request = _CreationRequest(request.scope, receive=request.receive)
+                request = _JsonRequest(request.scope, receive=request.receive)
+            elif request.method == "DELETE":
+                async for chunk in request.stream():
+                    if chunk:
+                        raise HTTPException(
+                            422,
+                            [
+                                {
+                                    "loc": ["body"],
+                                    "type": "body_forbidden",
+                                    "msg": "Deletion requires an empty body.",
+                                }
+                            ],
+                        )
             return await handler(request)
 
         return handle
 
 
-class _CreationRequest(Request):
+class _JsonRequest(Request):
     async def stream(self) -> AsyncGenerator[bytes]:
         media_type = (
             self.headers.get("content-type", "").split(";", 1)[0].strip().lower()

@@ -125,6 +125,7 @@ def test_initial_missing_run_never_enables_empty_form(
     )
     expect(page.get_by_text("Run unavailable")).to_be_visible()
     expect(page.get_by_role("button", name="Save changes")).to_be_disabled()
+    expect(page.get_by_role("button", name="Delete run", exact=True)).to_be_disabled()
     expect(page.get_by_label("Planned date")).to_be_disabled()
     expect(page.get_by_role("button", name="Reload saved run")).to_be_hidden()
     page.get_by_role("link", name="Cancel").click()
@@ -200,6 +201,7 @@ def test_unreadable_success_cannot_enable_form(
     page.goto(f"{live_server.url}/runs/{run_id}/edit")
     expect(page.get_by_text("Could not load run")).to_be_visible()
     expect(page.get_by_role("button", name="Save changes")).to_be_disabled()
+    expect(page.get_by_role("button", name="Delete run", exact=True)).to_be_disabled()
 
 
 def test_montreal_gap_validation_retains_draft_for_correction(

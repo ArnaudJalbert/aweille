@@ -11,10 +11,17 @@ from ..schemas.run_error import MessageResponse, ProblemResponse
 from ..schemas.run_patch import RunPatch
 from ..schemas.run_request import RunRequest
 from ..schemas.run_response import RunResponse
-from .creation_route import CreationRoute
+from .run_request_route import RunRequestRoute
 
-router = APIRouter(route_class=CreationRoute)
+router = APIRouter(route_class=RunRequestRoute)
 
+_IF_MATCH = {
+    "name": "If-Match",
+    "in": "header",
+    "required": True,
+    "schema": {"type": "string", "pattern": '^"[1-9][0-9]*"$'},
+    "description": "Exactly one quoted strong revision from GET; no lists or wildcard.",
+}
 _ETAG = {
     "ETag": {
         "description": "Quoted strong revision; responses use no-store.",
@@ -84,7 +91,7 @@ _EDIT_ERRORS = {
         },
         409: {
             "model": MessageResponse,
-            "description": "ID belongs to different saved data.",
+            "description": "ID conflicts with current content or is reserved.",
         },
         **{status: _EDIT_ERRORS[status] for status in (413, 415, 422, 500, 503)},
     },
@@ -247,15 +254,7 @@ def get_run(
                 }
             }
         },
-        "parameters": [
-            {
-                "name": "If-Match",
-                "in": "header",
-                "required": True,
-                "schema": {"type": "string", "pattern": '^"[1-9][0-9]*"$'},
-                "description": "One quoted strong revision from GET.",
-            }
-        ],
+        "parameters": [_IF_MATCH],
     },
 )
 def patch_run(
@@ -292,3 +291,41 @@ def patch_run(
     )
     response.headers["ETag"] = f'"{run.to_dict()["revision"]}"'
     return RunResponse.model_validate(run.to_dict())
+
+
+@router.delete(
+    "/runs/{id}",
+    status_code=204,
+    responses={
+        204: {
+            "description": "Committed deletion; no body or ETag. "
+            "Cache-Control: no-store."
+        },
+        **{status: _EDIT_ERRORS[status] for status in (404, 412, 422, 428, 500, 503)},
+    },
+    openapi_extra={"parameters": [_IF_MATCH]},
+)
+def delete_run(
+    id: UUID, query: Annotated[_NoQuery, Query()], request: Request
+) -> Response:
+    """Permanently delete a run using one quoted If-Match revision and no body.
+
+    Args:
+        id: Run UUID parsed from the path by FastAPI.
+        query: Empty query model; extra parameters are rejected.
+        request: Request supplying If-Match and the bound deletion use case.
+
+    Returns:
+        Empty 204 after committed deletion, without an ETag.
+
+    Raises:
+        RequestValidationError: Path or query is invalid (HTTP 422).
+        HTTPException: Body or precondition is invalid (HTTP 422), or missing
+            If-Match (HTTP 428).
+        RunNotFound: The run is absent or already deleted (HTTP 404).
+        RunRevisionConflict: The live revision is stale (HTTP 412).
+        StorageUnavailable: Storage is unavailable; reload and review (HTTP 503).
+        StorageFailure: The outcome may be uncertain; reload and review (HTTP 500).
+    """
+    request.app.state.delete_run(id=id, expected_revision=_revision(request))
+    return Response(status_code=204)
