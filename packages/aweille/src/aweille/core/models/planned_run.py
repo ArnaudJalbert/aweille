@@ -43,10 +43,17 @@ class PlannedRun:
     sections: tuple[Section, ...]
     user_note: str | None
     trainer_note: str | None
+    revision: int = 1
 
     _MONTREAL = ZoneInfo("America/Toronto")
 
     def __post_init__(self) -> None:
+        if type(self.revision) is not int or self.revision < 1:
+            raise_validation_error(
+                ("revision",),
+                "invalid_revision",
+                "Revision must be a positive integer.",
+            )
         self._validate_id(self.id)
         validate_date(self.planned_date, "planned_date")
         self._validate_start_time(self.planned_date, self.planned_start_time)
@@ -89,6 +96,7 @@ class PlannedRun:
             ],
             "user_note": self.user_note,
             "trainer_note": self.trainer_note,
+            "revision": str(Decimal(self.revision)),
         }
 
     @classmethod
@@ -122,6 +130,7 @@ class PlannedRun:
                 ),
                 user_note=data["user_note"],
                 trainer_note=data["trainer_note"],
+                revision=cls._decode_revision(data["revision"]),
             )
             if run.to_dict() != dict(data):
                 raise ValueError
@@ -142,6 +151,12 @@ class PlannedRun:
             Distance(cls._decode_integer(value["distance_m"])),
             Pace(cls._decode_integer(value["target_pace_seconds_per_km"])),
         )
+
+    @staticmethod
+    def _decode_revision(value: object) -> int:
+        if not isinstance(value, str) or re.fullmatch(r"[1-9][0-9]*", value) is None:
+            raise ValueError
+        return int(Decimal(value))
 
     @staticmethod
     def _decode_integer(value: object) -> int:

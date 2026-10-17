@@ -87,5 +87,5 @@ def _normalize_note(note: str | None) -> str | None:
 
 
 def _ensure_retry_matches(proposed: PlannedRun, stored: PlannedRun) -> None:
-    if stored != proposed:
+    if stored.to_dict() | {"revision": "1"} != proposed.to_dict():
         raise RunConflict("The ID already belongs to a different planned run.")

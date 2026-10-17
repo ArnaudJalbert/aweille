@@ -1,3 +1,5 @@
+import { createRunForm } from "./run_form.js";
+
 const form = document.querySelector("#run-form");
 const fields = document.querySelector("#form-fields");
 const sections = document.querySelector("#section-list");
@@ -5,9 +7,10 @@ const status = document.querySelector("#save-status");
 const save = document.querySelector("#save-run");
 const params = new URLSearchParams(location.search);
 const id = crypto.randomUUID();
-let sectionId = 0;
 let saving = false;
 const uncertainWeeks = new Set();
+const { addSection, editSections, updateSections, showValidation, showBodyErrors, readPayload } =
+  createRunForm(form, fields, sections, () => saving);
 
 function weekUrl(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "")) return "/";
@@ -35,111 +38,6 @@ function showStatus(title, message, inspectWeeks = []) {
   }
 }
 
-function clearFieldErrors() {
-  for (const input of form.querySelectorAll('[aria-invalid="true"]')) input.removeAttribute("aria-invalid");
-  for (const error of form.querySelectorAll(".field-error")) {
-    error.hidden = true;
-    error.textContent = "";
-  }
-}
-
-function fieldError(input, message) {
-  if (!input) return;
-  input.setAttribute("aria-invalid", "true");
-  const error = document.getElementById(input.getAttribute("aria-describedby"));
-  error.textContent += `${error.textContent ? " " : ""}${message}`;
-  error.hidden = false;
-}
-
-function updateSections() {
-  const rows = [...sections.children];
-  rows.forEach((row, index) => {
-    row.querySelector("legend").textContent = `Section ${index + 1}`;
-    for (const [action, label] of [["remove", "Remove"], ["up", "Move"], ["down", "Move"]]) {
-      const button = row.querySelector(`[data-action="${action}"]`);
-      button.setAttribute("aria-label", `${label} section ${index + 1}${action === "remove" ? "" : ` ${action}`}`);
-      button.disabled = action === "remove" ? rows.length === 1 : action === "up" ? index === 0 : index === rows.length - 1;
-    }
-  });
-}
-
-function addSection(focus = true) {
-  const row = document.querySelector("#section-template").content.firstElementChild.cloneNode(true);
-  for (const input of row.querySelectorAll("input")) {
-    const field = input.dataset.field;
-    input.id = `section-${sectionId}-${field}`;
-    row.querySelector(`[data-label="${field}"]`).htmlFor = input.id;
-    const error = row.querySelector(`[data-error="${field}"]`);
-    error.id = `${input.id}-error`;
-    input.setAttribute("aria-describedby", error.id);
-  }
-  sectionId++;
-  sections.append(row);
-  updateSections();
-  if (focus) row.querySelector("input").focus();
-}
-
-function editSections(event) {
-  const button = event.target.closest("button[data-action]");
-  if (!button || saving) return;
-  const row = button.closest(".section-editor");
-  const action = button.dataset.action;
-  if (action === "remove" && sections.children.length > 1) {
-    const next = row.nextElementSibling ?? row.previousElementSibling;
-    row.remove();
-    next.querySelector("input").focus();
-  } else if (action === "up" && row.previousElementSibling) {
-    sections.insertBefore(row, row.previousElementSibling);
-  } else if (action === "down" && row.nextElementSibling) {
-    sections.insertBefore(row.nextElementSibling, row);
-  }
-  clearFieldErrors();
-  updateSections();
-  if (row.isConnected) {
-    // A move can disable its own button at the boundary. Keep keyboard focus in the row.
-    (button.disabled ? row.querySelector("input") : button).focus();
-  }
-}
-
-function distanceMetres(input) {
-  const match = /^(\d+)(?:\.(\d+))?$/.exec(input.value);
-  if (match && !/[1-9]/.test((match[2] ?? "").slice(3))) {
-    const digits = `${match[1]}${(match[2] ?? "").slice(0, 3).padEnd(3, "0")}`.replace(/^0+/, "");
-    if (digits) return digits;
-  }
-  fieldError(input, "Enter positive kilometres in whole metres, for example 1 or 0.001. No rounding is allowed.");
-}
-
-function paceSeconds(input) {
-  const match = /^(\d+):([0-5]\d)$/.exec(input.value);
-  if (match) {
-    const seconds = BigInt(match[1]) * 60n + BigInt(match[2]);
-    if (seconds > 0n) return String(seconds);
-  }
-  fieldError(input, "Enter a positive pace with seconds from 00 to 59, for example 5:45.");
-}
-
-function creationPayload() {
-  clearFieldErrors();
-  for (const input of fields.querySelectorAll("[name]")) {
-    if (!input.validity.valid) fieldError(input, input.validationMessage);
-  }
-  const targets = [...sections.children].map(row => ({
-    distance_m: distanceMetres(row.querySelector('[data-field="distance_m"]')),
-    target_pace_seconds_per_km: paceSeconds(row.querySelector('[data-field="target_pace_seconds_per_km"]')),
-  }));
-  if (form.querySelector('[aria-invalid="true"]')) return null;
-  return {
-    id,
-    planned_date: form.elements.planned_date.value,
-    planned_start_time: form.elements.planned_start_time.value || null,
-    run_type: form.elements.run_type.value,
-    sections: targets,
-    user_note: form.elements.user_note.value || null,
-    trainer_note: form.elements.trainer_note.value || null,
-  };
-}
-
 function showSaveError(response, data, submittedDate) {
   const explanation = typeof data?.detail === "string" ? data.detail : "The server could not save this run. Try again.";
   if (response.status === 503 || response.status >= 500) {
@@ -151,14 +49,7 @@ function showSaveError(response, data, submittedDate) {
     showStatus("Could not save this run", `The request exceeds the 1 MiB (1,048,576 bytes) limit. Reduce the notes or sections and try again. ${explanation}`);
   } else {
     if (Array.isArray(data?.detail)) {
-      for (const problem of data.detail) {
-        const path = problem.loc ?? [];
-        if (path[0] !== "body" || typeof problem.msg !== "string") continue;
-        const input = path[1] === "sections"
-          ? sections.children[path[2]]?.querySelector(`[data-field="${path[3]}"]`)
-          : form.elements.namedItem(path[1]);
-        fieldError(input, problem.msg);
-      }
+      showBodyErrors(data.detail);
       showStatus("Could not save this run", data.detail.map(problem => problem.msg).join(" "));
     } else {
       showStatus("Could not save this run", explanation);
@@ -169,7 +60,9 @@ function showSaveError(response, data, submittedDate) {
 async function saveRun(event) {
   event.preventDefault();
   if (saving) return;
-  const payload = creationPayload();
+  const { payload: values, errors } = readPayload();
+  showValidation(errors);
+  const payload = values && { id, ...values };
   if (!payload) {
     showStatus("Could not save this run", "Check the marked fields. All your entries are still here.");
     form.querySelector('[aria-invalid="true"]').focus();

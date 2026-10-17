@@ -22,7 +22,7 @@ class CreationRoute(APIRoute):
         handler = super().get_route_handler()
 
         async def handle(request: Request) -> Response:
-            if request.method == "POST":
+            if request.method in ("POST", "PATCH"):
                 request = _CreationRequest(request.scope, receive=request.receive)
             return await handler(request)
 
@@ -34,6 +34,13 @@ class _CreationRequest(Request):
         media_type = (
             self.headers.get("content-type", "").split(";", 1)[0].strip().lower()
         )
+        if self.method == "PATCH" and media_type in (
+            "application/json-patch+json",
+            "application/merge-patch+json",
+        ):
+            raise HTTPException(
+                415, "Editing requires a JSON field object, not a patch document."
+            )
         if media_type != "application/json" and not (
             media_type.startswith("application/") and media_type.endswith("+json")
         ):

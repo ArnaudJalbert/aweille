@@ -35,3 +35,9 @@ def creation_page(request: Request) -> HTMLResponse:
         Rendered form shell with no access to planned-run storage.
     """
     return _templates.TemplateResponse(request=request, name="create_run.html")
+
+
+@router.get("/runs/{id}/edit", response_class=HTMLResponse, include_in_schema=False)
+def edit_page(request: Request, id: str) -> HTMLResponse:
+    """Return an editing shell; JavaScript loads current data through the API."""
+    return _templates.TemplateResponse(request=request, name="edit_run.html")

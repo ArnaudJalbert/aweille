@@ -27,11 +27,15 @@ def create_database(path: str | Path) -> None:
                 "CREATE TABLE runs ("
                 "id TEXT NOT NULL PRIMARY KEY, planned_date TEXT NOT NULL, "
                 "planned_start_time TEXT, run_type TEXT NOT NULL, "
-                "sections TEXT NOT NULL, user_note TEXT, trainer_note TEXT)"
+                "sections TEXT NOT NULL, user_note TEXT, trainer_note TEXT, "
+                "revision TEXT NOT NULL)"
             )
             connection.execute("CREATE INDEX runs_planned_date ON runs(planned_date)")
+            connection.execute(
+                "CREATE TABLE deleted_run_ids (id TEXT NOT NULL PRIMARY KEY)"
+            )
             connection.execute("PRAGMA application_id = 0x41574549")
-            connection.execute("PRAGMA user_version = 1")
+            connection.execute("PRAGMA user_version = 2")
     except BaseException:
         path.unlink()
         raise

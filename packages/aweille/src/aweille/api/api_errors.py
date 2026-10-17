@@ -21,8 +21,13 @@ async def failure_response(request: Request, error: Exception) -> JSONResponse:
     """
     logger.error("Run operation failed.", exc_info=error)
     if isinstance(error, StorageUnavailable):
+        advice = (
+            "Reload and review the saved run before writing again."
+            if request.method == "PATCH"
+            else "Reads can retry; creation can retry with the same ID and payload."
+        )
         return JSONResponse(
-            {"detail": "Storage is temporarily unavailable; retry with the same ID."},
+            {"detail": "Storage is temporarily unavailable. " + advice},
             status_code=503,
         )
     return JSONResponse(
@@ -53,10 +58,14 @@ async def validation_response(request: Request, error: Exception) -> JSONRespons
         ]
     else:
         assert isinstance(error, ValidationError)
-        prefix = "body" if request.method == "POST" else "query"
+        prefix = "body" if request.method in ("POST", "PATCH") else "query"
         problems = [
             {
-                "loc": [prefix, *problem.loc],
+                "loc": ["header", "if-match"]
+                if problem.loc == ("expected_revision",)
+                else ["path", "id"]
+                if problem.loc == ("id",) and request.method != "POST"
+                else [prefix, *problem.loc],
                 "type": problem.code,
                 "msg": problem.message,
             }
@@ -79,6 +88,22 @@ async def conflict_response(request: Request, error: Exception) -> JSONResponse:
         A 409 response explaining that the ID belongs to different run data.
     """
     return JSONResponse(
-        {"detail": "The ID already belongs to a different planned run."},
+        {"detail": "The ID cannot be used for this planned run."},
         status_code=409,
+    )
+
+
+async def missing_response(request: Request, error: Exception) -> JSONResponse:
+    """Hide whether a missing identity was previously used."""
+    return JSONResponse({"detail": "Planned run not found."}, status_code=404)
+
+
+async def stale_response(request: Request, error: Exception) -> JSONResponse:
+    """Report a stale write without exposing saved content or revision."""
+    return JSONResponse(
+        {
+            "detail": "The planned run has changed; reload it before another edit "
+            "or deletion."
+        },
+        status_code=412,
     )

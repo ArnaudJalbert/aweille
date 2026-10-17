@@ -24,6 +24,7 @@ def test_openapi_describes_normalized_run_responses(api_client):
         "sections",
         "user_note",
         "trainer_note",
+        "revision",
     }
     section = models[run["properties"]["sections"]["items"]["$ref"].split("/")[-1]]
     assert section["properties"]["distance_m"]["type"] == "string"

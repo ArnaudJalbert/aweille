@@ -2,11 +2,22 @@ import json
 import sqlite3
 from collections.abc import Generator
 from contextlib import closing, contextmanager
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
-from aweille.core import PlannedRun, StorageFailure, StorageUnavailable
+from aweille.core import (
+    PlannedRun,
+    RunConflict,
+    RunNotFound,
+    RunRevisionConflict,
+    StorageFailure,
+    StorageUnavailable,
+)
+
+from .validate_database import validate_database
 
 
 class SQLiteRunStorage:
@@ -38,13 +49,22 @@ class SQLiteRunStorage:
                 same ID to resolve an uncertain commit outcome.
         """
         with self._connection() as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if (
+                connection.execute(
+                    "SELECT 1 FROM deleted_run_ids WHERE id = ?", (str(run.id),)
+                ).fetchone()
+                is not None
+            ):
+                raise RunConflict("The ID is reserved for a deleted planned run.")
             inserted = (
                 connection.execute(
                     "INSERT INTO runs (id, planned_date, planned_start_time, run_type, "
-                    "sections, user_note, trainer_note) VALUES ("
+                    "sections, user_note, trainer_note, revision) VALUES ("
                     ":id, :planned_date, :planned_start_time, :run_type, "
-                    ":sections, :user_note, :trainer_note) ON CONFLICT(id) DO NOTHING",
-                    self._encode_run(run),
+                    ":sections, :user_note, :trainer_note, :revision) "
+                    "ON CONFLICT(id) DO NOTHING",
+                    self._encode_run(replace(run, revision=1)),
                 ).rowcount
                 == 1
             )
@@ -54,6 +74,67 @@ class SQLiteRunStorage:
                 ).fetchone()
             )
         return stored, inserted
+
+    def load(self, id: UUID) -> PlannedRun | None:
+        """Load one run from the committed database state.
+
+        Args:
+            id: UUID of the saved run.
+
+        Returns:
+            The validated saved run, or None if the UUID is absent.
+
+        Raises:
+            StorageUnavailable: Contention or unavailability prevents reading.
+            StorageFailure: Saved data is invalid or the read fails.
+        """
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM runs WHERE id = ?", (str(id),)
+            ).fetchone()
+            return self._decode_run(row) if row is not None else None
+
+    def replace(self, run: PlannedRun, *, expected_revision: int) -> PlannedRun:
+        """Replace a run atomically when its saved revision matches.
+
+        Args:
+            run: Validated candidate with the same UUID as the saved run.
+            expected_revision: Revision the caller observed before editing.
+
+        Returns:
+            The committed run with its incremented revision, or the unchanged
+            saved run and revision when the candidate is a no-op.
+
+        Raises:
+            RunNotFound: The UUID is absent.
+            RunRevisionConflict: The saved revision differs from the expected one.
+            StorageUnavailable: Contention or unavailability prevents replacing.
+            StorageFailure: Saved data is invalid or the write fails; a failed
+                response does not establish whether a commit occurred.
+        """
+        with self._connection() as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM runs WHERE id = ?", (str(run.id),)
+            ).fetchone()
+            if row is None:
+                raise RunNotFound
+            current = self._decode_run(row)
+            if current.revision != expected_revision:
+                raise RunRevisionConflict
+            if current.to_dict() | {"revision": "1"} == run.to_dict() | {
+                "revision": "1"
+            }:
+                return current
+            updated = replace(run, revision=current.revision + 1)
+            connection.execute(
+                "UPDATE runs SET planned_date=:planned_date, "
+                "planned_start_time=:planned_start_time, "
+                "run_type=:run_type, sections=:sections, user_note=:user_note, "
+                "trainer_note=:trainer_note, revision=:revision WHERE id=:id",
+                self._encode_run(updated),
+            )
+        return updated
 
     def get(self, start: date, end: date) -> list[PlannedRun]:
         """Read runs in a half-open local-date range.
@@ -86,6 +167,7 @@ class SQLiteRunStorage:
                 )
             ) as connection:
                 connection.row_factory = sqlite3.Row
+                validate_database(connection, version=2, check_data=False)
                 yield connection
         except (sqlite3.Error, UnicodeError) as error:
             code = getattr(error, "sqlite_errorcode", 0) & 0xFF

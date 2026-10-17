@@ -96,6 +96,10 @@ function renderRun(run) {
   }
   if (notes.childElementCount) layout.append(notes);
   article.append(layout);
+  const edit = element("a", "Edit", "button");
+  edit.href = `/runs/${encodeURIComponent(run.id)}/edit?week=${dateString(selectedWeek)}`;
+  edit.setAttribute("aria-label", `Edit ${run.run_type} run on ${run.planned_date}`);
+  article.append(edit);
   return article;
 }
 
@@ -237,4 +241,5 @@ document.querySelector("#previous-week").onclick = () => selectWeek(offsetDate(s
 document.querySelector("#next-week").onclick = () => selectWeek(offsetDate(selectedWeek, 7));
 document.querySelector("#this-week").onclick = () => selectWeek(currentMonday());
 window.addEventListener("popstate", restoreSelection);
+window.addEventListener("pageshow", event => { if (event.persisted) restoreSelection(); });
 restoreSelection();
