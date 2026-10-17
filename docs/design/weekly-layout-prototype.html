@@ -52,7 +52,7 @@ button, select, .action { border: 1px solid var(--border, #788176); border-radiu
 a { color: inherit; }
 :focus-visible { outline: 3px solid #315d98; outline-offset: 3px; }
 [hidden] { display: none !important; }
-.study { max-width: 1100px; margin: auto; padding-bottom: 90px; }
+.study { max-width: 1100px; margin: auto; padding-bottom: 24px; }
 .intro { margin: 0 0 12px; }
 .intro strong { font-size: 18px; }
 .muted { color: var(--muted-foreground, #59625c); }
@@ -73,13 +73,19 @@ a { color: inherit; }
 .specimen h2 { font-size: 18px; font-weight: 500; margin: 0; }
 .eyebrow, .note-label { font-size: 14px; color: var(--muted-ink); }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
-.week-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 24px; }
-.week-nav button { flex: 1 1 auto; }
+.period-nav { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 16px; }
+.specimen .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 12px; border: 0; background: transparent; color: var(--ink); }
+.icon-button svg { width: 20px; height: 20px; flex-shrink: 0; }
+.icon-button:disabled { opacity: .35; cursor: default; }
 .schedule-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .view-switch { display: flex; gap: 4px; }
 .view-switch button { min-width: 64px; }
 .specimen .view-switch [aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .schedule-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 16px; }
+.schedule-heading { margin-bottom: 24px; }
+.specimen .schedule-heading h1 { margin: 0; }
+.specimen .heading-date { margin-top: 8px; color: var(--muted-ink); font-size: 14px; }
+.heading-actions { display: flex; align-items: center; gap: 8px; }
 .schedule-heading .action { margin-top: 4px; }
 .specimen[data-view="focus"] .day { display: block; }
 .day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 24px; }
@@ -151,14 +157,27 @@ details[open] > summary .hide-label { display: inline; }
 .rules summary { min-height: 44px; padding: 10px 0; }
 .rules ul { padding-left: 22px; }
 .rules li { margin-bottom: 8px; }
-.switcher { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid #788176; background: #202b28; color: #fafbf6; border-radius: 8px; z-index: 10; width: max-content; max-width: calc(100% - 12px); }
-.switcher button { color: inherit; border-color: #788176; font-size: 20px; }
-.switcher output { min-width: 145px; text-align: center; font-size: 13px; }
 dialog { max-width: min(560px, calc(100% - 32px)); padding: 24px; background: var(--background, white); color: var(--foreground, #202b28); border: 1px solid #788176; border-radius: 8px; }
 dialog::backdrop { background: #202b2877; }
 dialog h2 { margin-top: 0; font-size: 20px; }
 dialog .outcomes { display: grid; gap: 8px; margin-top: 20px; }
 dialog code { overflow-wrap: anywhere; }
+.date-picker { width: 360px; max-width: calc(100% - 16px); padding: 16px; font-family: "IBM Plex Sans", Arial, sans-serif; background: #f0f1ea; color: #202b28; color-scheme: light; }
+.date-picker h2 { margin-bottom: 4px; }
+.date-picker p { font-size: 14px; margin: 4px 0 16px; }
+.calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.calendar-header button { width: 44px; padding: 8px; border: 0; }
+.calendar-header strong { font-size: 16px; font-weight: 500; }
+.calendar-grid, .calendar-weekdays { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); }
+.calendar-weekdays span { font-size: 12px; text-align: center; padding-block: 8px; }
+.calendar-row { display: contents; }
+.calendar-grid button { padding: 0; min-width: 0; min-height: 44px; border: 0; border-radius: 0; font: 14px/1.5 "IBM Plex Mono", monospace; }
+.calendar-grid button.adjacent { color: #59625c; }
+.date-picker[data-mode="log"] .calendar-row:hover button, .date-picker[data-mode="log"] .calendar-row:focus-within button { background: #e0e4d9; color: #202b28; }
+.date-picker .calendar-grid [aria-pressed="true"] { background: #202b28; color: #fafbf6; }
+.calendar-grid button.is-today { text-decoration: underline; text-underline-offset: 4px; }
+.calendar-grid button:disabled { opacity: .35; cursor: default; }
+.calendar-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; }
 .editor-pane { position: fixed; inset: 0 0 0 auto; margin: 0; width: 540px; max-width: 100%; height: 100dvh; max-height: 100dvh; overflow-y: auto; border-radius: 0; border-width: 0 0 0 1px; padding: 24px; color-scheme: light; background: #f0f1ea; color: #202b28; font-family: "IBM Plex Sans", Arial, sans-serif; }
 .editor-pane::backdrop { background: #202b2866; }
 .editor-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
@@ -214,10 +233,10 @@ dialog code { overflow-wrap: anywhere; }
   <section class="specimen" id="specimen" aria-label="Schedule specimen">
     <div class="schedule-tools"><div class="view-switch" role="group" aria-label="Schedule view"><button data-variant="log">Week</button><button data-variant="focus">Day</button></div><button id="show-today">Today</button></div>
     <p class="eyebrow">Training schedule</p>
-    <div class="schedule-heading"><h1 id="week-heading" tabindex="-1" aria-live="polite" aria-atomic="true"></h1><div id="day-primary-action" hidden></div></div>
-    <nav class="week-nav" aria-label="Date navigation"><button data-week="-1">Previous week</button><button data-week="0">This week</button><button data-week="1">Next week</button></nav>
+    <div class="schedule-heading"><div><h1 id="week-heading" tabindex="-1" aria-live="polite" aria-atomic="true"></h1><p class="heading-date mono" id="period-dates"></p></div><div class="heading-actions"><button id="open-calendar" class="icon-button" aria-label="Choose week" title="Choose week" aria-haspopup="dialog" aria-controls="date-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M7 15h2M11 15h2M15 15h2"/></svg></button><div id="day-primary-action" hidden></div></div></div>
     <div id="read-notice" class="notice" hidden></div>
     <div id="week-content"></div>
+    <nav class="period-nav" aria-label="Date navigation"><button class="icon-button" data-week="-1" aria-label="Previous week" title="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" data-week="1" aria-label="Next week" title="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav>
   </section>
   <details class="rules" open>
     <summary>Proposed interaction rules</summary>
@@ -226,7 +245,8 @@ dialog code { overflow-wrap: anywhere; }
       <li>Each activity's details open independently with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
-      <li>Week shows all seven days. Day shows only the selected date. Today switches to Day on the current Montreal date. Previous/Next move by a week or a day to match the view. Switching views keeps the selected date and open details.</li>
+      <li>Week shows all seven days. Day shows only the selected date. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows at the bottom move backward/forward by that interval.</li>
+      <li>Titles are relative to Montreal's current date: This Week, Next Week, In 2 Weeks, Last Week, or 2 Weeks Ago. Day view uses Today, Tomorrow, Yesterday, and the equivalent day offsets. Exact dates stay visible beneath the title.</li>
       <li>The URL records the view and selected date for reload and browser Back/Forward. Closing the pane keeps that selection. Saving shows the saved run’s day. Loading and failures hide old activities, keep date navigation available, and offer retry. Retry moves focus to the heading.</li>
     </ul>
     <p class="muted">The sidebar and full editor states belong to later decisions. The width control checks available space without deciding the sidebar geometry.</p>
@@ -419,7 +439,13 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 </pre></details>
 </main>
-<div class="switcher" aria-label="Prototype variant switcher"><button id="previous-variant" aria-label="Previous activity layout">←</button><output id="variant-label"></output><button id="next-variant" aria-label="Next activity layout">→</button></div>
+<dialog class="date-picker" id="date-picker" aria-labelledby="picker-title">
+  <h2 id="picker-title">Choose week</h2><p id="picker-help">Choose any date in the week you want to see.</p>
+  <div class="calendar-header"><button data-month="-1" aria-label="Previous month">←</button><strong id="picker-month" aria-live="polite"></strong><button data-month="1" aria-label="Next month">→</button></div>
+  <div class="calendar-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+  <div id="calendar-grid" class="calendar-grid" role="group" aria-label="Choose a date"></div>
+  <div class="calendar-footer"><button id="picker-current">This Week</button><button id="close-calendar">Cancel</button></div>
+</dialog>
 <dialog class="editor-pane" id="run-editor" aria-labelledby="editor-title">
   <div class="editor-heading"><h2 id="editor-title">Edit run</h2><button type="button" data-close-editor>Close</button></div>
   <p class="preview-note">Run-form preview. Changes stay in this study.</p>
@@ -453,6 +479,7 @@ const edited = new Map();
 let editorRun;
 let editorTrigger;
 let editorBaseline;
+let pickerMonth;
 const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const types = { easy: 'Easy run', hard: 'Hard run', interval: 'Interval run', long: 'Long run' };
 const date = value => new Date(value + 'T00:00:00Z');
@@ -469,6 +496,22 @@ function weekTitle() {
   const start = `${month(first)} ${first.getUTCDate()}${first.getUTCFullYear() !== last.getUTCFullYear() ? ', ' + first.getUTCFullYear() : ''}`;
   const end = `${first.getUTCMonth() === last.getUTCMonth() ? '' : month(last) + ' '}${last.getUTCDate()}, ${last.getUTCFullYear()}`;
   return `${start} to ${end}`;
+}
+function relativeTitle() {
+  const current = today();
+  const target = variant === 'log' ? monday : offset(monday,selectedDay);
+  const origin = variant === 'log' ? weekOf(current) : current;
+  const difference = Math.round((date(target)-date(origin))/(86400000*(variant === 'log' ? 7 : 1)));
+  if (variant === 'log') {
+    if (difference === 0) return 'This Week';
+    if (difference === 1) return 'Next Week';
+    if (difference === -1) return 'Last Week';
+    return difference > 0 ? `In ${difference} Weeks` : `${-difference} Weeks Ago`;
+  }
+  if (difference === 0) return 'Today';
+  if (difference === 1) return 'Tomorrow';
+  if (difference === -1) return 'Yesterday';
+  return difference > 0 ? `In ${difference} Days` : `${-difference} Days Ago`;
 }
 function km(value) { const digits = String(value).padStart(4,'0'); const fraction = digits.slice(-3).replace(/0+$/,''); return digits.slice(0,-3) + (fraction ? '.' + fraction : '') + ' km'; }
 function pace(value) { return `${Math.floor(value / 60)}:${String(value % 60).padStart(2,'0')}/km`; }
@@ -553,25 +596,28 @@ function render() {
   $('specimen').dataset.grouping = grouping;
   $('specimen').dataset.view = variant;
   $('grouping').value = grouping;
-  $('week-heading').textContent = readState === 'invalid' ? 'Choose a date' : variant === 'log' ? weekTitle() : date(offset(monday,selectedDay)).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+  $('week-heading').textContent = readState === 'invalid' ? 'Choose a date' : relativeTitle();
+  $('period-dates').textContent = readState === 'invalid' ? '' : variant === 'log' ? weekTitle() : date(offset(monday,selectedDay)).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
   $('day-primary-action').hidden = variant !== 'focus' || readState !== 'ready';
   $('day-primary-action').innerHTML = variant === 'focus' && readState === 'ready' ? addMarkup(selectedDay) : '';
   const steps = document.querySelectorAll('[data-week]');
-  steps[0].textContent = variant === 'focus' ? 'Previous day' : 'Previous week';
-  steps[1].hidden = variant === 'focus';
-  steps[2].textContent = variant === 'focus' ? 'Next day' : 'Next week';
+  steps.forEach(button => {
+    const label = `${Number(button.dataset.week) < 0 ? 'Previous' : 'Next'} ${variant === 'focus' ? 'day' : 'week'}`;
+    button.setAttribute('aria-label',label); button.title = label;
+  });
+  $('open-calendar').setAttribute('aria-label',variant === 'focus' ? 'Choose day' : 'Choose week');
+  $('open-calendar').title = variant === 'focus' ? 'Choose day' : 'Choose week';
   document.querySelectorAll('[data-week]').forEach(button => {
     const step = Number(button.dataset.week);
     button.disabled = step !== 0 && (readState === 'invalid' || !validWeek(offset(monday,variant === 'focus' ? selectedDay+step : step*7)));
   });
   $('fixture').value = fixture; $('width').value = width; $('read-state').value = readState;
   document.querySelectorAll('[data-variant]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.variant === variant)));
-  $('variant-label').textContent = `${['panels','timeline','rows'].indexOf(grouping)+1} · ${groupingNames[grouping]}`;
   const notice = $('read-notice');
   notice.hidden = readState === 'ready'; notice.className = 'notice' + (['failure','invalid'].includes(readState) ? ' failure' : '');
   notice.setAttribute('role', readState === 'loading' ? 'status' : 'alert');
   notice.setAttribute('aria-live', readState === 'loading' ? 'polite' : 'assertive');
-  notice.innerHTML = readState === 'loading' ? '<strong>Loading runs...</strong><p>Previously loaded runs are hidden.</p>' : readState === 'failure' ? '<strong>Could not load runs for this week</strong><p>A network error prevented loading runs. Check your connection and try again.</p><button data-retry>Retry</button>' : readState === 'invalid' ? '<strong>Invalid week selection</strong><p>Choose a valid calendar date for a complete Monday-to-Sunday week, or select This week.</p>' : '';
+  notice.innerHTML = readState === 'loading' ? '<strong>Loading runs...</strong><p>Previously loaded runs are hidden.</p>' : readState === 'failure' ? '<strong>Could not load runs for this week</strong><p>A network error prevented loading runs. Check your connection and try again.</p><button data-retry>Retry</button>' : readState === 'invalid' ? '<strong>Invalid week selection</strong><p>Choose a date with the calendar or select Today.</p>' : '';
   $('week-content').setAttribute('aria-busy', String(readState === 'loading'));
   renderContent(); updateReview();
   const query = new URLSearchParams({variant, fixture, grouping, width, state:readState, week:monday,date:readState === 'invalid' ? '' : offset(monday,selectedDay)});
@@ -599,7 +645,40 @@ function rememberDetails() {
     if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
   });
 }
-function switchVariant(direction=1) { rememberDetails(); const layouts=['panels','timeline','rows']; grouping=layouts[(layouts.indexOf(grouping)+direction+3)%3]; render(); }
+function renderCalendar(focusDate) {
+  const selected = readState === 'invalid' ? today() : offset(monday,selectedDay);
+  $('date-picker').dataset.mode = variant;
+  $('picker-title').textContent = variant === 'log' ? 'Choose week' : 'Choose day';
+  $('picker-help').textContent = variant === 'log' ? 'Choose any date in the week you want to see.' : 'Choose the day you want to see.';
+  $('picker-current').textContent = variant === 'log' ? 'This Week' : 'Today';
+  $('picker-month').textContent = date(pickerMonth).toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+  const first = weekOf(pickerMonth);
+  $('calendar-grid').innerHTML = Array.from({length:6},(_,row) => `<div class="calendar-row">${Array.from({length:7},(_,column) => {
+    const value = offset(first,row*7+column);
+    const chosen = variant === 'log' ? weekOf(value) === weekOf(selected) : value === selected;
+    const label = date(value).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+    return `<button data-pick-date="${value}" class="${value.slice(0,7) !== pickerMonth.slice(0,7) ? 'adjacent ' : ''}${value === today() ? 'is-today' : ''}" aria-label="${label}" aria-pressed="${chosen}" ${validWeek(value) ? '' : 'disabled'}>${date(value).getUTCDate()}</button>`;
+  }).join('')}</div>`).join('');
+  if (focusDate) $('calendar-grid').querySelector(`[data-pick-date="${focusDate}"]`)?.focus();
+}
+function openCalendar() {
+  const selected = readState === 'invalid' ? today() : offset(monday,selectedDay);
+  pickerMonth = offset(selected,1-date(selected).getUTCDate());
+  renderCalendar(); $('date-picker').showModal();
+  $('calendar-grid').querySelector(`[data-pick-date="${selected}"]`)?.focus();
+}
+function closeCalendar() { $('date-picker').close(); $('open-calendar').focus(); }
+$('date-picker').addEventListener('cancel', event => { event.preventDefault(); closeCalendar(); });
+$('calendar-grid').addEventListener('keydown', event => {
+  const target = event.target.closest('[data-pick-date]');
+  const delta = {ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[event.key];
+  if (!target || delta === undefined) return;
+  event.preventDefault();
+  const next = offset(target.dataset.pickDate,delta);
+  if (!validWeek(next)) return;
+  pickerMonth = offset(next,1-date(next).getUTCDate());
+  renderCalendar(next);
+});
 function editorValues() { return JSON.stringify([...new FormData($('editor-form'))]); }
 function openEditor(trigger) {
   editorRun = trigger.dataset.edit ? weekRuns().find(r => r.id === trigger.dataset.edit) : null;
@@ -646,13 +725,17 @@ $('editor-form').addEventListener('submit', event => {
 document.addEventListener('click', event => {
   const target = event.target.closest('button,a');
   if (!target) return;
+  if (target.id === 'open-calendar') { openCalendar(); return; }
+  if (target.id === 'close-calendar') { closeCalendar(); return; }
+  if (target.id === 'picker-current') { closeCalendar(); selectDate(today()); return; }
+  if (target.dataset.pickDate) { const value = target.dataset.pickDate; closeCalendar(); selectDate(value); return; }
+  if (target.dataset.month) { const value = date(pickerMonth); value.setUTCMonth(value.getUTCMonth()+Number(target.dataset.month)); pickerMonth = iso(value); renderCalendar(); return; }
   if (target.dataset.variant && target.dataset.variant !== variant) { rememberDetails(); variant = target.dataset.variant; pushSelection(); render(); }
-  if (target.id === 'previous-variant' || target.id === 'next-variant') switchVariant(target.id === 'previous-variant' ? -1 : 1);
   if (target.id === 'show-today') { variant = 'focus'; announcement = ''; selectDate(today()); }
   if (target.dataset.week !== undefined) {
     announcement = '';
     if (variant === 'focus') selectDate(offset(monday,selectedDay+Number(target.dataset.week)));
-    else changeWeek(target.dataset.week === '0' ? weekOf(today()) : offset(monday,Number(target.dataset.week)*7));
+    else changeWeek(offset(monday,Number(target.dataset.week)*7));
   }
   if (target.hasAttribute('data-retry')) { opened.clear(); readState = 'ready'; render(); $('week-heading').focus(); }
   if (target.dataset.edit) { event.preventDefault(); openEditor(target); return; }
@@ -663,10 +746,6 @@ $('fixture').onchange = event => { fixture = event.target.value; added.length = 
 $('grouping').onchange = event => { rememberDetails(); grouping = event.target.value; render(); };
 $('width').onchange = event => { rememberDetails(); width = event.target.value; render(); };
 $('read-state').onchange = event => { readState = event.target.value; opened.clear(); render(); };
-document.addEventListener('keydown', event => {
-  if (event.target.closest('input,textarea,select,summary,button,a,[contenteditable]') || $('run-editor').open) return;
-  if (['ArrowLeft','ArrowRight'].includes(event.key)) { event.preventDefault(); switchVariant(event.key === 'ArrowLeft' ? -1 : 1); }
-});
 window.addEventListener('popstate', () => {
   const query = new URLSearchParams(location.search);
   variant = query.get('variant') === 'focus' ? 'focus' : 'log';
