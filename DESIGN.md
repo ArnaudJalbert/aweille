@@ -11,6 +11,8 @@ colors:
   muted-ink: "#59625c"
   line: "#c2c8bd"
   strong-line: "#788176"
+  destructive: "#bb4c43"
+  destructive-foreground: "#ffffff"
   error: "#9d3027"
   focus: "#315d98"
 typography:
@@ -80,6 +82,8 @@ Arnaud requested a lighter green in place of orange on October 17, 2026. The cur
 Line separates rows and related sections. Strong line outlines controls. Error text names the problem in words, and focus remains visibly distinct from selection. Color alone never communicates a run type, error, or saved state.
 
 The secondary and error colors have defined roles; they are not extra brand accents. Do not assign a different decorative color to every day or run.
+
+The Delete run button uses a lighter red `#bb4c43` with white text, requested by Arnaud during form review. Error text and outlined confirmation actions use the darker error color.
 
 ## Typography
 

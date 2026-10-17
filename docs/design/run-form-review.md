@@ -57,6 +57,8 @@ The current study replaces orange accents with light green, as requested by Arna
 
 ## Verification and limits
 
+Delete run now uses a lighter red `#bb4c43`. White text has 4.97:1 contrast. Error text and the outlined confirmation action retain their darker red.
+
 The form buttons now share Add run's IBM Plex Sans, 13px size, 500 weight, and 20px line height. Footer, confirmation, section, and recovery actions use the same typography while retaining 44px minimum targets.
 
 The green revision passed default/hover and disabled-state checks for Save/Add run at 320px, 390px, and 1280px without horizontal overflow. Dark ink contrast is 8.84:1 on the default green and 7.69:1 on hover. Delete stays red. All 48 form captures were refreshed without browser errors.
