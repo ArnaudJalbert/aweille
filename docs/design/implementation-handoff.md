@@ -2,6 +2,31 @@
 
 Arnaud approved the palette, type/geometry, three self-hosted font files, ordered production PRs, and acceptance requirements in [Finalize design tokens and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47). This completes the design handoff for the [redesign planning map](https://github.com/ArnaudJalbert/aweille/issues/43). The production redesign and [Aweille redesign milestone](https://github.com/ArnaudJalbert/aweille/milestone/2) remain open until implementation and acceptance finish.
 
+## Unattended execution
+
+When asked to implement the complete redesign while Arnaud is away, one agent owns [the foundation/sidebar](https://github.com/ArnaudJalbert/aweille/issues/29), [schedule](https://github.com/ArnaudJalbert/aweille/issues/50), and [forms/recovery](https://github.com/ArnaudJalbert/aweille/issues/51) in that order. The approved decisions and public browser/HTTP test seams are sufficient authorization for this scope. Settle reversible implementation details using the existing code and smallest working option; record the choice in the relevant PR instead of reopening design questions.
+
+1. Read `AGENTS.md`, `CONTRIBUTING.md`, `PRODUCT.md`, `DESIGN.md`, the linked specification below and all three execution issues. Use `ponytail`. Claim the issues and inspect current branches/PRs before creating anything. Resume existing work rather than duplicate it.
+2. Fetch origin and create an isolated feature worktree. Start from updated `origin/main` if it contains this handoff. If [the handoff PR](https://github.com/ArnaudJalbert/aweille/pull/52) is still open, use its fetched head as the documentation prerequisite and reference it in the implementation PRs. Preserve the main checkout's unrelated/untracked files. Run the setup commands in `CONTRIBUTING.md`; prototype branches are reference sources, not implementation starting points.
+3. Implement and validate each layer before starting the next. Commit one focused branch per execution issue, run its required checks and open its PR targeting `main`. When a prerequisite PR is unmerged, start the next branch from its validated head and continue without waiting for Arnaud or a merge. Link every prerequisite PR and explain that the downstream diff temporarily includes those commits. Keep downstream PRs draft until their prerequisites merge. Native issue dependencies continue to describe review/merge order; they do not prevent this agent preparing dependent changes from the completed prerequisite code.
+4. Run the full required checks at each layer and on the final combined head. Review and fix behavior, layout and accessibility failures. Capture representative phone/desktop/sidebar/form/recovery evidence using disposable test data. Preserve real public-page/API regression assertions, adapting only explicitly changed presentation/navigation expectations.
+5. Leave implementation PRs open for review, with branch heads, dependencies, checks, evidence and outstanding manual checks recorded. Register all PRs with the thread when supported. Keep issue #51 and the redesign milestone open while final manual acceptance is pending; use `Refs: #51` rather than an automatic closing reference in that case. Publishing reviewable branches/PRs is authorized; this unattended brief does not request merging or deployment.
+
+Implementation is ready for review when all three layers are committed/pushed, their PRs exist, the final combined head passes every required automated check, and the acceptance matrix distinguishes passed agent checks from pending human checks. Physical-phone, unavailable screen-reader and actual-device checks are a review checklist for Arnaud's return. Perform actual zoom or screen-reader checks if the environment supports them; report exactly what ran. Their unavailability must not stop implementation or PR preparation, and emulation must not be reported as physical-device evidence. A genuine external blocker should name the failed prerequisite, preserve finished work and allow independent work to continue.
+
+Launch brief:
+
+```text
+Implement Aweille issues #29, #50 and #51 end to end in order. Follow
+docs/design/implementation-handoff.md, including its unattended execution
+section. If those docs are not on main yet, fetch PR #52 and use its head
+as the documentation prerequisite. Complete all three layers without
+waiting for my input or for prerequisite PRs to merge. Run the required
+checks, prepare three PRs targeting main, and leave them open for review.
+Record pending manual device/accessibility checks separately and keep
+the final acceptance issue/milestone open. Do not merge or deploy.
+```
+
 ## Specification and precedence
 
 - [DESIGN.md](../../DESIGN.md) owns exact tokens, state treatments, type, geometry and responsive rules. It consolidates green Add run/Save, red Delete, readable disabled controls, and shared control sizes across the earlier studies.
@@ -27,13 +52,21 @@ Keep `/`, `/runs/new` and `/runs/{id}/edit`. Content-area placement does not req
 
 Navigation context contains view, selected date/week, initiating control/run and the two views' manual disclosure choices. It carries no draft, payload or revision. A one-use, tab-scoped handoff may transport it across document navigation; consume it on the intended form return. Ordinary reload/history restoration reapplies disclosure defaults. Missing, invalid or unrelated context falls back safely to the URL and approved defaults. No durable disclosure/sidebar preference or draft persistence is introduced. Verify return behavior independently of browser back/forward caching.
 
-Keep existing `week` links valid. Add explicit view/date selection without silently selecting a different week. Cancel/return keeps origin selection and focuses the initiating Add run/summary when present; otherwise focus the schedule heading. Confirmed create/edit selects the saved date and focuses that run. Cross-week saves reset disclosures; successful deletion uses the existing origin/baseline week rule and focuses the schedule heading. Direct form URLs retain their existing fallback return behavior. Submitted-week inspection links remain truthful for uncertain creation. The drawer calls the existing draft/pending-leave guard before Schedule navigation.
+Keep existing `week` links valid. Add explicit view/date selection without silently selecting a different week. Cancel/return keeps origin selection and focuses the initiating Add run/summary when present; otherwise focus the schedule heading. Confirmed create/edit selects the saved date and focuses that run. Cross-week saves reset disclosures; successful deletion uses the existing origin/baseline week rule and focuses the schedule heading. Direct form URLs retain their existing fallback return behavior. Submitted-week inspection links remain truthful for uncertain creation. The drawer calls the form's draft/pending-leave guard before Schedule navigation.
 
 Preserve decimal strings and `BigInt` arithmetic for large exact targets. Summaries must compute total distance without `Number` rounding, retain the run type and section count, and label common or varied pace without implying a new training metric. Use native links and independent disclosures. Keep all sections and both note labels accessible after expansion.
 
+## Form leave guards
+
+The production baseline has edit dirty-Cancel/reload and browser-unload protection; `create_run.js` has no equivalent dirty/pending-leave guard. The approved form design requires protection in both modes. This is explicit frontend scope, not a promise that every required guard already exists.
+
+In the foundation/sidebar layer, route Cancel and Schedule navigation through the current form controller and add the missing create guard. Create is clean when its raw field values and section order match the initial rendered form, including any prefilled date. Treat changed invalid/partial text as dirty too. Confirm explicit dirty departure and retain every field, error and section when declined. Use native `beforeunload` protection for dirty forms, subject to browser behavior. Native reload/close uses the browser's warning; do not promise custom text there.
+
+During pending create/edit/delete, explicit departure asks whether to leave while the request may still complete. Declining keeps the form and request; accepting navigates without cancelling/aborting the server operation. After a confirmed successful write, navigate without obsolete discard warnings. Keep creation's UUID and same-values retry policy unchanged, and keep edit/delete revision and explicit-reload recovery unchanged. A small shared navigation helper is appropriate; draft and request state remain owned by their form controller. Verify clean/dirty/invalid drafts, declined/accepted Cancel and Schedule, pending departure and confirmed-write navigation at the existing public page/HTTP seam.
+
 ## Ordered production PRs
 
-Each PR depends on the preceding PR merging. All belong to the Aweille redesign milestone. The first PR may ship the shared appearance around the current schedule; final Day/Week composition follows in the second PR. Its acceptance applies to the screen features available in that PR, then runs again with the completed design in the third. Do not represent an intermediate PR as completed redesign acceptance.
+PRs must merge in order. The unattended agent may prepare subsequent branches and PRs from validated prerequisite heads before those merges, as described above. All belong to the Aweille redesign milestone. The first PR may ship the shared appearance around the current schedule; final Day/Week composition follows in the second PR. Its acceptance applies to the screen features available in that PR, then runs again with the completed design in the third. Do not represent an intermediate PR as completed redesign acceptance.
 
 | Order | Execution issue | Scope | Checks |
 | --- | --- | --- | --- |
@@ -73,7 +106,7 @@ Keep [creation contracts](../../packages/aweille/tests/browser/test_run_creation
 | Fonts/states | All three pinned files load from same origin; English/French samples; blocked fonts remain usable in Arial/monospace; no synthesized weights; real-content contrast, hover/active/focus, readable disabled/pending and distinct error/destructive states |
 | Accessibility/manual | Full keyboard path and no focus obstruction, actual 200% zoom and reflow to 320 CSS px, enlarged text without lost actions, physical-phone touch/software keyboard/safe areas, and screen-reader naming/announcements/focus |
 
-Browser-emulated widths and automated keyboard/HTTP checks may pass before manual acceptance. Record browser/device, version, checks, results and any fix in the final execution issue. Do not mark the redesign milestone complete until actual-phone, zoom and screen-reader reviews pass. Current specimens establish none of those manual results; production acceptance remains work to do. This gate does not block starting the ordered implementation PRs.
+Browser-emulated widths and automated keyboard/HTTP checks may pass before manual acceptance. Record browser/device, version, checks, results and any fix in the final execution issue. Do not mark the redesign milestone complete until actual-phone, zoom and screen-reader reviews pass. Current specimens establish none of those manual results; production acceptance remains work to do. This gate does not block completing implementation, running automated checks, or opening all three PRs. Leave unavailable manual checks explicitly pending for Arnaud's return.
 
 ## Scope and remaining uncertainty
 
