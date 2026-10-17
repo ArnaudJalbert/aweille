@@ -1,6 +1,6 @@
 # Weekly layout review
 
-Throwaway study for [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44), October 17, 2026. The layout and interaction rules are proposals awaiting Arnaud's review. Production remains unchanged.
+Throwaway study for [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44), October 17, 2026. Arnaud accepted the schedule composition and interaction rules after removing both sets of schedule arrows. The full editor, sidebar, recovery presentation, and exact visual tokens remain separate decisions. Production remains unchanged.
 
 ## Run
 
@@ -12,7 +12,7 @@ Open [weekly log](http://localhost:8766/weekly-layout-prototype.html?variant=log
 
 The study compares the two existing compositions. Its controls select mixed, typical, busy, or empty fixtures; an activity grouping; available or constrained content width; and loaded, loading, failed, or invalid-selection states. The activity-layout selector retains the alternatives for reference. Week/Day switches the schedule view. The comparison-only floating toolbar was removed after the time column was selected; date navigation uses the calendar picker and Today shortcut.
 
-Examples are illustrative layout data, not saved runs or training recommendations. The busy fixture includes 11 runs, timed and untimed siblings, a 14-section run, long notes, an unbroken reference, French text, and a 0.001 km section. Previous/next navigation changes the week; fixtures live in the week of October 12. This week uses the Montreal calendar date. Native browser back restores the selected week with details closed.
+Examples are illustrative layout data, not saved runs or training recommendations. The busy fixture includes 11 runs, timed and untimed siblings, a 14-section run, long notes, an unbroken reference, French text, and a 0.001 km section. The calendar changes the selected day or week; fixtures live in the week of October 12. Today uses the Montreal calendar date. Native browser back restores the view and date with that view's default disclosures.
 
 Run summaries use the existing edit paths as native links, intercepted in this study to open a modal side pane. The pane shows the clicked run's date, optional time, type, ordered section targets, and separate notes. Its Save preview changes only fixture memory. Add run opens the same pane in create mode, with the chosen day prefilled, optional time and notes blank, and required distance/pace targets blank. Add run to preview creates a local run and updates the schedule; the earlier navigation-simulation dialog has been removed. Reload or selecting another fixture clears local changes. The pane's geometry and complete form, deletion, and recovery states remain provisional for the later form-design decision.
 
@@ -40,7 +40,7 @@ Use `fixture=mixed&variant=focus` and select Wednesday to compare one populated 
 
 Chromium checks covered all three treatments in both weekly compositions at 320px, 390px, 760px, and 1280px. The 24 layout combinations retained correct order, counts, and units without horizontal overflow, including expanded notes. Keyboard disclosures remained independent and persisted across treatment changes. Run editing, local addition alongside non-running examples, fixture switching, and the floating layout switcher passed. No browser errors or embedded assertion failures occurred. Physical-phone and screen-reader checks remain outstanding.
 
-## Proposal for review
+## Accepted schedule decision
 
 Arnaud requested both views through an in-page Week/Day switcher, with Day as the default. Day shows only the selected date, with no week index. Week shows all seven days. Explicit view selections in the URL still take precedence. Today switches directly to Day on the current Montreal calendar date. A small calendar icon beside the heading opens a date picker. In Week view, choosing a date selects its whole Monday-to-Sunday week; the selected week is highlighted. In Day view, it selects only that day. Month arrows browse the picker, and its This Week/Today shortcut returns to the current interval without changing views. Calendar dates support arrow-key movement and Enter selection; Cancel or Escape returns focus to the calendar icon. Arnaud subsequently requested removing both sets of schedule arrows.
 
@@ -59,6 +59,8 @@ The calendar icon stays near the heading. There are no previous/next arrows abov
 The sidebar's design remains in its own decision. The 760px width option checks available space without implementing a sidebar or settling its threshold. The specimen keeps branding out of the page header, consistent with sidebar-only branding. Exact tokens and production font policy remain provisional.
 
 ## Evidence
+
+Final accepted screenshots show [phone Day](weekly-layout-review/phone-accepted-day.png), [desktop Day](weekly-layout-review/desktop-accepted-day.png), [phone Week](weekly-layout-review/phone-accepted-week.png), and [desktop Week](weekly-layout-review/desktop-accepted-week.png), with the time column, Day as default, view-specific disclosure defaults, and no schedule arrows. Earlier screenshots below preserve the design iterations.
 
 After removing schedule arrows, checks passed at 320px and 1280px for their absence, calendar selection in Day and Week, Today, expanded Day details, and horizontal overflow. No browser errors occurred. The navigation screenshots below preserve earlier iterations.
 
