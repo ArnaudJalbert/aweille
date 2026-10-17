@@ -35,12 +35,21 @@ def create_app(*, storage: RunStorage) -> FastAPI:
     """Construct the HTTP application with an explicitly supplied storage port.
 
     Args:
-        storage: Initialized storage port for planned-run saves and range reads.
+        storage: Initialized storage port for planned-run creation, reads, and edits.
 
     Returns:
-        Application with create and read use cases bound to the storage port.
+        HTTP and browser application with run use cases bound to the storage port.
     """
     app = FastAPI()
+    _register_error_handlers(app)
+    _bind_use_cases(app, storage)
+    _configure_cache_policy(app)
+    _configure_routes(app)
+    _configure_openapi(app)
+    return app
+
+
+def _register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RunConflict, conflict_response)
     app.add_exception_handler(RunNotFound, missing_response)
     app.add_exception_handler(RunRevisionConflict, stale_response)
@@ -48,11 +57,16 @@ def create_app(*, storage: RunStorage) -> FastAPI:
     app.add_exception_handler(RequestValidationError, validation_response)
     for error in (StorageUnavailable, StorageFailure, Exception):
         app.add_exception_handler(error, failure_response)
+
+
+def _bind_use_cases(app: FastAPI, storage: RunStorage) -> None:
     app.state.create_run = partial(create_run, storage)
     app.state.read_runs = partial(read_runs, storage)
     app.state.read_run = partial(read_run, storage)
     app.state.update_run = partial(update_run, storage)
 
+
+def _configure_cache_policy(app: FastAPI) -> None:
     @app.middleware("http")
     async def prevent_run_caching(request, call_next):
         result = await call_next(request)
@@ -60,9 +74,14 @@ def create_app(*, storage: RunStorage) -> FastAPI:
             result.headers["Cache-Control"] = "no-store"
         return result
 
+
+def _configure_routes(app: FastAPI) -> None:
     app.include_router(router, prefix="/v1")
     app.include_router(weekly_router)
     app.mount("/static", StaticFiles(directory=WEB_DIRECTORY / "static"), name="static")
+
+
+def _configure_openapi(app: FastAPI) -> None:
     original_openapi = app.openapi
 
     def openapi_with_clear_example():
@@ -77,4 +96,3 @@ def create_app(*, storage: RunStorage) -> FastAPI:
         return document
 
     cast(Any, app).openapi = openapi_with_clear_example
-    return app

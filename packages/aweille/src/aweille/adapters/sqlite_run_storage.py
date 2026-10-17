@@ -17,6 +17,8 @@ from aweille.core import (
     StorageUnavailable,
 )
 
+from .validate_database import validate_database
+
 
 class SQLiteRunStorage:
     """Read and write planned runs in an existing SQLite database."""
@@ -165,8 +167,6 @@ class SQLiteRunStorage:
                 )
             ) as connection:
                 connection.row_factory = sqlite3.Row
-                from .upgrade_database import validate_database
-
                 validate_database(connection, version=2, check_data=False)
                 yield connection
         except (sqlite3.Error, UnicodeError) as error:

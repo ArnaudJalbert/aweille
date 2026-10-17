@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from aweille.adapters import SQLiteRunStorage
-from aweille.adapters.upgrade_database import validate_database
+from aweille.adapters.validate_database import validate_database
 from aweille.core import StorageFailure
 
 from .create_app import create_app

@@ -1,102 +1,13 @@
 """Explicit, transactional upgrade of recognized Aweille SQLite files."""
 
 import argparse
-import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
-from uuid import UUID
 
-from aweille.core import PlannedRun, StorageFailure, StorageUnavailable, ValidationError
+from aweille.core import StorageFailure, StorageUnavailable
 
-_COLUMNS = [
-    ("id", "TEXT", 1, 1),
-    ("planned_date", "TEXT", 1, 0),
-    ("planned_start_time", "TEXT", 0, 0),
-    ("run_type", "TEXT", 1, 0),
-    ("sections", "TEXT", 1, 0),
-    ("user_note", "TEXT", 0, 0),
-    ("trainer_note", "TEXT", 0, 0),
-]
-
-
-def validate_database(
-    connection: sqlite3.Connection, *, version: int, check_data: bool = True
-) -> None:
-    """Reject unrecognized schema or invalid persisted runs without modifying them."""
-    if (
-        connection.execute("PRAGMA application_id").fetchone()[0] != 0x41574549
-        or connection.execute("PRAGMA user_version").fetchone()[0] != version
-    ):
-        raise StorageFailure(
-            "Database is incompatible; run aweille-upgrade-db if required."
-        )
-    names = {
-        row[0]
-        for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' "
-            "AND name NOT LIKE 'sqlite_%'"
-        )
-    }
-    if names != ({"runs", "deleted_run_ids"} if version == 2 else {"runs"}):
-        raise StorageFailure("Aweille database schema is incompatible.")
-    if version == 2:
-        reserved = [
-            (row[1], row[2].upper(), row[3], row[5])
-            for row in connection.execute("PRAGMA table_info(deleted_run_ids)")
-        ]
-        if reserved != [("id", "TEXT", 1, 1)]:
-            raise StorageFailure("Aweille database schema is incompatible.")
-    columns = [
-        (row[1], row[2].upper(), row[3], row[5])
-        for row in connection.execute("PRAGMA table_info(runs)")
-    ]
-    expected = _COLUMNS + ([("revision", "TEXT", 1, 0)] if version == 2 else [])
-    if columns != expected:
-        raise StorageFailure("Aweille database schema is incompatible.")
-    indexes = list(connection.execute("PRAGMA index_list(runs)"))
-    if not any(
-        row[1] == "runs_planned_date"
-        and [
-            col[2] for col in connection.execute("PRAGMA index_info(runs_planned_date)")
-        ]
-        == ["planned_date"]
-        for row in indexes
-    ):
-        raise StorageFailure("Aweille database schema is incompatible.")
-    if not check_data:
-        return
-    try:
-        if version == 2:
-            for (reserved_id,) in connection.execute("SELECT id FROM deleted_run_ids"):
-                if (
-                    not isinstance(reserved_id, str)
-                    or str(UUID(reserved_id)) != reserved_id
-                ):
-                    raise ValueError("Invalid reserved run ID")
-            if connection.execute(
-                "SELECT 1 FROM runs JOIN deleted_run_ids USING (id) LIMIT 1"
-            ).fetchone():
-                raise ValueError("Run ID is both live and reserved")
-        for row in connection.execute("SELECT * FROM runs"):
-            data = dict(
-                zip(
-                    (
-                        column[0]
-                        for column in connection.execute(
-                            "SELECT * FROM runs LIMIT 0"
-                        ).description
-                    ),
-                    row,
-                    strict=True,
-                )
-            )
-            data["sections"] = json.loads(data["sections"])
-            if version == 1:
-                data["revision"] = "1"
-            PlannedRun.from_dict(data)
-    except (ValueError, TypeError, ValidationError, UnicodeError, RecursionError):
-        raise StorageFailure("Saved run data is invalid.") from None
+from .validate_database import validate_database
 
 
 def upgrade_database(path: str | Path) -> None:
