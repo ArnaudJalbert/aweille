@@ -11,9 +11,9 @@ from ..schemas.run_error import MessageResponse, ProblemResponse
 from ..schemas.run_patch import RunPatch
 from ..schemas.run_request import RunRequest
 from ..schemas.run_response import RunResponse
-from .creation_route import CreationRoute
+from .run_request_route import RunRequestRoute
 
-router = APIRouter(route_class=CreationRoute)
+router = APIRouter(route_class=RunRequestRoute)
 
 _IF_MATCH = {
     "name": "If-Match",

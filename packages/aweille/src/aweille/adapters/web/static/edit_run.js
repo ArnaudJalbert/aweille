@@ -11,14 +11,14 @@ const confirmDelete = document.querySelector("#confirm-delete");
 const keepRun = document.querySelector("#keep-run");
 const params = new URLSearchParams(location.search);
 const id = location.pathname.split("/")[2];
-let saving = false;
+let writePending = false;
 let loading = true;
 let confirmingDelete = false;
 let baseline = null;
 let reloadRequired = false;
 let readVersion = 0;
 const { addSection, editSections, updateSections, showValidation, showBodyErrors, readPayload, populate } =
-  createRunForm(form, fields, sections, () => saving);
+  createRunForm(form, fields, sections, () => writePending);
 function calendarDate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00Z`);
@@ -67,13 +67,13 @@ function validRun(data) {
 }
 
 function updateControls() {
-  fields.disabled = loading || saving || confirmingDelete || !baseline;
+  fields.disabled = loading || writePending || confirmingDelete || !baseline;
   save.disabled = fields.disabled || reloadRequired;
   deleteButton.disabled = fields.disabled || reloadRequired;
-  confirmDelete.disabled = saving;
-  keepRun.disabled = saving;
-  document.querySelector("#reload-run").disabled = loading || saving;
-  document.querySelector("#retry-load").disabled = loading || saving;
+  confirmDelete.disabled = writePending;
+  keepRun.disabled = writePending;
+  document.querySelector("#reload-run").disabled = loading || writePending;
+  document.querySelector("#retry-load").disabled = loading || writePending;
 }
 
 function closeConfirmation() {
@@ -191,7 +191,7 @@ function showWriteFailure(response, data, deleting = false) {
 
 async function saveRun(event) {
   event.preventDefault();
-  if (loading || saving || confirmingDelete || reloadRequired || !baseline) return;
+  if (loading || writePending || confirmingDelete || reloadRequired || !baseline) return;
   const { payload, errors } = readPayload();
   showValidation(errors);
   const changes = payload && draftChanges(payload);
@@ -200,7 +200,7 @@ async function saveRun(event) {
     form.querySelector('[aria-invalid="true"]')?.focus();
     return;
   }
-  saving = true;
+  writePending = true;
   updateControls();
   form.setAttribute("aria-busy", "true");
   showStatus("Saving changes...", "Please wait.");
@@ -225,7 +225,7 @@ async function saveRun(event) {
   } catch {
     blockWrites("Saving could not be confirmed", "The response was lost or unreadable. Reload the saved run before another edit.");
   } finally {
-    saving = false;
+    writePending = false;
     form.setAttribute("aria-busy", "false");
     updateControls();
     updateSections();
@@ -233,8 +233,8 @@ async function saveRun(event) {
 }
 
 async function deleteRun() {
-  if (loading || saving || reloadRequired || !baseline || !confirmingDelete) return;
-  saving = true;
+  if (loading || writePending || reloadRequired || !baseline || !confirmingDelete) return;
+  writePending = true;
   updateControls();
   form.setAttribute("aria-busy", "true");
   showStatus("Deleting run...", "Please wait. Leaving this page does not cancel deletion.");
@@ -252,7 +252,7 @@ async function deleteRun() {
   } catch {
     blockWrites("Deletion could not be confirmed", "Your draft is intact. Reload the saved run to review the outcome.");
   } finally {
-    saving = false;
+    writePending = false;
     closeConfirmation();
     updateControls();
     form.setAttribute("aria-busy", "false");
@@ -261,7 +261,7 @@ async function deleteRun() {
 }
 
 deleteButton.onclick = () => {
-  if (loading || saving || reloadRequired || !baseline) return;
+  if (loading || writePending || reloadRequired || !baseline) return;
   confirmingDelete = true;
   document.querySelector("#delete-target").textContent = `${baseline.planned_date} · ${baseline.run_type[0].toUpperCase()}${baseline.run_type.slice(1)} run`;
   document.querySelector("#delete-draft-warning").hidden = !dirty();
