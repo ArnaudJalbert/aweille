@@ -2,7 +2,7 @@
 <!-- Throwaway study for issue 44. Two weekly compositions; illustrative runs and local create/edit interactions only. -->
 <html lang="en">
 <head>
-<!-- Form study for issue 46: accepted content-area form, sticky actions, and separate deletion. State controls are disposable examples. -->
+<!-- Form study for issue 46: accepted content-area form, sticky actions, and red Delete run beside Cancel. State controls are disposable examples. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Run form study</title>
@@ -274,8 +274,7 @@ html.drawer-open { overflow:hidden; }
 .section-actions, .section-moves { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .section-actions { margin-top:4px; }
 .section-moves { justify-content:flex-end; gap:0; }
-.editor-pane .quiet-action, .editor-pane .quiet-danger { border:0; background:transparent; padding:8px 0; min-height:44px; text-decoration:underline; text-underline-offset:3px; }
-.editor-pane .quiet-danger { color:#9d3027; }
+.editor-pane .quiet-action { border:0; background:transparent; padding:8px 0; min-height:44px; text-decoration:underline; text-underline-offset:3px; }
 .editor-pane .destructive { color:#9d3027; border:1px solid #9d3027; background:#fafbf6; }
 .editor-pane button:disabled { opacity:.45; cursor:default; }
 .editor-notes { margin-top:16px; gap:20px; }
@@ -284,7 +283,10 @@ html.drawer-open { overflow:hidden; }
 .editor-pane textarea { min-height:112px; }
 .editor-pane input, .editor-pane textarea { scroll-margin-bottom:88px; }
 .editor-pane .editor-footer { position:sticky; bottom:0; z-index:2; background:#f0f1ea; border-top:1px solid #c2c8bd; margin:24px 0 0; padding:8px 0 max(8px,env(safe-area-inset-bottom)); gap:12px; }
-.editor-footer button { min-height:44px; padding:8px 12px; }
+.editor-pane .editor-footer button { min-height:44px; padding:8px; font-size:14px; }
+.footer-secondary { display:flex; align-items:center; gap:8px; }
+.editor-pane .delete-button { background:#9d3027; border:1px solid #9d3027; color:#fff; }
+.confirmation-actions button { scroll-margin-bottom:88px; }
 .editor-pane .editor-save { border-color:#f66b35; background:#f66b35; color:#202b28; }
 .delete-area { margin-top:24px; border-top:1px solid #c2c8bd; padding-top:12px; }
 .delete-confirmation { border-left:3px solid #9d3027; padding:12px 16px; margin-top:8px; background:#fafbf6; }
@@ -344,8 +346,8 @@ html.drawer-open { overflow:hidden; }
       <section class="form-section" aria-labelledby="form-sections-heading"><h2 id="form-sections-heading">Sections</h2><p class="form-hint">One step per section, in running order.</p><div id="editor-sections"></div><button id="add-section" type="button" class="quiet-action">Add section</button></section>
       <section class="form-section" aria-labelledby="form-notes-heading"><h2 id="form-notes-heading">Notes</h2><div class="editor-notes"><label>Personal note <span class="optional">Optional</span><textarea name="user_note" aria-describedby="user-note-error"></textarea><span id="user-note-error" class="field-error" hidden></span></label><label>Trainer note <span class="optional">Optional</span><textarea name="trainer_note" aria-describedby="trainer-note-error"></textarea><span id="trainer-note-error" class="field-error" hidden></span></label></div></section>
     </fieldset>
-    <section class="delete-area" id="delete-area" hidden><button id="delete-run" type="button" class="quiet-danger">Delete run</button><section id="delete-confirmation" class="delete-confirmation" aria-labelledby="delete-heading" hidden><h2 id="delete-heading">Delete this run permanently?</h2><p class="delete-target" id="delete-target"></p><p>The whole planned run will be removed. This cannot be undone.</p><p id="delete-draft-warning" hidden>Your unsaved edits will also be discarded.</p><div class="confirmation-actions"><button id="keep-run" type="button">Keep run</button><button id="confirm-delete" type="button" class="destructive">Delete permanently</button></div></section></section>
-    <footer class="editor-footer"><button type="button" id="cancel-form" data-close-editor>Cancel</button><button class="editor-save" id="editor-save" type="submit">Save changes</button></footer>
+    <section class="delete-area" id="delete-area" hidden><section id="delete-confirmation" class="delete-confirmation" aria-labelledby="delete-heading" hidden><h2 id="delete-heading">Delete this run permanently?</h2><p class="delete-target" id="delete-target"></p><p>The whole planned run will be removed. This cannot be undone.</p><p id="delete-draft-warning" hidden>Your unsaved edits will also be discarded.</p><div class="confirmation-actions"><button id="keep-run" type="button">Keep run</button><button id="confirm-delete" type="button" class="destructive">Delete permanently</button></div></section></section>
+    <footer class="editor-footer"><div class="footer-secondary"><button type="button" id="cancel-form" data-close-editor>Cancel</button><button id="delete-run" type="button" class="delete-button">Delete run</button></div><button class="editor-save" id="editor-save" type="submit">Save changes</button></footer>
   </form>
 </dialog>
 <template id="section-template"><fieldset class="section-editor"><legend></legend><div class="editor-fields"><label><span data-label="distance_m">Distance <span class="optional">km</span></span><input data-field="distance_m" inputmode="decimal" required><span class="field-error" data-error="distance_m" hidden></span></label><label><span data-label="target_pace_seconds_per_km">Pace <span class="optional">m:ss/km</span></span><input data-field="target_pace_seconds_per_km" placeholder="6:30" required><span class="field-error" data-error="target_pace_seconds_per_km" hidden></span></label></div><div class="section-actions"><button data-action="remove" type="button" class="quiet-action">Remove</button><div class="section-moves"><button data-action="up" type="button" class="icon-button" title="Move section up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button><button data-action="down" type="button" class="icon-button" title="Move section down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button></div></div></fieldset></template>
@@ -363,7 +365,7 @@ html.drawer-open { overflow:hidden; }
       <li>Titles are relative to Montreal's current date: This Week, Next Week, In 2 Weeks, Last Week, or 2 Weeks Ago. Day view uses Today, Tomorrow, Yesterday, and the equivalent day offsets. Exact dates stay visible beneath the title.</li>
       <li>The URL records the view and selected date for reload and browser Back/Forward. Closing the pane keeps that selection. Saving shows the saved run’s day. Loading and failures hide old activities, keep date navigation available, and offer retry. Retry moves focus to the heading.</li>
     </ul>
-    <p class="muted">Approved sidebar: 224px on desktop, full collapse, and a closed-by-default overlay below 900px of available width. The form occupies the content pane to check navigation alongside create/edit. Accepted form starting choices: content-area layout, compact sticky Save/Cancel, and separate Delete run with inline confirmation. The complete state presentation awaits review. All changes stay in fixture memory.</p>
+    <p class="muted">Approved sidebar: 224px on desktop, full collapse, and a closed-by-default overlay below 900px of available width. The form occupies the content pane to check navigation alongside create/edit. Accepted form starting choices: content-area layout, compact sticky Save/Cancel, and red Delete run beside Cancel with inline confirmation. The complete state presentation awaits review. All changes stay in fixture memory.</p>
   </details>
   <details class="font-credits"><summary>IBM Plex font credits and licenses</summary><h3>IBM Plex Sans</h3><pre>Copyright © 2017 IBM Corp. with Reserved Font Name &quot;Plex&quot;
 
@@ -1006,7 +1008,8 @@ function applyFormState(state, focus = true) {
   $('editor-save').disabled = initial || pending || confirmation || blocked;
   $('editor-save').textContent = state === 'pending-save' ? 'Saving…' : state === 'uncertain-save' && !isEdit ? 'Retry save' : isEdit ? 'Save changes' : 'Save run';
   $('cancel-form').textContent = initial || state === 'missing-after-write' ? 'Back to schedule' : 'Cancel';
-  $('delete-area').hidden = !isEdit || initial;
+  $('delete-run').hidden = !isEdit || initial;
+  $('delete-area').hidden = !confirmation;
   $('delete-run').disabled = pending || confirmation || blocked;
   $('delete-confirmation').hidden = !confirmation;
   $('keep-run').disabled = state === 'pending-delete';

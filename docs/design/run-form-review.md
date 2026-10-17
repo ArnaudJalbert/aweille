@@ -1,6 +1,6 @@
 # Run form and recovery review
 
-Disposable study for [Define run-form, deletion, and recovery presentations](https://github.com/ArnaudJalbert/aweille/issues/46), October 17, 2026. Arnaud accepted three starting choices: the form replaces the schedule content area, Save/Cancel stay in a compact sticky footer, and Delete run is a separate quiet red action below the editable fields. Complete state presentation awaits review. Production remains unchanged.
+Disposable study for [Define run-form, deletion, and recovery presentations](https://github.com/ArnaudJalbert/aweille/issues/46), October 17, 2026. Arnaud accepted three starting choices: the form replaces the schedule content area, Save/Cancel stay in a compact sticky footer, and Delete run is a red button immediately to the right of Cancel in the sticky footer. The latest placement request supersedes the earlier separate text action. Complete state presentation awaits review. Production remains unchanged.
 
 ## Run and review
 
@@ -18,7 +18,7 @@ The form uses the approved sidebar and surrounding spacing. Its hierarchy is dat
 
 Add section focuses the new distance input. Remove cannot remove the last section. Named up/down controls preserve order, disable at boundaries, and retain focus in the affected row. No drag-only ordering or new domain feature is introduced.
 
-The footer contains Cancel on the left and Save run/Save changes on the right. It sticks to the viewport bottom while reading the form; fields have scroll clearance above it. Delete run stays outside this bar, after the editable fields. Its inline confirmation identifies the last loaded saved date/type, explains permanence, and warns about unsaved edits when present. Keep run gets focus first, preserves fields and validation feedback, and returns focus to Delete run. Pending deletion moves focus to its progress message.
+The footer groups Cancel and a solid red Delete run button on the left, with Save run/Save changes on the right. Delete run appears only when an existing run has loaded. The footer sticks to the viewport bottom while reading the form; fields have scroll clearance above it. The Delete run button opens an inline confirmation above the footer. The confirmation identifies the last loaded saved date/type, explains permanence, and warns about unsaved edits when present. Keep run gets focus first, preserves fields and validation feedback, and returns focus to Delete run. Pending deletion moves focus to its progress message.
 
 Cancel and Schedule navigation protect a changed draft. The browser's ordinary dirty-page warning applies to reload/leave. Leaving during a pending request explicitly says that it does not cancel the request. The phone drawer opens above the form, contains focus, and dismisses before Escape can close a form behind it.
 
@@ -54,6 +54,8 @@ The state selector holds pending/failure examples for inspection. Actual local S
 Long-form scrolling examples are [desktop](run-form-review/desktop-long-scroll.png) and [phone](run-form-review/phone-long-scroll.png). Dirty deletion examples are [desktop](run-form-review/desktop-delete-draft.png) and [phone](run-form-review/phone-delete-draft.png), showing the saved target despite a different draft date.
 
 ## Verification and limits
+
+The footer revision passed at 320px, 390px, and 1280px: Cancel, red Delete run, and Save remain on one row without horizontal overflow. Buttons retain 44px height; Delete is hidden for creation and disabled during blocked/pending/confirmation states. Keep run retains the draft and returns focus to the moved Delete button. The state captures reflect this placement.
 
 Playwright Chromium checks passed at 320px, 390px, 900px, 1024px, and 1280px across the edit-state matrix without horizontal overflow. Long-form checks verified that Save/Cancel remain visible while scrolling within the form. Interaction checks covered exact large-value save/reopen, add/remove/reorder boundaries and focus, validation retention/focus, saved-target deletion, Keep run with retained draft and field feedback, confirmed local deletion, cancelled and successful reload, failed-reload retention, create retry guidance versus edit reload requirements, confirmed-save/read-failure retry without duplicate creation, declined dirty-page reload, pending-deletion progress focus, and drawer Escape above a pending form. No runtime or console errors occurred in the 44 state captures and four additional long/dirty captures.
 
