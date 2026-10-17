@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Throwaway study for issue 44. Two weekly compositions; fixtures and navigation simulations only. -->
+<!-- Throwaway study for issue 44. Two weekly compositions; illustrative runs and local create/edit interactions only. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -186,8 +186,8 @@ dialog code { overflow-wrap: anywhere; }
       <li>Click or tap a run summary to open its edit pane, or focus it and press Enter. There is no separate Edit button. Keep time, run type, distance, section count, and shared or varied pace visible while details are closed.</li>
       <li>Each run opens independently with Enter, Space, or touch. Sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
-      <li>Add run replaces the empty-day placeholder. On a populated day, it sits below the day and date. It always starts on that date. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
-      <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the edit pane keeps the selected day. Saving into another week uses the initial selection rule there.</li>
+      <li>Add run replaces the empty-day placeholder. On a populated day, it sits below the day and date. It opens the create pane on that date. Adding a preview run updates the schedule and moves Add run below the date when the day becomes populated. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
+      <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the pane keeps the selected day. Saving selects the saved run’s day so the result is visible.</li>
       <li>Put week navigation above the schedule so a busy week does not push it out of reach. Loading and failures hide old runs, keep week navigation available, and offer retry. Retry moves focus to the week heading.</li>
     </ul>
     <p class="muted">The sidebar and full editor states belong to later decisions. The width control checks available space without deciding the sidebar geometry.</p>
@@ -381,16 +381,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 </pre></details>
 </main>
 <div class="switcher" aria-label="Prototype variant switcher"><button id="previous-variant" aria-label="Previous layout">←</button><output id="variant-label"></output><button id="next-variant" aria-label="Next layout">→</button></div>
-<dialog id="navigation-preview" aria-labelledby="navigation-heading">
-  <h2 id="navigation-heading" tabindex="-1">Navigation preview</h2>
-  <p id="navigation-description"></p>
-  <p><code id="navigation-url"></code></p>
-  <p class="muted">These controls simulate return destinations only. They do not design the editor or save or delete real runs.</p>
-  <div class="outcomes"><button data-return="cancel" autofocus>Cancel, return to originating week</button><button data-return="save">Save on this date</button><button data-return="move">Save on Monday of the next week</button><button data-return="delete">Delete, return to originating week</button></div>
-</dialog>
 <dialog class="editor-pane" id="run-editor" aria-labelledby="editor-title">
   <div class="editor-heading"><h2 id="editor-title">Edit run</h2><button type="button" data-close-editor>Close</button></div>
-  <p class="preview-note">Edit-pane preview. Changes stay in this study.</p>
+  <p class="preview-note">Run-form preview. Changes stay in this study.</p>
   <form id="editor-form">
     <div class="editor-fields">
       <label>Planned date<input name="planned_date" type="date" required></label>
@@ -399,7 +392,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <label>Run type<select name="type"><option value="easy">Easy</option><option value="hard">Hard</option><option value="interval">Interval</option><option value="long">Long</option></select></label>
     <h3>Ordered sections</h3><div id="editor-sections"></div>
     <div class="editor-notes"><label>Personal note<textarea name="personal"></textarea></label><label>Trainer note<textarea name="trainer"></textarea></label></div>
-    <div class="editor-footer"><button type="button" data-close-editor>Cancel</button><button class="editor-save" type="submit">Save preview</button></div>
+    <div class="editor-footer"><button type="button" data-close-editor>Cancel</button><button class="editor-save" id="editor-save" type="submit">Save preview</button></div>
   </form>
 </dialog>
 <script>
@@ -412,9 +405,7 @@ let readState = ['ready', 'loading', 'failure', 'invalid'].includes(params.get('
 let monday = params.get('week') || '2026-10-12';
 let selectedDay = 2;
 let opened = new Set();
-let navigation;
 let announcement = '';
-const removed = new Set();
 const added = [];
 const moved = new Map();
 const edited = new Map();
@@ -461,7 +452,7 @@ const busy = [...typical,
 function weekRuns() {
   const source = fixture === 'empty' ? [] : fixture === 'busy' ? busy : typical;
   return [...source.map(r => ({...r, plannedDate:'2026-10-' + String(12+r.day).padStart(2,'0')})), ...added]
-    .filter(r => !removed.has(r.id)).map(r => ({...r,...edited.get(r.id),plannedDate:moved.get(r.id) || r.plannedDate}))
+    .map(r => ({...r,...edited.get(r.id),plannedDate:moved.get(r.id) || r.plannedDate}))
     .filter(r => r.plannedDate >= monday && r.plannedDate <= offset(monday,6))
     .sort((a,b) => a.plannedDate.localeCompare(b.plannedDate) || (a.time || '99:99').localeCompare(b.time || '99:99') || a.id.localeCompare(b.id));
 }
@@ -515,14 +506,16 @@ function changeWeek(value) {
 function switchVariant() { variant = variant === 'log' ? 'focus' : 'log'; render(); }
 function editorValues() { return JSON.stringify([...new FormData($('editor-form'))]); }
 function openEditor(trigger) {
-  editorRun = weekRuns().find(r => r.id === trigger.dataset.edit);
+  editorRun = trigger.dataset.edit ? weekRuns().find(r => r.id === trigger.dataset.edit) : null;
   editorTrigger = trigger;
+  const initial = editorRun || {type:'easy',personal:'',trainer:'',plannedDate:offset(monday,Number(trigger.dataset.add)),time:null,sections:[[null,null]]};
   const form = $('editor-form');
-  for (const key of ['type','personal','trainer']) form.elements.namedItem(key).value = editorRun[key];
-  form.elements.namedItem('planned_date').value = editorRun.plannedDate;
-  form.elements.namedItem('time').value = editorRun.time || '';
-  $('editor-sections').innerHTML = editorRun.sections.map((s,i) => `<fieldset class="editor-section"><legend>Section ${i+1}</legend><div class="editor-fields"><label>Distance, km<input name="distance-${i}" type="number" min="0.001" step="0.001" value="${s[0]/1000}" required></label><label>Pace, m:ss/km<input name="pace-${i}" value="${pace(s[1]).replace('/km','')}" pattern="[0-9]+:[0-5][0-9]" required></label></div></fieldset>`).join('');
-  $('editor-title').textContent = `Edit ${types[editorRun.type].toLowerCase()}`;
+  for (const key of ['type','personal','trainer']) form.elements.namedItem(key).value = initial[key];
+  form.elements.namedItem('planned_date').value = initial.plannedDate;
+  form.elements.namedItem('time').value = initial.time || '';
+  $('editor-sections').innerHTML = initial.sections.map((s,i) => `<fieldset class="editor-section"><legend>Section ${i+1}</legend><div class="editor-fields"><label>Distance, km<input name="distance-${i}" type="number" min="0.001" step="0.001" value="${s[0] === null ? '' : s[0]/1000}" required></label><label>Pace, m:ss/km<input name="pace-${i}" value="${s[1] === null ? '' : pace(s[1]).replace('/km','')}" placeholder="6:30" pattern="[0-9]+:[0-5][0-9]" required></label></div></fieldset>`).join('');
+  $('editor-title').textContent = editorRun ? `Edit ${types[editorRun.type].toLowerCase()}` : 'Add run';
+  $('editor-save').textContent = editorRun ? 'Save preview' : 'Add run to preview';
   editorBaseline = editorValues();
   $('run-editor').showModal();
   $('run-editor').scrollTop = 0;
@@ -538,17 +531,21 @@ $('editor-form').addEventListener('submit', event => {
   event.preventDefault();
   const values = new FormData(event.currentTarget);
   const savedDate = values.get('planned_date');
-  const sections = editorRun.sections.map((_,i) => {
+  const sections = Array.from($('editor-sections').children, (_,i) => {
     const [minutes,seconds] = values.get(`pace-${i}`).split(':').map(Number);
     return [Math.round(Number(values.get(`distance-${i}`))*1000),minutes*60+seconds];
   });
-  edited.set(editorRun.id,{type:values.get('type'),time:values.get('time') || null,personal:values.get('personal'),trainer:values.get('trainer'),sections});
-  moved.set(editorRun.id,savedDate);
+  const saved = {type:values.get('type'),time:values.get('time') || null,personal:values.get('personal'),trainer:values.get('trainer'),sections};
+  const savedId = editorRun ? editorRun.id : 'added-' + added.length;
+  if (editorRun) { edited.set(savedId,saved); moved.set(savedId,savedDate); }
+  else added.push({id:savedId,...saved,plannedDate:savedDate});
   $('run-editor').close();
   const destination = weekOf(savedDate);
-  announcement = 'Updated the illustrative run in this study only.';
-  if (destination !== monday) { changeWeek(destination); $('week-heading').focus(); }
-  else { render(); $('week-content').querySelector(`[data-edit="${editorRun.id}"]`).focus(); }
+  announcement = `${editorRun ? 'Updated' : 'Added'} the illustrative run in this study only.`;
+  if (destination !== monday) changeWeek(destination);
+  selectedDay = (date(savedDate).getUTCDay()+6)%7;
+  render();
+  $('week-content').querySelector(`[data-edit="${savedId}"]`).focus();
 });
 document.addEventListener('click', event => {
   const target = event.target.closest('button,a');
@@ -560,33 +557,13 @@ document.addEventListener('click', event => {
   if (target.hasAttribute('data-retry')) { opened.clear(); readState = 'ready'; render(); $('week-heading').focus(); }
   if (target.dataset.edit) { event.preventDefault(); openEditor(target); return; }
   if (target.hasAttribute('data-close-editor')) { closeEditor(); return; }
-  if (target.dataset.add !== undefined) {
-    event.preventDefault();
-    navigation = {origin:monday, plannedDate:offset(monday,Number(target.dataset.add)), trigger:target};
-    $('navigation-description').textContent = `Add a run on ${navigation.plannedDate}.`;
-    $('navigation-url').textContent = target.getAttribute('href');
-    document.querySelector('[data-return="delete"]').hidden = true;
-    $('navigation-preview').showModal();
-  }
-  if (target.dataset.return) {
-    const outcome = target.dataset.return;
-    const destinationDate = outcome === 'move' ? offset(navigation.origin,7) : navigation.plannedDate;
-    if (outcome === 'delete') removed.add(navigation.id);
-    if (['save','move'].includes(outcome)) {
-      if (navigation.id) moved.set(navigation.id,destinationDate);
-      else added.push({...run('added-' + added.length,0,'easy',null,[[5000,390]]),plannedDate:destinationDate});
-    }
-    $('navigation-preview').close();
-    announcement = `Simulated ${outcome}. All details reset. Nothing was saved to Aweille.`;
-    changeWeek(['cancel','delete'].includes(outcome) ? navigation.origin : weekOf(destinationDate));
-    $('week-heading').focus();
-  }
+  if (target.dataset.add !== undefined) { event.preventDefault(); openEditor(target); }
 });
-$('fixture').onchange = event => { fixture = event.target.value; removed.clear(); added.length = 0; moved.clear(); edited.clear(); announcement = ''; monday = '2026-10-12'; selectedDay = 2; opened.clear(); render(); };
+$('fixture').onchange = event => { fixture = event.target.value; added.length = 0; moved.clear(); edited.clear(); announcement = ''; monday = '2026-10-12'; selectedDay = 2; opened.clear(); render(); };
 $('width').onchange = event => { width = event.target.value; render(); };
 $('read-state').onchange = event => { readState = event.target.value; opened.clear(); render(); };
 document.addEventListener('keydown', event => {
-  if (event.target.closest('input,textarea,select,summary,button,a,[contenteditable]') || $('navigation-preview').open || $('run-editor').open) return;
+  if (event.target.closest('input,textarea,select,summary,button,a,[contenteditable]') || $('run-editor').open) return;
   if (['ArrowLeft','ArrowRight'].includes(event.key)) { event.preventDefault(); switchVariant(); }
 });
 window.addEventListener('popstate', () => {
