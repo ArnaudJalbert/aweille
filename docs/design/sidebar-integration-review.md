@@ -1,6 +1,6 @@
 # Sidebar integration review
 
-Disposable study for [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45), October 17, 2026. The integration proposal awaits Arnaud's review. Production is unchanged.
+Disposable study for [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45), October 17, 2026. Arnaud approved the sidebar integration, including the 224px width, 900px drawer threshold, menu placement, and interim branding. Complete form layout and recovery design remain separate decisions. Production is unchanged.
 
 The question is where the already selected full sidebar, menu control, headings, and actions fit around the accepted schedule and provisional run pane. This retains variant A's navigation behavior rather than reopening the rejected icon rail and desktop overlay alternatives.
 
@@ -14,9 +14,9 @@ Open [the integration study](http://localhost:8767/sidebar-integration-prototype
 
 Use the menu icon beside Week/Day, the sidebar collapse button, and the existing calendar, Today, Add run, and clickable runs. Screen and width selectors are study controls. Add/edit saves only change fixture memory. Reload resets the navigation and data.
 
-## Proposed integration
+## Approved sidebar integration
 
-| Part | Proposal |
+| Part | Selected behavior |
 | --- | --- |
 | Desktop sidebar | 224px, initially expanded, full collapse with no residual icon rail |
 | Drawer threshold | Below 900px of available application width, not a user-agent check |
@@ -56,7 +56,7 @@ T3 collaborative browser checks covered 320px, 390px, 760px, 900px, 1024px, and 
 
 Form checks covered create/edit entry, date prefill, required blank creation targets, preserved values through menu toggles, draft keep/discard on Schedule navigation, Escape return, local creation with exact targets, saved-run focus, expanded Day details, and unavailable preview actions while loading failed. Week/calendar selection also remained usable beside the expanded sidebar. HTML previews for all sixteen captured states reported no console messages. Physical phones, screen readers, actual browser zoom, complete section editing/deletion/recovery, and production API integration remain unchecked. No application tests were rerun for this standalone specimen.
 
-After Arnaud approves the integration, refresh the existing [sidebar execution issue](https://github.com/ArnaudJalbert/aweille/issues/29), including edit and deletion-flow coverage, the selected schedule rules, and the agreed threshold. Do not create a duplicate navigation implementation issue. Keep this decision open until that review.
+The approval refreshes the existing [sidebar execution issue](https://github.com/ArnaudJalbert/aweille/issues/29), including edit and deletion-flow coverage, the selected schedule rules, and the agreed threshold. No duplicate navigation implementation issue is needed. Form pane geometry remains provisional for the form decision.
 
 ## Sources
 
