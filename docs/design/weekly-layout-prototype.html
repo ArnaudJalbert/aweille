@@ -75,6 +75,13 @@ a { color: inherit; }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
 .week-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 24px; }
 .week-nav button { flex: 1 1 auto; }
+.schedule-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.view-switch { display: flex; gap: 4px; }
+.view-switch button { min-width: 64px; }
+.specimen .view-switch [aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.schedule-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 16px; }
+.schedule-heading .action { margin-top: 4px; }
+.specimen[data-view="focus"] .day { display: block; }
 .day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 24px; }
 .day-heading { display: flex; flex-direction: column; align-items: start; gap: 4px; }
 .day-add { margin-top: 8px; }
@@ -195,20 +202,20 @@ dialog code { overflow-wrap: anywhere; }
 </head>
 <body>
 <main class="study">
-  <p class="intro"><strong>Daily activity layouts</strong><br><span class="muted">Disposable study. Illustrative training data. Nothing connects to your saved training.</span></p>
+  <p class="intro"><strong>Schedule study</strong><br><span class="muted">Disposable study. Illustrative training data. Nothing connects to your saved training.</span></p>
   <div class="controls" aria-label="Study controls">
-    <div class="variant-buttons" aria-label="Weekly composition"><button data-variant="log">Weekly log</button><button data-variant="focus">Selected day</button></div>
     <label>Activity layout<select id="grouping"><option value="panels">Separate panels</option><option value="timeline">Time column</option><option value="rows">Compact rows</option></select></label>
     <label>Content<select id="fixture"><option value="mixed">Future mixed activities</option><option value="typical">Typical runs</option><option value="busy">Busy runs and long notes</option><option value="empty">Empty week</option></select></label>
     <label>Content width<select id="width"><option value="wide">Available width</option><option value="constrained">760px, sidebar allowance</option><option value="phone">390px phone</option><option value="small">320px phone</option></select></label>
-    <label>Week state<select id="read-state"><option value="ready">Loaded</option><option value="loading">Loading</option><option value="failure">Failed, with retry</option><option value="invalid">Invalid week selection</option></select></label>
+    <label>Load state<select id="read-state"><option value="ready">Loaded</option><option value="loading">Loading</option><option value="failure">Failed, with retry</option><option value="invalid">Invalid week selection</option></select></label>
   </div>
   <p class="review-state muted" id="review-state" role="status" aria-live="polite"></p>
   <p class="review-state muted">Time column is the selected activity layout. The other treatments remain available for reference. Mixed activities are future display specimens; the run create/edit preview remains available.</p>
-  <section class="specimen" id="specimen" aria-label="Weekly screen specimen">
-    <p class="eyebrow">Weekly schedule</p>
-    <h1 id="week-heading" tabindex="-1"></h1>
-    <nav class="week-nav" aria-label="Week navigation"><button data-week="-1">Previous week</button><button data-week="0">This week</button><button data-week="1">Next week</button></nav>
+  <section class="specimen" id="specimen" aria-label="Schedule specimen">
+    <div class="schedule-tools"><div class="view-switch" role="group" aria-label="Schedule view"><button data-variant="log">Week</button><button data-variant="focus">Day</button></div><button id="show-today">Today</button></div>
+    <p class="eyebrow">Training schedule</p>
+    <div class="schedule-heading"><h1 id="week-heading" tabindex="-1" aria-live="polite" aria-atomic="true"></h1><div id="day-primary-action" hidden></div></div>
+    <nav class="week-nav" aria-label="Date navigation"><button data-week="-1">Previous week</button><button data-week="0">This week</button><button data-week="1">Next week</button></nav>
     <div id="read-notice" class="notice" hidden></div>
     <div id="week-content"></div>
   </section>
@@ -219,8 +226,8 @@ dialog code { overflow-wrap: anywhere; }
       <li>Each activity's details open independently with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
-      <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the pane keeps the selected day. Saving selects the saved run’s day so the result is visible.</li>
-      <li>Put week navigation above the schedule so a busy week does not push it out of reach. Loading and failures hide old runs, keep week navigation available, and offer retry. Retry moves focus to the week heading.</li>
+      <li>Week shows all seven days. Day shows only the selected date. Today switches to Day on the current Montreal date. Previous/Next move by a week or a day to match the view. Switching views keeps the selected date and open details.</li>
+      <li>The URL records the view and selected date for reload and browser Back/Forward. Closing the pane keeps that selection. Saving shows the saved run’s day. Loading and failures hide old activities, keep date navigation available, and offer retry. Retry moves focus to the heading.</li>
     </ul>
     <p class="muted">The sidebar and full editor states belong to later decisions. The width control checks available space without deciding the sidebar geometry.</p>
   </details>
@@ -500,6 +507,10 @@ function weekRuns() {
     .sort((a,b) => a.plannedDate.localeCompare(b.plannedDate) || (a.time || '99:99').localeCompare(b.time || '99:99') || a.id.localeCompare(b.id));
 }
 function runsOn(index) { return weekRuns().filter(r => r.plannedDate === offset(monday,index)); }
+function addMarkup(index) {
+  const value = offset(monday,index);
+  return `<a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a>`;
+}
 function runMarkup(r) {
   const kind = r.kind || 'run';
   const title = kind === 'run' ? types[r.type] : r.name;
@@ -521,15 +532,15 @@ function runMarkup(r) {
 function dayMarkup(index) {
   const value = offset(monday,index);
   const runs = runsOn(index);
-  const add = `<a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a>`;
+  const add = addMarkup(index);
+  if (variant === 'focus') return `<section class="day" aria-labelledby="week-heading"><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : '<p class="empty">Nothing planned for this day.</p>'}</div></section>`;
   return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><h2 id="day-${index}">${weekdays[index]}</h2><span class="date mono">${dayLabel(value)}${runs.length > 1 ? `<span class="day-count"> · ${runs.length} activities</span>` : ''}</span>${runs.length ? `<div class="day-add">${add}</div>` : ''}</header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : add}</div></section>`;
 }
 function renderContent() {
   const content = $('week-content');
   if (readState !== 'ready') { content.replaceChildren(); return; }
-  const empty = weekRuns().length ? '' : '<p class="empty">Nothing planned this week. Choose a day to add a run.</p>';
-  const noun = fixture === 'mixed' ? 'activities' : 'runs';
-  content.innerHTML = empty + (variant === 'log' ? weekdays.map((_,i) => dayMarkup(i)).join('') : `<div class="focus-layout"><nav class="day-index" aria-label="Choose a day">${weekdays.map((day,i) => `<button data-day="${i}" aria-pressed="${selectedDay === i}" aria-label="${day}, ${dayLabel(offset(monday,i))}, ${runsOn(i).length} ${noun}"><span>${day.slice(0,3)}</span><span class="mono">${date(offset(monday,i)).getUTCDate()}</span><small>${runsOn(i).length} ${runsOn(i).length === 1 ? (fixture === 'mixed' ? 'activity' : 'run') : noun}</small></button>`).join('')}</nav><div>${dayMarkup(selectedDay)}</div></div>`);
+  const empty = weekRuns().length || variant === 'focus' ? '' : '<p class="empty">Nothing planned this week. Choose a day to add a run.</p>';
+  content.innerHTML = empty + (variant === 'log' ? weekdays.map((_,i) => dayMarkup(i)).join('') : dayMarkup(selectedDay));
   content.querySelectorAll('details').forEach(detail => detail.addEventListener('toggle', () => {
     if (!detail.isConnected) return;
     if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
@@ -540,9 +551,19 @@ function updateReview() { $('review-state').textContent = `${variant === 'log' ?
 function render() {
   $('specimen').dataset.width = width;
   $('specimen').dataset.grouping = grouping;
+  $('specimen').dataset.view = variant;
   $('grouping').value = grouping;
-  $('week-heading').textContent = readState === 'invalid' ? 'Choose a week' : weekTitle();
-  document.querySelectorAll('[data-week]').forEach(button => { button.disabled = readState === 'invalid' && button.dataset.week !== '0'; });
+  $('week-heading').textContent = readState === 'invalid' ? 'Choose a date' : variant === 'log' ? weekTitle() : date(offset(monday,selectedDay)).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+  $('day-primary-action').hidden = variant !== 'focus' || readState !== 'ready';
+  $('day-primary-action').innerHTML = variant === 'focus' && readState === 'ready' ? addMarkup(selectedDay) : '';
+  const steps = document.querySelectorAll('[data-week]');
+  steps[0].textContent = variant === 'focus' ? 'Previous day' : 'Previous week';
+  steps[1].hidden = variant === 'focus';
+  steps[2].textContent = variant === 'focus' ? 'Next day' : 'Next week';
+  document.querySelectorAll('[data-week]').forEach(button => {
+    const step = Number(button.dataset.week);
+    button.disabled = step !== 0 && (readState === 'invalid' || !validWeek(offset(monday,variant === 'focus' ? selectedDay+step : step*7)));
+  });
   $('fixture').value = fixture; $('width').value = width; $('read-state').value = readState;
   document.querySelectorAll('[data-variant]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.variant === variant)));
   $('variant-label').textContent = `${['panels','timeline','rows'].indexOf(grouping)+1} · ${groupingNames[grouping]}`;
@@ -553,13 +574,25 @@ function render() {
   notice.innerHTML = readState === 'loading' ? '<strong>Loading runs...</strong><p>Previously loaded runs are hidden.</p>' : readState === 'failure' ? '<strong>Could not load runs for this week</strong><p>A network error prevented loading runs. Check your connection and try again.</p><button data-retry>Retry</button>' : readState === 'invalid' ? '<strong>Invalid week selection</strong><p>Choose a valid calendar date for a complete Monday-to-Sunday week, or select This week.</p>' : '';
   $('week-content').setAttribute('aria-busy', String(readState === 'loading'));
   renderContent(); updateReview();
-  const query = new URLSearchParams({variant, fixture, grouping, width, state:readState, week:monday});
+  const query = new URLSearchParams({variant, fixture, grouping, width, state:readState, week:monday,date:readState === 'invalid' ? '' : offset(monday,selectedDay)});
   try { history.replaceState(null,'','?' + query); } catch { /* Inline previews may have an opaque origin. */ }
 }
 function changeWeek(value) {
   monday = value; opened.clear(); selectedDay = initialDay(); readState = validWeek(value) ? 'ready' : 'invalid';
-  try { const url = new URL(location.href); url.searchParams.set('week',monday); history.pushState(null,'',url); } catch { /* Inline previews may have an opaque origin. */ }
+  pushSelection();
   render();
+}
+function pushSelection() {
+  try { const url = new URL(location.href); url.searchParams.set('week',monday); url.searchParams.set('date',offset(monday,selectedDay)); url.searchParams.set('variant',variant); history.pushState(null,'',url); } catch { /* Inline previews may have an opaque origin. */ }
+}
+function selectDate(value) {
+  if (!validWeek(value)) { readState = 'invalid'; render(); return; }
+  const nextWeek = weekOf(value);
+  if (nextWeek !== monday) opened.clear(); else rememberDetails();
+  monday = nextWeek;
+  selectedDay = (date(value).getUTCDay()+6)%7;
+  readState = 'ready';
+  pushSelection(); render();
 }
 function rememberDetails() {
   $('week-content').querySelectorAll('details[data-run]').forEach(detail => {
@@ -613,10 +646,14 @@ $('editor-form').addEventListener('submit', event => {
 document.addEventListener('click', event => {
   const target = event.target.closest('button,a');
   if (!target) return;
-  if (target.dataset.variant) { rememberDetails(); variant = target.dataset.variant; render(); }
+  if (target.dataset.variant && target.dataset.variant !== variant) { rememberDetails(); variant = target.dataset.variant; pushSelection(); render(); }
   if (target.id === 'previous-variant' || target.id === 'next-variant') switchVariant(target.id === 'previous-variant' ? -1 : 1);
-  if (target.dataset.day !== undefined) { rememberDetails(); selectedDay = Number(target.dataset.day); renderContent(); $('week-content').querySelector(`[data-day="${selectedDay}"]`).focus(); }
-  if (target.dataset.week !== undefined) { announcement = ''; changeWeek(target.dataset.week === '0' ? weekOf(today()) : offset(monday,Number(target.dataset.week)*7)); }
+  if (target.id === 'show-today') { variant = 'focus'; announcement = ''; selectDate(today()); }
+  if (target.dataset.week !== undefined) {
+    announcement = '';
+    if (variant === 'focus') selectDate(offset(monday,selectedDay+Number(target.dataset.week)));
+    else changeWeek(target.dataset.week === '0' ? weekOf(today()) : offset(monday,Number(target.dataset.week)*7));
+  }
   if (target.hasAttribute('data-retry')) { opened.clear(); readState = 'ready'; render(); $('week-heading').focus(); }
   if (target.dataset.edit) { event.preventDefault(); openEditor(target); return; }
   if (target.hasAttribute('data-close-editor')) { closeEditor(); return; }
@@ -632,14 +669,18 @@ document.addEventListener('keydown', event => {
 });
 window.addEventListener('popstate', () => {
   const query = new URLSearchParams(location.search);
+  variant = query.get('variant') === 'focus' ? 'focus' : 'log';
   monday = query.get('week') || '2026-10-12';
   readState = validWeek(monday) ? 'ready' : 'invalid';
   if (readState === 'ready') monday = weekOf(monday);
-  opened.clear(); selectedDay = readState === 'ready' ? initialDay() : 0; render();
+  opened.clear(); selectedDay = readState === 'ready' ? initialDay() : 0;
+  if (query.has('date') && validWeek(query.get('date')) && weekOf(query.get('date')) === monday) selectedDay = (date(query.get('date')).getUTCDay()+6)%7;
+  render();
 });
 if (!validWeek(monday)) readState = 'invalid';
 else monday = weekOf(monday);
 selectedDay = readState === 'invalid' ? 0 : initialDay();
+if (params.has('date') && validWeek(params.get('date')) && weekOf(params.get('date')) === monday) selectedDay = (date(params.get('date')).getUTCDay()+6)%7;
 render();
 console.assert(km(1001) === '1.001 km' && km(1) === '0.001 km' && pace(367) === '6:07/km', 'Exact measurement formatting');
 console.assert(intervals.length === 14 && intervals.reduce((sum,s) => sum+s[0],0) === 7100, 'Repeated sections and total');

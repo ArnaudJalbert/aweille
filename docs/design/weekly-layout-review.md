@@ -18,7 +18,7 @@ Run summaries use the existing edit paths as native links, intercepted in this s
 
 ## Activity layout comparison
 
-Arnaud selected the time column after reviewing the three treatments. He preferred its compactness and clearer presentation of time. It is now the default activity layout; the other treatments remain available as references. This settles activity grouping, while the overall weekly-log versus selected-day composition remains open.
+Arnaud selected the time column after reviewing the three treatments. He preferred its compactness and clearer presentation of time. It is now the default activity layout; the other treatments remain available as references. This settles activity grouping. Arnaud subsequently requested a view switcher and a Today shortcut, retaining both the complete week and a single-day view.
 
 Arnaud found several activities on one date hard to decode. The study now compares three treatments with identical examples and preserves the run-only fixtures. Mixed examples are the default for this comparison. They are future display specimens, with no non-running editor or API.
 
@@ -30,7 +30,7 @@ Wednesday contains stretching at 06:30, an interval run at 07:00, and untimed yo
 | `grouping=timeline` | Time column | Selected. A dedicated time column and fine vertical rule. Makes chronology prominent while staying compact; untimed items explicitly say Untimed. |
 | `grouping=rows` | Compact rows | Strong horizontal rules with kind and time above the title and summary. The wide view aligns titles and measurements in columns. |
 
-Use `fixture=mixed&variant=focus` and select Wednesday to compare one populated day, or use `variant=log` to inspect the weekly context. The controls keep the content unchanged while switching treatments and preserve currently open details. Left/right arrows cycle the three treatments when focus is outside an interactive control. The prior weekly composition decision remains open.
+Use `fixture=mixed&variant=focus` and select Wednesday to compare one populated day, or use `variant=log` to inspect the weekly context. The controls keep the content unchanged while switching treatments and preserve currently open details. Left/right arrows cycle the three treatments when focus is outside an interactive control. These earlier screenshots preserve the comparison state before the integrated Week/Day switcher.
 
 | Activity treatment | Phone | Desktop |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Chromium checks covered all three treatments in both weekly compositions at 320p
 
 ## Proposal for review
 
-Prefer the complete weekly log on phone and desktop. It exposes every day and every run summary together. The selected-day alternative gives details more width but hides the other days' summaries until selected. The narrow selected-day index wraps to preserve touch targets.
+Arnaud requested both views through an in-page Week/Day switcher. Week is the default and shows all seven days. Day shows only the selected date, with no week index. Today switches directly to Day on the current Montreal calendar date. Previous/Next move by a week or one day to match the view; This week remains available in Week view. The day heading shows its full date, with a date-scoped Add run alongside it.
 
 Retain the approved initially collapsed, independent disclosures. Summaries show run type, optional time or an explicit time-not-set label, exact total distance, section count, and a shared target pace or varied-pace label. Arnaud selected clicking the run to open its edit pane instead of a separate Edit button. The whole run summary is a native link, reachable with Tab and Enter. Hover and focus mark it as interactive. Show details remains a separate native disclosure, outside the link, so it never opens the editor or hides editing access behind expansion. Sections and labeled notes remain inside the disclosure.
 
@@ -50,13 +50,21 @@ Following Arnaud's next placement proposal, an empty day puts Add run in the con
 
 Keep opened disclosures and the selected day while opening and closing the pane. Close, Cancel, and Escape return focus to the clicked run. Dirty pane values prompt before discard. A preview save in the same week refreshes the schedule and keeps disclosures. A preview save into another week shows the saved date's week and resets disclosures. Both create and edit saves select the saved run's day in the selected-day composition and focus its summary so the result is visible. A week change and reload reset disclosures; no saved disclosure preference is implied. This replaces the earlier full-page-return proposal for edit cancellation.
 
-Keep Add run scoped to its date. Create/save shows the saved date's week. Create cancellation closes the pane, returns focus to the original Add run, and leaves the originating week unchanged. For the selected-day alternative, arrival selects today in the current week or Monday in another week; opening and closing the pane does not change the selected day. Production create/edit/deletion destinations and current recovery behavior remain the baseline for the later integrated form design. The pane is an interaction specimen, not a finished replacement for those workflows.
+Keep Add run scoped to its date. Create/save shows the saved date's week. Create cancellation closes the pane, returns focus to the original Add run, and leaves the originating week unchanged. Switching between Week and Day keeps the selected date and open details. Without a date in the URL, Day starts on today within the current week or Monday in another week. The URL records both view and date; reload and browser Back/Forward restore them. Today resolves the date when pressed, including after midnight, independent of the browser's timezone. Opening and closing the pane does not change that selection. Production create/edit/deletion destinations and current recovery behavior remain the baseline for the later integrated form design. The pane is an interaction specimen, not a finished replacement for those workflows.
 
 Move week controls above the schedule. Loading and errors hide the old runs while keeping week controls available. Failure includes Retry, which restores the same selected week. An invalid selection disables previous/next and leaves This week available. Empty loaded weeks retain all seven Add run destinations.
 
 The sidebar's design remains in its own decision. The 760px width option checks available space without implementing a sidebar or settling its threshold. The specimen keeps branding out of the page header, consistent with sidebar-only branding. Exact tokens and production font policy remain provisional.
 
 ## Evidence
+
+The integrated switcher passed checks at 320px, 390px, 760px, and 1280px for seven-day versus one-day rendering, disclosure preservation across view changes, date-scoped Add run, empty days, day navigation across a week boundary, reload, browser Back, edit rescheduling, and invalid-selection recovery. A browser set to Tokyo with a controlled UTC clock verified Today against Montreal both before and after Montreal midnight. No browser errors occurred. The checks do not establish physical-phone or screen-reader compatibility.
+
+| Current view | Phone | Desktop |
+| --- | --- | --- |
+| Week | [390px](weekly-layout-review/phone-switcher-log.png) | [1280px](weekly-layout-review/desktop-switcher-log.png) |
+| Day | [390px](weekly-layout-review/phone-switcher-focus.png) | [1280px](weekly-layout-review/desktop-switcher-focus.png) |
+
 
 The phone placement was checked in both compositions at 320px and 390px with empty and populated days. Add run sits to the right of the day/date heading, remains in that position after creating the first run, and keeps its selected-date prefill. No horizontal overflow occurred. The phone screenshots show this revision.
 
