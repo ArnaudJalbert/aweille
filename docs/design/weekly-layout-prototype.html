@@ -242,7 +242,7 @@ dialog code { overflow-wrap: anywhere; }
     <summary>Proposed interaction rules</summary>
     <ul>
       <li>Click or tap a run summary to open its edit pane, or focus it and press Enter. There is no separate Edit button. Keep time, run type, distance, section count, and shared or varied pace visible while details are closed.</li>
-      <li>Each activity's details open independently with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
+      <li>Day starts with all activity details expanded; Week starts collapsed. Each view keeps its own manual toggles with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
       <li>Week shows all seven days. Day shows only the selected date. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows at the bottom move backward/forward by that interval.</li>
@@ -471,7 +471,8 @@ let width = ['wide', 'constrained', 'phone', 'small'].includes(params.get('width
 let readState = ['ready', 'loading', 'failure', 'invalid'].includes(params.get('state')) ? params.get('state') : 'ready';
 let monday = params.get('week') || '2026-10-12';
 let selectedDay = 2;
-let opened = new Set();
+const disclosures = {log:new Map(),focus:new Map()};
+function resetDetails() { Object.values(disclosures).forEach(state => state.clear()); }
 let announcement = '';
 const added = [];
 const moved = new Map();
@@ -570,7 +571,7 @@ function runMarkup(r) {
     ? `<ol class="sections mono" aria-label="Ordered sections for ${escape(label)}">${r.sections.map(s => `<li><span>${km(s[0])}</span><span>${pace(s[1])}</span></li>`).join('')}</ol>`
     : `<p class="activity-description">${escape(r.description)}</p>`;
   const notes = [['Personal note',r.personal],['Trainer note',r.trainer]].filter(n => n[1]).map(n => `<div class="note"><span class="note-label">${n[0]}</span><p>${escape(n[1])}</p></div>`).join('');
-  return `<article class="run" data-kind="${kind}" aria-label="${escape(label)}"><span class="block-time mono">${r.time || 'Untimed'}</span><div class="block-content"><span class="activity-kind">${kindNames[kind]}</span>${entry}<details data-run="${r.id}" ${opened.has(r.id) ? 'open' : ''}><summary><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail">${targetDetails}${notes}</div></details></div></article>`;
+  return `<article class="run" data-kind="${kind}" aria-label="${escape(label)}"><span class="block-time mono">${r.time || 'Untimed'}</span><div class="block-content"><span class="activity-kind">${kindNames[kind]}</span>${entry}<details data-run="${r.id}" ${(disclosures[variant].get(r.id) ?? variant === 'focus') ? 'open' : ''}><summary><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail">${targetDetails}${notes}</div></details></div></article>`;
 }
 function dayMarkup(index) {
   const value = offset(monday,index);
@@ -581,16 +582,18 @@ function dayMarkup(index) {
 }
 function renderContent() {
   const content = $('week-content');
+  const view = variant;
+  content.dataset.view = view;
   if (readState !== 'ready') { content.replaceChildren(); return; }
   const empty = weekRuns().length || variant === 'focus' ? '' : '<p class="empty">Nothing planned this week. Choose a day to add a run.</p>';
   content.innerHTML = empty + (variant === 'log' ? weekdays.map((_,i) => dayMarkup(i)).join('') : dayMarkup(selectedDay));
   content.querySelectorAll('details').forEach(detail => detail.addEventListener('toggle', () => {
     if (!detail.isConnected) return;
-    if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
+    disclosures[view].set(detail.dataset.run,detail.open);
     updateReview();
   }));
 }
-function updateReview() { $('review-state').textContent = `${variant === 'log' ? 'Weekly log' : 'Selected day'} · ${fixture} fixture · ${groupingNames[grouping]} · ${monday} · ${readState} · ${opened.size} open disclosures. ${announcement}`; }
+function updateReview() { $('review-state').textContent = `${variant === 'log' ? 'Weekly log' : 'Selected day'} · ${fixture} fixture · ${groupingNames[grouping]} · ${monday} · ${readState} · ${$('week-content').querySelectorAll('details[open]').length} open disclosures. ${announcement}`; }
 function render() {
   $('specimen').dataset.width = width;
   $('specimen').dataset.grouping = grouping;
@@ -624,7 +627,7 @@ function render() {
   try { history.replaceState(null,'','?' + query); } catch { /* Inline previews may have an opaque origin. */ }
 }
 function changeWeek(value) {
-  monday = value; opened.clear(); selectedDay = initialDay(); readState = validWeek(value) ? 'ready' : 'invalid';
+  monday = value; resetDetails(); selectedDay = initialDay(); readState = validWeek(value) ? 'ready' : 'invalid';
   pushSelection();
   render();
 }
@@ -634,15 +637,16 @@ function pushSelection() {
 function selectDate(value) {
   if (!validWeek(value)) { readState = 'invalid'; render(); return; }
   const nextWeek = weekOf(value);
-  if (nextWeek !== monday) opened.clear(); else rememberDetails();
+  if (nextWeek !== monday) resetDetails(); else rememberDetails();
   monday = nextWeek;
   selectedDay = (date(value).getUTCDay()+6)%7;
   readState = 'ready';
   pushSelection(); render();
 }
 function rememberDetails() {
-  $('week-content').querySelectorAll('details[data-run]').forEach(detail => {
-    if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
+  const content = $('week-content');
+  content.querySelectorAll('details[data-run]').forEach(detail => {
+    disclosures[content.dataset.view].set(detail.dataset.run,detail.open);
   });
 }
 function renderCalendar(focusDate) {
@@ -737,22 +741,22 @@ document.addEventListener('click', event => {
     if (variant === 'focus') selectDate(offset(monday,selectedDay+Number(target.dataset.week)));
     else changeWeek(offset(monday,Number(target.dataset.week)*7));
   }
-  if (target.hasAttribute('data-retry')) { opened.clear(); readState = 'ready'; render(); $('week-heading').focus(); }
+  if (target.hasAttribute('data-retry')) { resetDetails(); readState = 'ready'; render(); $('week-heading').focus(); }
   if (target.dataset.edit) { event.preventDefault(); openEditor(target); return; }
   if (target.hasAttribute('data-close-editor')) { closeEditor(); return; }
   if (target.dataset.add !== undefined) { event.preventDefault(); openEditor(target); }
 });
-$('fixture').onchange = event => { fixture = event.target.value; added.length = 0; moved.clear(); edited.clear(); announcement = ''; monday = '2026-10-12'; selectedDay = 2; opened.clear(); render(); };
+$('fixture').onchange = event => { fixture = event.target.value; added.length = 0; moved.clear(); edited.clear(); announcement = ''; monday = '2026-10-12'; selectedDay = 2; resetDetails(); render(); };
 $('grouping').onchange = event => { rememberDetails(); grouping = event.target.value; render(); };
 $('width').onchange = event => { rememberDetails(); width = event.target.value; render(); };
-$('read-state').onchange = event => { readState = event.target.value; opened.clear(); render(); };
+$('read-state').onchange = event => { readState = event.target.value; resetDetails(); render(); };
 window.addEventListener('popstate', () => {
   const query = new URLSearchParams(location.search);
   variant = query.get('variant') === 'focus' ? 'focus' : 'log';
   monday = query.get('week') || '2026-10-12';
   readState = validWeek(monday) ? 'ready' : 'invalid';
   if (readState === 'ready') monday = weekOf(monday);
-  opened.clear(); selectedDay = readState === 'ready' ? initialDay() : 0;
+  resetDetails(); selectedDay = readState === 'ready' ? initialDay() : 0;
   if (query.has('date') && validWeek(query.get('date')) && weekOf(query.get('date')) === monday) selectedDay = (date(query.get('date')).getUTCDay()+6)%7;
   render();
 });
