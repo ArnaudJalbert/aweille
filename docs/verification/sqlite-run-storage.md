@@ -2,6 +2,8 @@
 
 Verified locally on October 13, 2026, with Python 3.13.14 for [Implement SQLite run storage](https://github.com/ArnaudJalbert/aweille/issues/6). The ticket records the agreed storage interface and acceptance checks. [Testing research](../research/sqlite-storage-testing.md) explains the choice of real temporary databases.
 
+This is a historical verification snapshot of schema version 1 and the initial `save/get` adapter, not a report on the current full suite. The current schema version 2, revisions, edit/delete operations, explicit upgrade, startup validation, and HTTP/browser checks are documented in the [README](../../README.md) and [editing/deletion contract](../design/planned-run-editing-and-deletion.md).
+
 ## Interfaces and checks
 
 Tests use `SQLiteRunStorage(path, *, timeout=1.0)`, `save`, and `get`. Tests also exercise the public model dictionary methods, `aweille.adapters.create_database`, and the installed `aweille-init-db` command. The CLI check runs from a separate working directory. Each case uses a real file under pytest's `tmp_path`. Raw SQLite connections prepare incompatible schemas, malformed rows, locks, and rejected writes; assertions observe behavior through the public adapter. The incompatible-file check also verifies that rejected storage remains byte-for-byte unchanged.
@@ -38,4 +40,4 @@ The final review compared the full PR with `main` at `d926e1f`. Parallel standar
 
 ## Scope
 
-Storage assumes the database has been prepared correctly and performs no schema creation or compatibility checks. From the repository root, run `uv run aweille-init-db aweille.sqlite` once before application startup. Installed applications can use `aweille-init-db <path>` without a source checkout. The command refuses existing files and removes its new file if creation fails. Reopen tests verify ordinary persistence, not survival of power loss. Application configuration, HTTP, and browser acceptance checks remain in later tickets.
+Storage assumes the database has been prepared correctly and performs no schema creation or compatibility checks. From the repository root, run `uv run aweille-init-db aweille.sqlite` once before application startup. Installed applications can use `aweille-init-db <path>` without a source checkout. The command refuses existing files and removes its new file if creation fails. Reopen tests verify ordinary persistence, not survival of power loss. Application configuration, HTTP, and browser acceptance checks followed this snapshot and are now implemented.

@@ -30,11 +30,13 @@ The existing frontend uses Jinja2 templates, CSS, and small JavaScript files wit
 
 Keep the name Aweille and functional, direct copy. Arnaud rejects the current visual design. The [Pinterest board](https://ca.pinterest.com/ark__no/aweille-ui/) is the reference for its replacement. He selected the precise watch, TimeMoto, and editorial references with selective color, rather than the colorful calendar, as the leading direction.
 
-Arnaud selected IBM Plex Sans with IBM Plex Mono on October 17, 2026. [DESIGN.md](DESIGN.md#typography) defines their roles.
+Arnaud selected IBM Plex Sans with IBM Plex Mono on October 17, 2026. [DESIGN.md](DESIGN.md#typography) defines their roles. Keep Aweille branding only in the approved collapsible sidebar, without a slogan. The separate [logo exploration](https://github.com/ArnaudJalbert/aweille/issues/31) remains open; selecting Plex does not settle custom artwork.
 
 ## Evidence on Hand
 
 The reference study inspected all twelve board images on October 17, 2026. [Reference notes](docs/design/visual-direction.md) record the observations and image sources. The [prototype](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html) uses explicitly illustrative planned runs, with no connection to saved training data.
+
+The [redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) tracks the remaining weekly composition, sidebar integration, form/recovery presentation, and token/handoff decisions. Its planning completion will not mean the production redesign has shipped.
 
 ## Product Principles
 

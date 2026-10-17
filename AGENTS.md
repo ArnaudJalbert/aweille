@@ -13,3 +13,7 @@ Before triaging or applying a triage role, read `docs/agents/triage-labels.md` f
 ### Domain docs
 
 Before domain exploration or design, read `docs/agents/domain.md`. This project uses a single domain context.
+
+### Product and UI design
+
+Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and relevant notes in `docs/design/`. They distinguish selected direction, provisional values, and future training scope from the current application.
