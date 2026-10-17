@@ -26,7 +26,7 @@ Give the day one date heading, a list of independently identifiable blocks, and 
 
 Each block has its own kind/name, optional time, relevant summary, and detail. A run may show distance, pace, and ordered sections. A stretching or yoga example may show duration. A strength example may show an exercise count. These are proposed summary treatments; detailed non-running editors and metrics remain to be designed.
 
-Arnaud approved the collapsible per-block details in the prototype. In the schedule, details start collapsed while the block's name, optional time, and concise summary remain visible. Expanding a block reveals its sections and notes without changing sibling blocks; several disclosures may remain open together. Preserve keyboard access and a visible disclosure indicator. This is an approved design pattern, with production implementation deferred.
+Arnaud approved the collapsible per-block details in the prototype. The later [schedule decision](schedule-layout.md) sets details expanded by default in Day and collapsed in Week. The block's name, optional time, and concise summary remain visible in both views. Expanding a block reveals its sections and notes without changing sibling blocks; several disclosures may remain open together. Preserve keyboard access and a visible disclosure indicator. This is an approved design pattern, with production implementation deferred.
 
 Never label a day containing yoga as empty merely because it has no runs. Avoid a single completion control, edit action, pace, or total distance that appears to describe every block. Distances, durations, and exercise counts are different quantities; do not add them into one unexplained daily total.
 

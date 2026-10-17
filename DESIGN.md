@@ -87,7 +87,7 @@ Use IBM Plex Sans for the name, headings, labels, notes, and buttons. Use IBM Pl
 
 The [font comparison](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-font-options.html) retains the IBM Plex, Geist, and Space Grotesk alternatives as reference. [Selection notes](docs/design/font-options.md) record the chosen roles and sources. The layout prototype embeds the selected fonts so its appearance does not depend on locally installed typefaces. Actual-device rendering remains an implementation check.
 
-Keep headings in sentence case. Prefer ordinary readable letters and numerals. Monospaced data does not imply terminal prompts or technical jargon in navigation.
+Keep headings in sentence case, except the explicitly selected relative schedule titles such as This Week and Next Week. Prefer ordinary readable letters and numerals. Monospaced data does not imply terminal prompts or technical jargon in navigation.
 
 The specimen uses a heading size of 26px in its narrow viewport treatment and 28px otherwise. Section headings are 18px. Prose and editable fields use the body token. Secondary labels may use 12px to 14px, but never hide essential information in faint or compressed text.
 
@@ -95,7 +95,7 @@ The specimen uses a heading size of 26px in its narrow viewport treatment and 28
 
 Use a consistent alignment grid and fine horizontal rules. Group a label closely with its control; separate different tasks more generously. Notes wrap naturally without losing their personal/trainer labels.
 
-The week study compares two structures: a complete weekly log and a selected day with a week index. Neither is yet the canonical page composition. Keep this choice local to the weekly screen rather than turning it into a universal layout rule.
+Arnaud accepted the schedule composition on October 17, 2026. Day is the default, with a Week switcher and Today shortcut. Use the compact time column for activities, a calendar icon for contextual day/week selection, relative headings with exact dates beneath, and no previous/next schedule arrows. The [schedule decision](docs/design/schedule-layout.md) specifies summaries, Add run placement, editing entry, disclosure defaults, and navigation state. Sidebar integration and complete form/recovery presentation remain separate decisions.
 
 The [approved navigation](https://github.com/ArnaudJalbert/aweille/issues/29) is a desktop sidebar that can collapse completely and a mobile overlay drawer that starts closed. Keep a reopen control, mobile dismissal controls, focus containment and return, and Aweille branding only in the sidebar without a slogan. The study's top branding does not override this requirement. The [sidebar integration decision](https://github.com/ArnaudJalbert/aweille/issues/45) must reconcile it with the new screens; the earlier instruction to retain the old weekly appearance is superseded by this redesign.
 
@@ -121,7 +121,7 @@ These are specimen components, not yet reusable production components.
 - Fields have persistent labels, panel backgrounds, and control outlines. Distance and pace labels include units. The narrow layout keeps editable text at 16px.
 - Planned-run rows keep day, run type, optional time, section targets, and notes distinct. Repeated sections stay individually ordered.
 - A day groups zero or more independent training blocks. Give each block a distinct kind/name, optional time, relevant summary, and its own detail or action. Run sections stay nested within their running block. The [training-block design](docs/design/training-blocks.md) separates this future scope from the current run-only implementation.
-- Schedule blocks use collapsible details, approved by Arnaud on October 17, 2026. Keep the kind/name, optional time, and concise summary visible; put sections and notes in the disclosure. Details start collapsed. Each block expands independently, and several may stay open together.
+- Schedule blocks use collapsible details, approved by Arnaud on October 17, 2026. Keep the kind/name, optional time, and concise summary visible; put sections and notes in the disclosure. Details start expanded in Day and collapsed in Week. Each view keeps its own manual disclosure choices until a week change or reload. Each block expands independently, and several may stay open together. See the [schedule decision](docs/design/schedule-layout.md).
 - Section editors keep distance, pace, and ordering actions together. The last section cannot be removed.
 - Personal and trainer notes remain separate labeled text. Neither becomes a tooltip or an icon-only disclosure.
 - Error and recovery messages preserve the draft and name the available next step. The prototype shows message specimens; the full loading, deletion confirmation, stale-write, uncertain-write, and missing-run interactions still require integration design.
