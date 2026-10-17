@@ -55,6 +55,12 @@ Arnaud approved the collapsible per-block details on October 17, 2026. Preserve 
 
 Arnaud liked the initial study and asked for font options. The [font comparison](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-font-options.html) holds the sample content, sizes, and colors constant while testing three pairings. He selected IBM Plex Sans with IBM Plex Mono on October 17, 2026. [Font notes](font-options.md) record the decision, sources, and remaining checks. The layout study now uses that pairing; the application remains unchanged.
 
+## Planning handoff
+
+The [running-app redesign map](https://github.com/ArnaudJalbert/aweille/issues/43) owns the unresolved weekly composition, sidebar integration, form/deletion/recovery presentations, and final tokens and implementation sequence. The selected typography and independent collapsed details remain standing decisions.
+
+The [approved sidebar](https://github.com/ArnaudJalbert/aweille/issues/29) still requires full desktop collapse, an initially closed mobile overlay drawer, accessible dismissal/focus handling, and Aweille branding only inside the sidebar without a slogan. Integrate those preferences with the new design rather than copying the study's top branding. The earlier requirement to retain the existing weekly appearance is superseded. Final custom-logo artwork remains in the [logo exploration](https://github.com/ArnaudJalbert/aweille/issues/31).
+
 ## Workflow used
 
 Followed the published [Impeccable skill](https://github.com/pbakaus/impeccable/blob/main/.agents/skills/impeccable/SKILL.md), especially its redesign, Operate, product-context, and document guidance. The local launcher and automatic detectors were not installed or run. Used the prototype skill for the separate visual comparison. No new persistent skill or application route was installed.

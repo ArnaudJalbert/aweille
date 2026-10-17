@@ -97,6 +97,8 @@ Use a consistent alignment grid and fine horizontal rules. Group a label closely
 
 The week study compares two structures: a complete weekly log and a selected day with a week index. Neither is yet the canonical page composition. Keep this choice local to the weekly screen rather than turning it into a universal layout rule.
 
+The [approved navigation](https://github.com/ArnaudJalbert/aweille/issues/29) is a desktop sidebar that can collapse completely and a mobile overlay drawer that starts closed. Keep a reopen control, mobile dismissal controls, focus containment and return, and Aweille branding only in the sidebar without a slogan. The study's top branding does not override this requirement. The [sidebar integration decision](https://github.com/ArnaudJalbert/aweille/issues/45) must reconcile it with the new screens; the earlier instruction to retain the old weekly appearance is superseded by this redesign.
+
 On phones, move secondary information below primary content and keep the reading order intact. On larger containers, use columns for related fields and secondary navigation where useful. Never shrink a desktop canvas to fit a phone.
 
 For the current trial, controls have at least 44px height, fields have at least 46px height, and focus uses a 3px outline with a 3px offset. The two-column container threshold is 560px of available content width. These are specimen measurements to validate, not a completed device compatibility promise.

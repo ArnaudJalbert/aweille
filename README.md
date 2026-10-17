@@ -4,7 +4,17 @@ I'm building Aweille to structure my running training. I want an editable weekly
 
 This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit/delete HTTP API, weekly browser view, and manual creation and editing forms are implemented.
 
-The [wayfinder map](https://github.com/ArnaudJalbert/aweille/issues/1) records the first create, save, and display workflow and its implementation handoff. The code and tests define implemented behavior; the linked decisions describe that behavior and the remaining HTTP and browser work. SQLite storage is tracked in [PR #13](https://github.com/ArnaudJalbert/aweille/pull/13).
+The code and tests define implemented behavior. The original [create-and-display map](https://github.com/ArnaudJalbert/aweille/issues/1) and [editing-and-deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) preserve the planning decisions; their implementation workflows are complete. Older issue comments and verification reports describe dated stages, not current delivery status.
+
+Skipping, actual results, and end-to-end use with a selected trainer agent remain unimplemented. [Secure remote access](https://github.com/ArnaudJalbert/aweille/issues/35) and the [running-app redesign](https://github.com/ArnaudJalbert/aweille/issues/43) are separate planning efforts. Future non-running training blocks are agreed product scope, not capabilities of the current run API.
+
+## Documentation
+
+- [CONTEXT.md](CONTEXT.md) defines domain terms, including agreed future training blocks.
+- [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the selected visual direction and provisional tokens. The redesign is not applied to the production app.
+- [Training blocks](docs/design/training-blocks.md) separates future mixed-training rules from today's run-only model.
+- [Planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
+- [CONTRIBUTING.md](CONTRIBUTING.md) defines the contributor workflow; [AGENTS.md](AGENTS.md) routes agent work to the relevant guidance.
 
 ## Purpose
 
@@ -23,11 +33,11 @@ I need to view and edit a week of planned workouts in the web interface. Each wo
 
 A simple run uses one section. A workout can also specify, for example, 1 km at 6:30/km, then 1 km at 5:45/km, then 1 km at 6:30/km. Ordered distance-and-pace sections are enough for the first version.
 
-I can reschedule planned workouts or mark them skipped. Skipped records remain available to the agent. Completed runs retain their planned targets separately from actual results, so future schedule adjustments preserve that history.
+Rescheduling and permanent deletion are implemented. Skipping remains planned and must retain the workout for the agent; deletion removes its content permanently. When results are implemented, completed runs must retain their planned targets separately from actual results so future schedule adjustments preserve that history.
 
 ## Recording results
 
-I'll enter results manually through one compact questionnaire. They describe the whole run.
+Results entry is planned. I'll enter results manually through one compact questionnaire. They describe the whole run.
 
 | Field | Requirement |
 | --- | --- |
@@ -63,7 +73,7 @@ When I ask for a review, the agent can read my recorded history and adjust upcom
 | Local server | Uvicorn. |
 | Trainer | External local agent, to be selected. |
 
-I'll run the first version locally for myself. Local app hosting costs nothing; model access remains part of my external agent setup. Later, I may host it on my existing VPS or Fly.io so I can access it from anywhere. Deployment is outside the first version.
+The app currently runs locally for me, with no app-hosting subscription. Model access remains part of my external agent setup. On October 17, 2026, I selected public HTTPS on my existing OVH VPS at `https://aweille.arnaudjalbert.com`, with one owner's Bitwarden passkey, browser sessions, a separate revocable trainer token, and SSH administration. These are agreed requirements in the [secure-access planning map](https://github.com/ArnaudJalbert/aweille/issues/35). Authentication and remote deployment are not implemented; the local startup and Docker workflows below bind to loopback.
 
 The repository uses a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with one member package named `aweille` in `packages/aweille`. It has its own `pyproject.toml`, and the workspace has one shared `uv.lock`. Additional packages can be split out later.
 
@@ -85,7 +95,7 @@ I'll use a small hexagonal architecture within one package, with core business r
 | `aweille/api` | HTTP routes, request and response models, error handling, the application factory, and local startup. |
 | `aweille/adapters` | Concrete port implementations, SQLite storage, database setup, and browser templates and assets. |
 
-Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handler, and creation transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `adapters/web`; browser checks live in `tests/browser`.
+Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handlers, and run-write transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `adapters/web`; browser checks live in `tests/browser`.
 
 Both `aweille/api` and `aweille/adapters` depend on core. The local startup module also imports the concrete SQLite adapter. Core has no dependency on FastAPI, the SQLite driver, or concrete adapters.
 
@@ -132,11 +142,11 @@ Invalid domain inputs raise `ValidationError`. Its `problems` tuple reports the 
 
 Implement the core-owned `RunStorage` protocol with `save(run)`, `get(start, end)`, `load(id)`, `replace(run, *, expected_revision)`, and `delete(id, *, expected_revision)`. `save` atomically inserts a missing ID or returns its existing run unchanged, with `(stored_run, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every run in `[start, end)` from one committed snapshot, in any order; core applies sorting. `load` returns the committed run for a UUID or `None` when absent. `replace` checks the saved revision atomically: it raises `RunNotFound` if absent or `RunRevisionConflict` if stale, returns the unchanged run on a normalized no-op, and otherwise commits the replacement with an incremented revision. `delete` checks existence and revision in the same transaction that removes workout content and permanently reserves only the UUID. It returns only after commit. Adapters return normalized `PlannedRun` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. Core preserves these failure categories. The application factory binds the supplied storage port to the functions with `functools.partial`.
 
-The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser will convert distances to and from kilometres exactly and format seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
+The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
 Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter. HTTP checks use the application factory and real file-backed SQLite, with storage-port fault injection for unexpected failures.
 
-`run.to_dict()` produces a fresh portable dictionary with canonical UUID, date, and time strings, ordered sections with decimal-digit metre and pace strings, and separate optional notes. `PlannedRun.from_dict(data)` reconstructs a validated model from that complete canonical representation. It raises `ValueError` for invalid encoded structure or representation and `ValidationError` for invalid domain values. These methods have no JSON or SQLite dependency. Parsing raw HTTP creation requests and their optional fields remains the request adapter's job.
+`run.to_dict()` produces a fresh portable dictionary with canonical UUID, date, and time strings, ordered sections with decimal-digit metre and pace strings, separate optional notes, and a canonical positive revision string. `PlannedRun.from_dict(data)` reconstructs a validated model from that complete canonical representation. It raises `ValueError` for invalid encoded structure or representation and `ValidationError` for invalid domain values. These methods have no JSON or SQLite dependency. Parsing raw HTTP creation requests and their optional fields remains the request adapter's job.
 
 ## SQLite storage
 
@@ -179,7 +189,7 @@ uv run uvicorn aweille.api.main:app --host 127.0.0.1 --port 8000
 
 For an installed package, use `aweille-init-db` and `uvicorn` without `uv run`. Setup refuses an existing file, so skip it when restarting with an already prepared database.
 
-The local entry point defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another prepared file, set `AWEILLE_DB_PATH` before starting Uvicorn. It expands `~` and resolves the path once; relative paths use the startup working directory. Empty values, `:memory:`, missing files, and directories fail startup with a configuration error. Schema and connection failures return safe HTTP errors during requests. Startup never creates or repairs storage. Remote deployment is outside this workflow.
+The local entry point defaults to `~/.local/share/aweille/aweille.sqlite3`. To use another prepared file, set `AWEILLE_DB_PATH` before starting Uvicorn. It expands `~` and resolves the path once; relative paths use the startup working directory. Empty values, `:memory:`, missing files, and directories fail startup with a configuration error. Startup validates schema version 2 and saved data, rejecting incompatible databases before serving requests. Storage failures during requests return safe HTTP errors. Startup never creates or repairs storage. Remote deployment is outside this workflow.
 
 When embedding or testing the application, call `create_app(storage=...)` with an initialized `RunStorage` implementation. The factory reads no database configuration and creates no storage adapter.
 
@@ -295,12 +305,15 @@ I'll consider the first version complete when I can use it for a full week:
 6. When I ask, the agent reads that history and adjusts upcoming workouts without changing completed runs' targets.
 7. The schedule and recorded history remain available after restarting the app.
 
+This full-week scenario is not complete. Planned-run creation, viewing, editing, rescheduling, deletion, and restart persistence are implemented; skipping, result recording, and trainer integration remain.
+
 ## Deferred work
 
-- Broader fitness and health tracking.
+- Stretching, strength/bodyweight training, and yoga as [independent training blocks](docs/design/training-blocks.md). Independence and ordering are agreed; detailed content, lifecycle, and implementation remain future work.
+- Other fitness and health tracking beyond those training kinds.
 - Race-specific planning and complex training algorithms inside the app.
 - Typed workout sections and advanced interval structures.
 - Per-section actual results and automatic result imports.
 - In-app training proposals and approval.
 - Background training adjustments.
-- Remote hosting.
+- Authentication and remote hosting are selected but await the [secure-access design and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/35).

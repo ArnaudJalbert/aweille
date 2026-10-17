@@ -110,7 +110,7 @@ Protect these distinct cases without duplicating existing assertions:
 
 ## HTTP contract
 
-Agreed with Arnaud on October 15, 2026. This section specifies later implementation through the same API used by the browser and trainer.
+Agreed with Arnaud on October 15, 2026. This section records the implemented contract for the same API used by the browser and trainer.
 
 ### Resources and successful responses
 
@@ -196,7 +196,7 @@ Keep `/v1`, existing creation inputs, `201`/`200` creation outcomes, array range
 
 ### OpenAPI and public verification handoff
 
-The later implementation must extend `/openapi.json` with the single-run GET/PATCH/DELETE paths, UUID path parameters, exact string revision in every complete response, optional PATCH properties with precise nullability and forbidden extras, and required single-tag If-Match headers on PATCH/DELETE. Revision is response-only; document that it is forbidden in write bodies. Include successful GET/PATCH `ETag`, insertion `Location`, response cache policy, the empty DELETE `204`, all applicable error statuses and safe error schemas, and examples of partial edits, clearing, no-ops, stale writes, missing preconditions, and reload recovery. Retain POST's shared `200`/`201` response model and range GET's array of that model. Do not advertise standardized patch formats or caching behavior the application does not support.
+The implemented `/openapi.json` includes the single-run GET/PATCH/DELETE paths, UUID path parameters, exact string revision in every complete response, optional PATCH properties with precise nullability and forbidden extras, and required single-tag If-Match headers on PATCH/DELETE. Revision is response-only; document that it is forbidden in write bodies. Include successful GET/PATCH `ETag`, insertion `Location`, response cache policy, the empty DELETE `204`, all applicable error statuses and safe error schemas, and examples of partial edits, clearing, no-ops, stale writes, missing preconditions, and reload recovery. Retain POST's shared `200`/`201` response model and range GET's array of that model. Do not advertise standardized patch formats or caching behavior the application does not support.
 
 Use the existing agreed HTTP seam: `create_app(storage=...)` through TestClient and real temporary file-backed SQLite, with storage-port fault injection for failures. Inspect OpenAPI through public `GET /openapi.json`. Protect distinct behavior without duplicating core/storage checks:
 
@@ -211,7 +211,7 @@ The browser section below records the agreed interaction and acceptance handoff 
 
 ## Browser flows and acceptance
 
-Agreed with Arnaud on October 15, 2026. This section extends the existing compact weekly view and manual creation form for later implementation. It does not redesign their layout. The existing weekly-view and manual-creation implementations remain prerequisites for the build.
+Agreed with Arnaud on October 15, 2026. This section records the implemented editing and deletion flows for the compact weekly view and manual creation form. The separate [redesign](../../DESIGN.md) must preserve these behaviors while changing their presentation.
 
 ### Entry, loading, and editing
 
@@ -279,4 +279,4 @@ These browser checks complement the core/storage concurrency and migration check
 
 ## Handoff
 
-The core, SQLite, HTTP, and browser contracts and their public test seams are agreed. The handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) and [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22), completing the [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17). Application implementation follows this planning effort.
+The core, SQLite, HTTP, and browser contracts and their public test seams are agreed. The handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) and [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22), completing the [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17). The planned-run edit and deletion workflows are implemented in [Edit and reschedule a planned run end-to-end](https://github.com/ArnaudJalbert/aweille/issues/32) and [Permanently delete a planned run end-to-end](https://github.com/ArnaudJalbert/aweille/issues/33). The contract above remains the behavior baseline for later visual and authentication work.
