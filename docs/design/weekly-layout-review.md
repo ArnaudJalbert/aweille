@@ -10,11 +10,33 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory docs/design
 
 Open [weekly log](http://localhost:8766/weekly-layout-prototype.html?variant=log) or [selected day](http://localhost:8766/weekly-layout-prototype.html?variant=focus). The page is self-contained and also opens directly as a file. Plex fonts and their notices are copied from the [captured original study](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html).
 
-The study compares the two existing compositions. Its controls select typical, busy, or empty fixtures; available or constrained content width; and loaded, loading, failed, or invalid-selection states. The floating arrows switch layouts. Left and right arrow keys also switch when focus is outside an interactive control.
+The study compares the two existing compositions. Its controls select mixed, typical, busy, or empty fixtures; an activity grouping; available or constrained content width; and loaded, loading, failed, or invalid-selection states. The floating arrows switch activity groupings. The weekly log/selected-day buttons still change the page composition. Left and right arrow keys also switch when focus is outside an interactive control.
 
 Examples are illustrative layout data, not saved runs or training recommendations. The busy fixture includes 11 runs, timed and untimed siblings, a 14-section run, long notes, an unbroken reference, French text, and a 0.001 km section. Previous/next navigation changes the week; fixtures live in the week of October 12. This week uses the Montreal calendar date. Native browser back restores the selected week with details closed.
 
 Run summaries use the existing edit paths as native links, intercepted in this study to open a modal side pane. The pane shows the clicked run's date, optional time, type, ordered section targets, and separate notes. Its Save preview changes only fixture memory. Add run opens the same pane in create mode, with the chosen day prefilled, optional time and notes blank, and required distance/pace targets blank. Add run to preview creates a local run and updates the schedule; the earlier navigation-simulation dialog has been removed. Reload or selecting another fixture clears local changes. The pane's geometry and complete form, deletion, and recovery states remain provisional for the later form-design decision.
+
+## Activity layout comparison
+
+Arnaud found several activities on one date hard to decode. The study now compares three treatments with identical examples and preserves the run-only fixtures. Mixed examples are the default for this comparison. They are future display specimens, with no non-running editor or API.
+
+Wednesday contains stretching at 06:30, an interval run at 07:00, and untimed yoga. Friday adds a strength example. Durations, exercise counts, run distances, and paces retain their separate units. Several activities produce an explicit count beside the date. Timed activities remain chronological, followed by untimed ones. Each activity has its own kind, title, summary, and independent disclosure.
+
+| Query | Treatment | What it tests |
+| --- | --- | --- |
+| `grouping=panels` | Separate panels | Full boundaries around each activity, a pale surface, explicit kind, and time in the corner. First recommendation for distinguishing siblings. |
+| `grouping=timeline` | Time column | A dedicated time column and fine vertical rule. Makes chronology prominent; untimed items explicitly say Untimed. |
+| `grouping=rows` | Compact rows | Strong horizontal rules with kind and time above the title and summary. The wide view aligns titles and measurements in columns. |
+
+Use `fixture=mixed&variant=focus` and select Wednesday to compare one populated day, or use `variant=log` to inspect the weekly context. The controls keep the content unchanged while switching treatments and preserve currently open details. Left/right arrows cycle the three treatments when focus is outside an interactive control. The prior weekly composition decision remains open.
+
+| Activity treatment | Phone | Desktop |
+| --- | --- | --- |
+| Separate panels | [390px](weekly-layout-review/phone-activities-panels.png) | [1280px](weekly-layout-review/desktop-activities-panels.png) |
+| Time column | [390px](weekly-layout-review/phone-activities-timeline.png) | [1280px](weekly-layout-review/desktop-activities-timeline.png) |
+| Compact rows | [390px](weekly-layout-review/phone-activities-rows.png) | [1280px](weekly-layout-review/desktop-activities-rows.png) |
+
+Chromium checks covered all three treatments in both weekly compositions at 320px, 390px, 760px, and 1280px. The 24 layout combinations retained correct order, counts, and units without horizontal overflow, including expanded notes. Keyboard disclosures remained independent and persisted across treatment changes. Run editing, local addition alongside non-running examples, fixture switching, and the floating layout switcher passed. No browser errors or embedded assertion failures occurred. Physical-phone and screen-reader checks remain outstanding.
 
 ## Proposal for review
 

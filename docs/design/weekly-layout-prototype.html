@@ -85,10 +85,15 @@ a { color: inherit; }
 .day-content { min-width: 0; }
 .empty { color: var(--muted-ink); padding: 10px 0; }
 .run { min-width: 0; }
+.block-content { min-width: 0; }
+.activity-kind { color: var(--muted-ink); font-size: 12px; }
+.block-time { color: var(--muted-ink); font-size: 14px; white-space: nowrap; }
+.day-count { font: 12px/1.5 "IBM Plex Sans", Arial, sans-serif; }
 .run + .run { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
-.run-overview { display: block; padding: 8px 0; color: inherit; text-decoration: none; cursor: pointer; }
-.run-overview:hover { background: var(--panel); }
-.run-overview:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
+.run-overview { display: block; padding: 4px 0 8px; color: inherit; text-decoration: none; }
+a.run-overview { cursor: pointer; }
+a.run-overview:hover { background: var(--panel); }
+a.run-overview:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
 .run summary { list-style: none; display: flex; align-items: center; width: max-content; max-width: 120px; padding: 0; min-height: 44px; }
 .run summary::-webkit-details-marker { display: none; }
 .run-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
@@ -108,6 +113,22 @@ details[open] > summary .hide-label { display: inline; }
 .sections span:last-child { text-align: right; }
 .note + .note { margin-top: 16px; }
 .note p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.activity-description { margin-bottom: 16px !important; overflow-wrap: anywhere; }
+.specimen[data-grouping="panels"] .run { position: relative; border: 1px solid var(--line); padding: 16px; background: var(--panel); }
+.specimen[data-grouping="panels"] .run + .run { margin-top: 12px; }
+.specimen[data-grouping="panels"] .block-time { position: absolute; top: 16px; right: 16px; }
+.specimen[data-grouping="panels"] .activity-kind { display: block; padding-right: 80px; }
+.specimen[data-grouping="timeline"] .run { display: grid; grid-template-columns: 64px minmax(0,1fr); column-gap: 16px; position: relative; border: 0; margin: 0; padding: 0 0 20px; }
+.specimen[data-grouping="timeline"] .block-time { padding-top: 3px; }
+.specimen[data-grouping="timeline"] .block-content { border-left: 1px solid var(--strong-line); padding-left: 16px; position: relative; }
+.specimen[data-grouping="timeline"] .block-content::before { content: ""; position: absolute; left: -4px; top: 8px; width: 7px; height: 7px; border: 1px solid var(--strong-line); background: var(--paper); border-radius: 50%; }
+.specimen[data-grouping="timeline"] .run:last-child { padding-bottom: 0; }
+.specimen[data-grouping="rows"] .run { position: relative; border-top: 1px solid var(--strong-line); padding: 12px 0 0; margin-top: 12px; }
+.specimen[data-grouping="rows"] .run:first-child { margin-top: 0; }
+.specimen[data-grouping="rows"] .block-time { position: absolute; top: 12px; right: 0; }
+.specimen[data-grouping="rows"] .activity-kind { display: block; padding-right: 80px; }
+.specimen[data-grouping="rows"] .run-overview { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: baseline; gap: 8px 16px; }
+.specimen[data-grouping="rows"] .run-summary { margin: 0; }
 .notice { padding: 20px; border: 1px solid var(--strong-line); background: var(--panel); margin-bottom: 24px; }
 .notice strong { display: block; margin-bottom: 8px; font-weight: 500; }
 .notice button { margin-top: 16px; }
@@ -165,20 +186,25 @@ dialog code { overflow-wrap: anywhere; }
   .day-index button span, .day-index button small { display: block; }
   .day-index button small { font-size: 12px; }
   .day-index [aria-pressed="true"] { box-shadow: inset 0 -3px var(--orange); }
+  .specimen[data-grouping="rows"] .run-overview { grid-template-columns: minmax(0,1fr); gap: 0; }
+  .specimen[data-grouping="timeline"] .run { grid-template-columns: 64px minmax(0,1fr); column-gap: 12px; }
+  .specimen[data-grouping="timeline"] .block-content { padding-left: 12px; }
 }
 @media (max-width: 420px) { .specimen { padding: 16px; } .controls { gap: 8px; } }
 </style>
 </head>
 <body>
 <main class="study">
-  <p class="intro"><strong>Weekly layout decision</strong><br><span class="muted">Disposable study. Illustrative runs only. Nothing connects to your saved training.</span></p>
+  <p class="intro"><strong>Daily activity layouts</strong><br><span class="muted">Disposable study. Illustrative training data. Nothing connects to your saved training.</span></p>
   <div class="controls" aria-label="Study controls">
     <div class="variant-buttons" aria-label="Weekly composition"><button data-variant="log">Weekly log</button><button data-variant="focus">Selected day</button></div>
-    <label>Content<select id="fixture"><option value="typical">Typical week</option><option value="busy">Busy week and long notes</option><option value="empty">Empty week</option></select></label>
+    <label>Activity layout<select id="grouping"><option value="panels">Separate panels</option><option value="timeline">Time column</option><option value="rows">Compact rows</option></select></label>
+    <label>Content<select id="fixture"><option value="mixed">Future mixed activities</option><option value="typical">Typical runs</option><option value="busy">Busy runs and long notes</option><option value="empty">Empty week</option></select></label>
     <label>Content width<select id="width"><option value="wide">Available width</option><option value="constrained">760px, sidebar allowance</option><option value="phone">390px phone</option><option value="small">320px phone</option></select></label>
     <label>Week state<select id="read-state"><option value="ready">Loaded</option><option value="loading">Loading</option><option value="failure">Failed, with retry</option><option value="invalid">Invalid week selection</option></select></label>
   </div>
   <p class="review-state muted" id="review-state" role="status" aria-live="polite"></p>
+  <p class="review-state muted">Compare the three activity layouts with the same examples. Mixed activities are future display specimens; the existing run create/edit preview remains available.</p>
   <section class="specimen" id="specimen" aria-label="Weekly screen specimen">
     <p class="eyebrow">Weekly schedule</p>
     <h1 id="week-heading" tabindex="-1"></h1>
@@ -190,7 +216,7 @@ dialog code { overflow-wrap: anywhere; }
     <summary>Proposed interaction rules</summary>
     <ul>
       <li>Click or tap a run summary to open its edit pane, or focus it and press Enter. There is no separate Edit button. Keep time, run type, distance, section count, and shared or varied pace visible while details are closed.</li>
-      <li>Each run opens independently with Enter, Space, or touch. Sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
+      <li>Each activity's details open independently with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
       <li>For the selected-day variant, select today within the current week, otherwise Monday. Changing a day keeps focus on its selector; week changes keep focus on the week control. Closing the pane keeps the selected day. Saving selects the saved run’s day so the result is visible.</li>
@@ -386,7 +412,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 </pre></details>
 </main>
-<div class="switcher" aria-label="Prototype variant switcher"><button id="previous-variant" aria-label="Previous layout">←</button><output id="variant-label"></output><button id="next-variant" aria-label="Next layout">→</button></div>
+<div class="switcher" aria-label="Prototype variant switcher"><button id="previous-variant" aria-label="Previous activity layout">←</button><output id="variant-label"></output><button id="next-variant" aria-label="Next activity layout">→</button></div>
 <dialog class="editor-pane" id="run-editor" aria-labelledby="editor-title">
   <div class="editor-heading"><h2 id="editor-title">Edit run</h2><button type="button" data-close-editor>Close</button></div>
   <p class="preview-note">Run-form preview. Changes stay in this study.</p>
@@ -405,7 +431,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 let variant = params.get('variant') === 'focus' ? 'focus' : 'log';
-let fixture = ['typical', 'busy', 'empty'].includes(params.get('fixture')) ? params.get('fixture') : 'typical';
+let fixture = ['mixed', 'typical', 'busy', 'empty'].includes(params.get('fixture')) ? params.get('fixture') : 'mixed';
+let grouping = ['panels','timeline','rows'].includes(params.get('grouping')) ? params.get('grouping') : 'panels';
+const groupingNames = {panels:'Separate panels',timeline:'Time column',rows:'Compact rows'};
 let width = ['wide', 'constrained', 'phone', 'small'].includes(params.get('width')) ? params.get('width') : 'wide';
 let readState = ['ready', 'loading', 'failure', 'invalid'].includes(params.get('state')) ? params.get('state') : 'ready';
 let monday = params.get('week') || '2026-10-12';
@@ -455,8 +483,17 @@ const busy = [...typical,
   run('sat-1',5,'easy',null,[[1,307]],'Exact 0.001 km target, intentionally tiny for layout review.'),
   run('sat-2',5,'long',null,[[16500,400]])
 ];
+const mixed = [
+  typical[0],
+  {...run('stretch',2,'easy','06:30',[],'Focus on ankles and hips.'),kind:'stretch',name:'Morning mobility',duration:10,description:'An independent stretching block before the run.'},
+  {...typical[2],time:'07:00'},
+  {...run('yoga',2,'easy',null,[],'An evening option, with no fixed start time.'),kind:'yoga',name:'Evening yoga',duration:20,description:'A separate yoga practice. Moving or skipping it would not move the run.'},
+  {...run('strength',4,'easy','17:30',[],'Use bodyweight exercises.'),kind:'strength',name:'Bodyweight strength',duration:25,description:'Four illustrative exercises, shown as an independent training block.',exerciseCount:4},
+  typical[4]
+];
+const kindNames = {run:'Running',stretch:'Stretching',yoga:'Yoga',strength:'Strength'};
 function weekRuns() {
-  const source = fixture === 'empty' ? [] : fixture === 'busy' ? busy : typical;
+  const source = fixture === 'empty' ? [] : fixture === 'mixed' ? mixed : fixture === 'busy' ? busy : typical;
   return [...source.map(r => ({...r, plannedDate:'2026-10-' + String(12+r.day).padStart(2,'0')})), ...added]
     .map(r => ({...r,...edited.get(r.id),plannedDate:moved.get(r.id) || r.plannedDate}))
     .filter(r => r.plannedDate >= monday && r.plannedDate <= offset(monday,6))
@@ -464,36 +501,51 @@ function weekRuns() {
 }
 function runsOn(index) { return weekRuns().filter(r => r.plannedDate === offset(monday,index)); }
 function runMarkup(r) {
-  const label = `${types[r.type]} on ${r.plannedDate}${r.time ? ' at ' + r.time : ', time not set'}`;
+  const kind = r.kind || 'run';
+  const title = kind === 'run' ? types[r.type] : r.name;
+  const label = `${title} on ${r.plannedDate}${r.time ? ' at ' + r.time : ', time not set'}`;
   const total = r.sections.reduce((sum, section) => sum + section[0], 0);
-  const summary = `${km(total)} · ${r.sections.length} ${r.sections.length === 1 ? 'section' : 'sections'} · ${r.sections.every(s => s[1] === r.sections[0][1]) ? pace(r.sections[0][1]) : 'varied pace'}`;
-  return `<article class="run" aria-label="${escape(label)}"><a class="run-overview" href="/runs/${r.id}/edit?week=${monday}" data-edit="${r.id}" aria-label="Edit ${escape(label)}"><div class="run-name"><h3>${types[r.type]}</h3>${r.time ? `<time class="mono">${r.time}</time>` : '<span class="untimed">Time not set</span>'}</div><span class="run-summary mono">${summary}</span></a><details data-run="${r.id}" ${opened.has(r.id) ? 'open' : ''}><summary><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail"><ol class="sections mono" aria-label="Ordered sections for ${escape(label)}">${r.sections.map(s => `<li><span>${km(s[0])}</span><span>${pace(s[1])}</span></li>`).join('')}</ol>${[['Personal note',r.personal],['Trainer note',r.trainer]].filter(n => n[1]).map(n => `<div class="note"><span class="note-label">${n[0]}</span><p>${escape(n[1])}</p></div>`).join('')}</div></details></article>`;
+  const metrics = kind === 'run'
+    ? `${km(total)} · ${r.sections.length} ${r.sections.length === 1 ? 'section' : 'sections'} · ${r.sections.every(s => s[1] === r.sections[0][1]) ? pace(r.sections[0][1]) : 'varied pace'}`
+    : `${r.exerciseCount ? r.exerciseCount + ' exercises · ' : ''}${r.duration} min`;
+  const overview = `<div class="run-name"><h3>${escape(title)}</h3></div><span class="run-summary mono">${metrics}</span>`;
+  const entry = kind === 'run'
+    ? `<a class="run-overview" href="/runs/${r.id}/edit?week=${monday}" data-edit="${r.id}" aria-label="Edit ${escape(label)}">${overview}</a>`
+    : `<div class="run-overview">${overview}</div>`;
+  const targetDetails = kind === 'run'
+    ? `<ol class="sections mono" aria-label="Ordered sections for ${escape(label)}">${r.sections.map(s => `<li><span>${km(s[0])}</span><span>${pace(s[1])}</span></li>`).join('')}</ol>`
+    : `<p class="activity-description">${escape(r.description)}</p>`;
+  const notes = [['Personal note',r.personal],['Trainer note',r.trainer]].filter(n => n[1]).map(n => `<div class="note"><span class="note-label">${n[0]}</span><p>${escape(n[1])}</p></div>`).join('');
+  return `<article class="run" data-kind="${kind}" aria-label="${escape(label)}"><span class="block-time mono">${r.time || 'Untimed'}</span><div class="block-content"><span class="activity-kind">${kindNames[kind]}</span>${entry}<details data-run="${r.id}" ${opened.has(r.id) ? 'open' : ''}><summary><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail">${targetDetails}${notes}</div></details></div></article>`;
 }
 function dayMarkup(index) {
   const value = offset(monday,index);
   const runs = runsOn(index);
   const add = `<a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a>`;
-  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><h2 id="day-${index}">${weekdays[index]}</h2><span class="date mono">${dayLabel(value)}</span>${runs.length ? `<div class="day-add">${add}</div>` : ''}</header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : add}</div></section>`;
+  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><h2 id="day-${index}">${weekdays[index]}</h2><span class="date mono">${dayLabel(value)}${runs.length > 1 ? `<span class="day-count"> · ${runs.length} activities</span>` : ''}</span>${runs.length ? `<div class="day-add">${add}</div>` : ''}</header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : add}</div></section>`;
 }
 function renderContent() {
   const content = $('week-content');
   if (readState !== 'ready') { content.replaceChildren(); return; }
-  const empty = weekRuns().length ? '' : '<p class="empty">No runs planned this week. Choose a day to add one.</p>';
-  content.innerHTML = empty + (variant === 'log' ? weekdays.map((_,i) => dayMarkup(i)).join('') : `<div class="focus-layout"><nav class="day-index" aria-label="Choose a day">${weekdays.map((day,i) => `<button data-day="${i}" aria-pressed="${selectedDay === i}" aria-label="${day}, ${dayLabel(offset(monday,i))}, ${runsOn(i).length} runs"><span>${day.slice(0,3)}</span><span class="mono">${date(offset(monday,i)).getUTCDate()}</span><small>${runsOn(i).length} ${runsOn(i).length === 1 ? 'run' : 'runs'}</small></button>`).join('')}</nav><div>${dayMarkup(selectedDay)}</div></div>`);
+  const empty = weekRuns().length ? '' : '<p class="empty">Nothing planned this week. Choose a day to add a run.</p>';
+  const noun = fixture === 'mixed' ? 'activities' : 'runs';
+  content.innerHTML = empty + (variant === 'log' ? weekdays.map((_,i) => dayMarkup(i)).join('') : `<div class="focus-layout"><nav class="day-index" aria-label="Choose a day">${weekdays.map((day,i) => `<button data-day="${i}" aria-pressed="${selectedDay === i}" aria-label="${day}, ${dayLabel(offset(monday,i))}, ${runsOn(i).length} ${noun}"><span>${day.slice(0,3)}</span><span class="mono">${date(offset(monday,i)).getUTCDate()}</span><small>${runsOn(i).length} ${runsOn(i).length === 1 ? (fixture === 'mixed' ? 'activity' : 'run') : noun}</small></button>`).join('')}</nav><div>${dayMarkup(selectedDay)}</div></div>`);
   content.querySelectorAll('details').forEach(detail => detail.addEventListener('toggle', () => {
     if (!detail.isConnected) return;
     if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
     updateReview();
   }));
 }
-function updateReview() { $('review-state').textContent = `${variant === 'log' ? 'Weekly log' : 'Selected day'} · ${fixture} fixture · ${monday} · ${readState} · ${opened.size} open disclosures. ${announcement}`; }
+function updateReview() { $('review-state').textContent = `${variant === 'log' ? 'Weekly log' : 'Selected day'} · ${fixture} fixture · ${groupingNames[grouping]} · ${monday} · ${readState} · ${opened.size} open disclosures. ${announcement}`; }
 function render() {
   $('specimen').dataset.width = width;
+  $('specimen').dataset.grouping = grouping;
+  $('grouping').value = grouping;
   $('week-heading').textContent = readState === 'invalid' ? 'Choose a week' : weekTitle();
   document.querySelectorAll('[data-week]').forEach(button => { button.disabled = readState === 'invalid' && button.dataset.week !== '0'; });
   $('fixture').value = fixture; $('width').value = width; $('read-state').value = readState;
   document.querySelectorAll('[data-variant]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.variant === variant)));
-  $('variant-label').textContent = variant === 'log' ? 'A · Weekly log' : 'B · Selected day';
+  $('variant-label').textContent = `${['panels','timeline','rows'].indexOf(grouping)+1} · ${groupingNames[grouping]}`;
   const notice = $('read-notice');
   notice.hidden = readState === 'ready'; notice.className = 'notice' + (['failure','invalid'].includes(readState) ? ' failure' : '');
   notice.setAttribute('role', readState === 'loading' ? 'status' : 'alert');
@@ -501,7 +553,7 @@ function render() {
   notice.innerHTML = readState === 'loading' ? '<strong>Loading runs...</strong><p>Previously loaded runs are hidden.</p>' : readState === 'failure' ? '<strong>Could not load runs for this week</strong><p>A network error prevented loading runs. Check your connection and try again.</p><button data-retry>Retry</button>' : readState === 'invalid' ? '<strong>Invalid week selection</strong><p>Choose a valid calendar date for a complete Monday-to-Sunday week, or select This week.</p>' : '';
   $('week-content').setAttribute('aria-busy', String(readState === 'loading'));
   renderContent(); updateReview();
-  const query = new URLSearchParams({variant, fixture, width, state:readState, week:monday});
+  const query = new URLSearchParams({variant, fixture, grouping, width, state:readState, week:monday});
   try { history.replaceState(null,'','?' + query); } catch { /* Inline previews may have an opaque origin. */ }
 }
 function changeWeek(value) {
@@ -509,7 +561,12 @@ function changeWeek(value) {
   try { const url = new URL(location.href); url.searchParams.set('week',monday); history.pushState(null,'',url); } catch { /* Inline previews may have an opaque origin. */ }
   render();
 }
-function switchVariant() { variant = variant === 'log' ? 'focus' : 'log'; render(); }
+function rememberDetails() {
+  $('week-content').querySelectorAll('details[data-run]').forEach(detail => {
+    if (detail.open) opened.add(detail.dataset.run); else opened.delete(detail.dataset.run);
+  });
+}
+function switchVariant(direction=1) { rememberDetails(); const layouts=['panels','timeline','rows']; grouping=layouts[(layouts.indexOf(grouping)+direction+3)%3]; render(); }
 function editorValues() { return JSON.stringify([...new FormData($('editor-form'))]); }
 function openEditor(trigger) {
   editorRun = trigger.dataset.edit ? weekRuns().find(r => r.id === trigger.dataset.edit) : null;
@@ -556,9 +613,9 @@ $('editor-form').addEventListener('submit', event => {
 document.addEventListener('click', event => {
   const target = event.target.closest('button,a');
   if (!target) return;
-  if (target.dataset.variant) { variant = target.dataset.variant; render(); }
-  if (target.id === 'previous-variant' || target.id === 'next-variant') switchVariant();
-  if (target.dataset.day !== undefined) { selectedDay = Number(target.dataset.day); renderContent(); $('week-content').querySelector(`[data-day="${selectedDay}"]`).focus(); }
+  if (target.dataset.variant) { rememberDetails(); variant = target.dataset.variant; render(); }
+  if (target.id === 'previous-variant' || target.id === 'next-variant') switchVariant(target.id === 'previous-variant' ? -1 : 1);
+  if (target.dataset.day !== undefined) { rememberDetails(); selectedDay = Number(target.dataset.day); renderContent(); $('week-content').querySelector(`[data-day="${selectedDay}"]`).focus(); }
   if (target.dataset.week !== undefined) { announcement = ''; changeWeek(target.dataset.week === '0' ? weekOf(today()) : offset(monday,Number(target.dataset.week)*7)); }
   if (target.hasAttribute('data-retry')) { opened.clear(); readState = 'ready'; render(); $('week-heading').focus(); }
   if (target.dataset.edit) { event.preventDefault(); openEditor(target); return; }
@@ -566,11 +623,12 @@ document.addEventListener('click', event => {
   if (target.dataset.add !== undefined) { event.preventDefault(); openEditor(target); }
 });
 $('fixture').onchange = event => { fixture = event.target.value; added.length = 0; moved.clear(); edited.clear(); announcement = ''; monday = '2026-10-12'; selectedDay = 2; opened.clear(); render(); };
-$('width').onchange = event => { width = event.target.value; render(); };
+$('grouping').onchange = event => { rememberDetails(); grouping = event.target.value; render(); };
+$('width').onchange = event => { rememberDetails(); width = event.target.value; render(); };
 $('read-state').onchange = event => { readState = event.target.value; opened.clear(); render(); };
 document.addEventListener('keydown', event => {
   if (event.target.closest('input,textarea,select,summary,button,a,[contenteditable]') || $('run-editor').open) return;
-  if (['ArrowLeft','ArrowRight'].includes(event.key)) { event.preventDefault(); switchVariant(); }
+  if (['ArrowLeft','ArrowRight'].includes(event.key)) { event.preventDefault(); switchVariant(event.key === 'ArrowLeft' ? -1 : 1); }
 });
 window.addEventListener('popstate', () => {
   const query = new URLSearchParams(location.search);
@@ -585,6 +643,7 @@ selectedDay = readState === 'invalid' ? 0 : initialDay();
 render();
 console.assert(km(1001) === '1.001 km' && km(1) === '0.001 km' && pace(367) === '6:07/km', 'Exact measurement formatting');
 console.assert(intervals.length === 14 && intervals.reduce((sum,s) => sum+s[0],0) === 7100, 'Repeated sections and total');
+console.assert(mixed.filter(r => r.day === 2).map(r => r.kind || 'run').join(',') === 'stretch,run,yoga', 'Mixed day keeps three independent activities');
 console.assert(typical.filter(r => r.day === 2).map(r => r.time || 'untimed').join(',') === '06:30,18:15,untimed', 'Timed before untimed');
 document.fonts.ready.then(() => console.assert(document.fonts.check('16px "IBM Plex Sans"') && document.fonts.check('14px "IBM Plex Mono"'), 'Selected Plex fonts loaded'));
 </script>
