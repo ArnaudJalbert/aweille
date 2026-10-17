@@ -2,6 +2,7 @@ from uuid import UUID
 
 from ..raise_validation_error import raise_validation_error
 from ..run_storage import RunStorage
+from ..validate_expected_revision import validate_expected_revision
 
 
 def delete_run(storage: RunStorage, *, id: UUID, expected_revision: int) -> None:
@@ -21,10 +22,5 @@ def delete_run(storage: RunStorage, *, id: UUID, expected_revision: int) -> None
     """
     if not isinstance(id, UUID):
         raise_validation_error(("id",), "invalid_id", "ID must be a UUID.")
-    if type(expected_revision) is not int or expected_revision < 1:
-        raise_validation_error(
-            ("expected_revision",),
-            "invalid_revision",
-            "Revision must be a positive integer.",
-        )
+    validate_expected_revision(expected_revision)
     storage.delete(id, expected_revision=expected_revision)

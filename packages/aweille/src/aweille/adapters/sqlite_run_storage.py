@@ -114,14 +114,9 @@ class SQLiteRunStorage:
         """
         with self._connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute(
-                "SELECT * FROM runs WHERE id = ?", (str(run.id),)
-            ).fetchone()
-            if row is None:
-                raise RunNotFound
-            current = self._decode_run(row)
-            if current.revision != expected_revision:
-                raise RunRevisionConflict
+            current = self._load_matching_revision(
+                connection, run.id, expected_revision=expected_revision
+            )
             if current.to_dict() | {"revision": "1"} == run.to_dict() | {
                 "revision": "1"
             }:
@@ -152,14 +147,9 @@ class SQLiteRunStorage:
         """
         with self._connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute(
-                "SELECT * FROM runs WHERE id = ?", (str(id),)
-            ).fetchone()
-            if row is None:
-                raise RunNotFound
-            current = self._decode_run(row)
-            if current.revision != expected_revision:
-                raise RunRevisionConflict
+            self._load_matching_revision(
+                connection, id, expected_revision=expected_revision
+            )
             connection.execute("DELETE FROM runs WHERE id = ?", (str(id),))
             connection.execute(
                 "INSERT INTO deleted_run_ids (id) VALUES (?)", (str(id),)
@@ -186,6 +176,19 @@ class SQLiteRunStorage:
                 (start.isoformat(), end.isoformat()),
             ).fetchall()
         return [self._decode_run(row) for row in rows]
+
+    def _load_matching_revision(
+        self, connection: sqlite3.Connection, id: UUID, *, expected_revision: int
+    ) -> PlannedRun:
+        row = connection.execute(
+            "SELECT * FROM runs WHERE id = ?", (str(id),)
+        ).fetchone()
+        if row is None:
+            raise RunNotFound
+        current = self._decode_run(row)
+        if current.revision != expected_revision:
+            raise RunRevisionConflict
+        return current
 
     @contextmanager
     def _connection(self) -> Generator[sqlite3.Connection]:
