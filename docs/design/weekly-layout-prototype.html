@@ -74,6 +74,7 @@ a { color: inherit; }
 .eyebrow, .note-label { font-size: 14px; color: var(--muted-ink); }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
 .period-nav { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 16px; }
+.period-nav-top { border-top: 0; padding-top: 0; margin: 0 0 12px; }
 .specimen .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 12px; border: 0; background: transparent; color: var(--ink); }
 .icon-button svg { width: 20px; height: 20px; flex-shrink: 0; }
 .icon-button:disabled { opacity: .35; cursor: default; }
@@ -234,9 +235,10 @@ dialog code { overflow-wrap: anywhere; }
     <div class="schedule-tools"><div class="view-switch" role="group" aria-label="Schedule view"><button data-variant="log">Week</button><button data-variant="focus">Day</button></div><button id="show-today">Today</button></div>
     <p class="eyebrow">Training schedule</p>
     <div class="schedule-heading"><div><h1 id="week-heading" tabindex="-1" aria-live="polite" aria-atomic="true"></h1><p class="heading-date mono" id="period-dates"></p></div><div class="heading-actions"><button id="open-calendar" class="icon-button" aria-label="Choose week" title="Choose week" aria-haspopup="dialog" aria-controls="date-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M7 15h2M11 15h2M15 15h2"/></svg></button><div id="day-primary-action" hidden></div></div></div>
+    <nav class="period-nav period-nav-top" aria-label="Top date navigation"><button class="icon-button" data-week="-1" aria-label="Previous day" title="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" data-week="1" aria-label="Next day" title="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav>
     <div id="read-notice" class="notice" hidden></div>
     <div id="week-content"></div>
-    <nav class="period-nav" aria-label="Date navigation"><button class="icon-button" data-week="-1" aria-label="Previous week" title="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" data-week="1" aria-label="Next week" title="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav>
+    <nav class="period-nav" aria-label="Bottom date navigation"><button class="icon-button" data-week="-1" aria-label="Previous day" title="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" data-week="1" aria-label="Next day" title="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav>
   </section>
   <details class="rules" open>
     <summary>Proposed interaction rules</summary>
@@ -245,7 +247,7 @@ dialog code { overflow-wrap: anywhere; }
       <li>Day starts with all activity details expanded; Week starts collapsed. Each view keeps its own manual toggles with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
-      <li>Day is the default and shows only the selected date. Week shows all seven days. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows at the bottom move backward/forward by that interval.</li>
+      <li>Day is the default and shows only the selected date. Week shows all seven days. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows above and below the schedule move backward/forward by that interval.</li>
       <li>Titles are relative to Montreal's current date: This Week, Next Week, In 2 Weeks, Last Week, or 2 Weeks Ago. Day view uses Today, Tomorrow, Yesterday, and the equivalent day offsets. Exact dates stay visible beneath the title.</li>
       <li>The URL records the view and selected date for reload and browser Back/Forward. Closing the pane keeps that selection. Saving shows the saved run’s day. Loading and failures hide old activities, keep date navigation available, and offer retry. Retry moves focus to the heading.</li>
     </ul>
