@@ -18,14 +18,16 @@ Run summaries use the existing edit paths as native links, intercepted in this s
 
 ## Activity layout comparison
 
+Arnaud selected the time column after reviewing the three treatments. He preferred its compactness and clearer presentation of time. It is now the default activity layout; the other treatments remain available as references. This settles activity grouping, while the overall weekly-log versus selected-day composition remains open.
+
 Arnaud found several activities on one date hard to decode. The study now compares three treatments with identical examples and preserves the run-only fixtures. Mixed examples are the default for this comparison. They are future display specimens, with no non-running editor or API.
 
 Wednesday contains stretching at 06:30, an interval run at 07:00, and untimed yoga. Friday adds a strength example. Durations, exercise counts, run distances, and paces retain their separate units. Several activities produce an explicit count beside the date. Timed activities remain chronological, followed by untimed ones. Each activity has its own kind, title, summary, and independent disclosure.
 
 | Query | Treatment | What it tests |
 | --- | --- | --- |
-| `grouping=panels` | Separate panels | Full boundaries around each activity, a pale surface, explicit kind, and time in the corner. First recommendation for distinguishing siblings. |
-| `grouping=timeline` | Time column | A dedicated time column and fine vertical rule. Makes chronology prominent; untimed items explicitly say Untimed. |
+| `grouping=panels` | Separate panels | Full boundaries around each activity, a pale surface, explicit kind, and time in the corner. Retained comparison alternative. |
+| `grouping=timeline` | Time column | Selected. A dedicated time column and fine vertical rule. Makes chronology prominent while staying compact; untimed items explicitly say Untimed. |
 | `grouping=rows` | Compact rows | Strong horizontal rules with kind and time above the title and summary. The wide view aligns titles and measurements in columns. |
 
 Use `fixture=mixed&variant=focus` and select Wednesday to compare one populated day, or use `variant=log` to inspect the weekly context. The controls keep the content unchanged while switching treatments and preserve currently open details. Left/right arrows cycle the three treatments when focus is outside an interactive control. The prior weekly composition decision remains open.

@@ -204,7 +204,7 @@ dialog code { overflow-wrap: anywhere; }
     <label>Week state<select id="read-state"><option value="ready">Loaded</option><option value="loading">Loading</option><option value="failure">Failed, with retry</option><option value="invalid">Invalid week selection</option></select></label>
   </div>
   <p class="review-state muted" id="review-state" role="status" aria-live="polite"></p>
-  <p class="review-state muted">Compare the three activity layouts with the same examples. Mixed activities are future display specimens; the existing run create/edit preview remains available.</p>
+  <p class="review-state muted">Time column is the selected activity layout. The other treatments remain available for reference. Mixed activities are future display specimens; the run create/edit preview remains available.</p>
   <section class="specimen" id="specimen" aria-label="Weekly screen specimen">
     <p class="eyebrow">Weekly schedule</p>
     <h1 id="week-heading" tabindex="-1"></h1>
@@ -432,7 +432,7 @@ const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 let variant = params.get('variant') === 'focus' ? 'focus' : 'log';
 let fixture = ['mixed', 'typical', 'busy', 'empty'].includes(params.get('fixture')) ? params.get('fixture') : 'mixed';
-let grouping = ['panels','timeline','rows'].includes(params.get('grouping')) ? params.get('grouping') : 'panels';
+let grouping = ['panels','timeline','rows'].includes(params.get('grouping')) ? params.get('grouping') : 'timeline';
 const groupingNames = {panels:'Separate panels',timeline:'Time column',rows:'Compact rows'};
 let width = ['wide', 'constrained', 'phone', 'small'].includes(params.get('width')) ? params.get('width') : 'wide';
 let readState = ['ready', 'loading', 'failure', 'invalid'].includes(params.get('state')) ? params.get('state') : 'ready';
