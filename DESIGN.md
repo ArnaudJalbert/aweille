@@ -3,8 +3,8 @@ version: alpha
 name: Aweille
 description: Precise running plans on pale surfaces with selective color.
 colors:
-  primary: "#f66b35"
-  primary-hover: "#ff7c48"
+  primary: "#a8d5a2"
+  primary-hover: "#96c98f"
   paper: "#f0f1ea"
   panel: "#fafbf6"
   ink: "#202b28"
@@ -75,7 +75,7 @@ Make a running plan readable through alignment, type, and space. Reuse the same 
 
 Paper is the main surface; panel distinguishes editable fields. Ink carries primary content, with muted ink for secondary content that must remain readable.
 
-The trial action color is orange. Use it on the main action and sparingly on meaningful selection or state. Use ink text on orange; white text does not provide sufficient contrast with this proposed orange. Ordinary content and inactive days stay neutral.
+Arnaud requested a lighter green in place of orange on October 17, 2026. The current run-form study uses light green for the main action and sparingly on meaningful selection or state. Use ink text on green. The proposed values are `#a8d5a2` and `#96c98f` on hover, pending visual review. Ordinary content and inactive days stay neutral. Earlier prototype captures retain the previous orange trial.
 
 Line separates rows and related sections. Strong line outlines controls. Error text names the problem in words, and focus remains visibly distinct from selection. Color alone never communicates a run type, error, or saved state.
 

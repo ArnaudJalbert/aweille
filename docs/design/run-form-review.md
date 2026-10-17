@@ -53,7 +53,11 @@ The state selector holds pending/failure examples for inspection. Actual local S
 
 Long-form scrolling examples are [desktop](run-form-review/desktop-long-scroll.png) and [phone](run-form-review/phone-long-scroll.png). Dirty deletion examples are [desktop](run-form-review/desktop-delete-draft.png) and [phone](run-form-review/phone-delete-draft.png), showing the saved target despite a different draft date.
 
+The current study replaces orange accents with light green, as requested by Arnaud. Main actions and selection marks use `#a8d5a2`, with `#96c98f` on hover and dark ink text. Exact shades await visual review. Delete and errors retain their red treatment. Earlier schedule/sidebar studies are historical orange references.
+
 ## Verification and limits
+
+The green revision passed default/hover and disabled-state checks for Save/Add run at 320px, 390px, and 1280px without horizontal overflow. Dark ink contrast is 8.84:1 on the default green and 7.69:1 on hover. Delete stays red. All 48 form captures were refreshed without browser errors.
 
 The footer revision passed at 320px, 390px, and 1280px: Cancel, red Delete run, and Save remain on one row without horizontal overflow. Buttons retain 44px height; Delete is hidden for creation and disabled during blocked/pending/confirmation states. Keep run retains the draft and returns focus to the moved Delete button. The state captures reflect this placement.
 
