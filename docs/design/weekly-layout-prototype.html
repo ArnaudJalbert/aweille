@@ -245,7 +245,7 @@ dialog code { overflow-wrap: anywhere; }
       <li>Day starts with all activity details expanded; Week starts collapsed. Each view keeps its own manual toggles with Enter, Space, or touch. Running sections stay ordered, followed by separate personal and trainer notes. Native disclosure state is announced to assistive technology.</li>
       <li>Show details stays separate from opening the editor. Closing the pane returns focus to its run and keeps the week and disclosures in place. Week navigation and reload reset disclosures. No saved disclosure preference.</li>
       <li>On phones, Add run sits to the right of the day/date heading on every day. On wider screens, it replaces the empty-day placeholder or sits below the date on populated days. It opens the create pane on that date. Adding a preview run updates the schedule. A successful save shows the saved date’s week. “This week” uses Montreal’s calendar date. The pane's complete form and recovery presentations are a later design decision.</li>
-      <li>Week shows all seven days. Day shows only the selected date. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows at the bottom move backward/forward by that interval.</li>
+      <li>Day is the default and shows only the selected date. Week shows all seven days. Today switches to Day on the current Montreal date. The calendar selects a whole week or a single day to match the view. Simple arrows at the bottom move backward/forward by that interval.</li>
       <li>Titles are relative to Montreal's current date: This Week, Next Week, In 2 Weeks, Last Week, or 2 Weeks Ago. Day view uses Today, Tomorrow, Yesterday, and the equivalent day offsets. Exact dates stay visible beneath the title.</li>
       <li>The URL records the view and selected date for reload and browser Back/Forward. Closing the pane keeps that selection. Saving shows the saved run’s day. Loading and failures hide old activities, keep date navigation available, and offer retry. Retry moves focus to the heading.</li>
     </ul>
@@ -463,7 +463,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 <script>
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-let variant = params.get('variant') === 'focus' ? 'focus' : 'log';
+let variant = params.get('variant') === 'log' ? 'log' : 'focus';
 let fixture = ['mixed', 'typical', 'busy', 'empty'].includes(params.get('fixture')) ? params.get('fixture') : 'mixed';
 let grouping = ['panels','timeline','rows'].includes(params.get('grouping')) ? params.get('grouping') : 'timeline';
 const groupingNames = {panels:'Separate panels',timeline:'Time column',rows:'Compact rows'};
@@ -752,7 +752,7 @@ $('width').onchange = event => { rememberDetails(); width = event.target.value; 
 $('read-state').onchange = event => { readState = event.target.value; resetDetails(); render(); };
 window.addEventListener('popstate', () => {
   const query = new URLSearchParams(location.search);
-  variant = query.get('variant') === 'focus' ? 'focus' : 'log';
+  variant = query.get('variant') === 'log' ? 'log' : 'focus';
   monday = query.get('week') || '2026-10-12';
   readState = validWeek(monday) ? 'ready' : 'invalid';
   if (readState === 'ready') monday = weekOf(monday);

@@ -42,7 +42,7 @@ Chromium checks covered all three treatments in both weekly compositions at 320p
 
 ## Proposal for review
 
-Arnaud requested both views through an in-page Week/Day switcher. Week is the default and shows all seven days. Day shows only the selected date, with no week index. Today switches directly to Day on the current Montreal calendar date. A small calendar icon beside the heading opens a date picker. In Week view, choosing a date selects its whole Monday-to-Sunday week; the selected week is highlighted. In Day view, it selects only that day. Month arrows browse the picker, and its This Week/Today shortcut returns to the current interval without changing views. Calendar dates support arrow-key movement and Enter selection; Cancel or Escape returns focus to the calendar icon. Simple icon arrows at the bottom move by one week or day, with contextual accessible names and hover labels.
+Arnaud requested both views through an in-page Week/Day switcher, with Day as the default. Day shows only the selected date, with no week index. Week shows all seven days. Explicit view selections in the URL still take precedence. Today switches directly to Day on the current Montreal calendar date. A small calendar icon beside the heading opens a date picker. In Week view, choosing a date selects its whole Monday-to-Sunday week; the selected week is highlighted. In Day view, it selects only that day. Month arrows browse the picker, and its This Week/Today shortcut returns to the current interval without changing views. Calendar dates support arrow-key movement and Enter selection; Cancel or Escape returns focus to the calendar icon. Simple icon arrows at the bottom move by one week or day, with contextual accessible names and hover labels.
 
 The primary heading is relative to Montreal's current calendar date. Week titles are This Week, Next Week, In 2 Weeks, Last Week, or N Weeks Ago. Day titles use Today, Tomorrow, Yesterday, In N Days, or N Days Ago. Exact dates remain visible below the heading. Week differences use Monday-based calendar arithmetic, including across daylight-saving and year boundaries. The user's requested title casing applies to these headings.
 
@@ -59,6 +59,8 @@ The calendar icon stays near the heading and the previous/next arrows sit below 
 The sidebar's design remains in its own decision. The 760px width option checks available space without implementing a sidebar or settling its threshold. The specimen keeps branding out of the page header, consistent with sidebar-only branding. Exact tokens and production font policy remain provisional.
 
 ## Evidence
+
+Default-view checks passed for a fresh URL, invalid view value, explicit Day and Week links, reload after choosing Week, and history restoration without a view parameter. Day opens with its activity details expanded. No browser errors occurred.
 
 The Day-default revision passed at 320px and 1280px. Checks covered expanded Day versus collapsed Week defaults, independent manual choices across view switches and Today, keyboard toggling, treatment changes, editor cancellation, new-run expansion, reload and week resets, and horizontal overflow. No browser errors occurred. Expanded Day examples are [phone](weekly-layout-review/phone-day-expanded.png) and [desktop](weekly-layout-review/desktop-day-expanded.png).
 
