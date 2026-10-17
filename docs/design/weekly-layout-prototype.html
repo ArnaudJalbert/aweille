@@ -75,25 +75,25 @@ a { color: inherit; }
 .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
 .week-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 24px; }
 .week-nav button { flex: 1 1 auto; }
-.day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 116px minmax(0, 1fr) auto; gap: 16px; }
-.day-heading { grid-column: 1; grid-row: 1; }
-.day-add { grid-column: 3; grid-row: 1; }
-.day-content { grid-column: 2; grid-row: 1; }
+.day { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 24px; }
 .day-heading { display: flex; flex-direction: column; align-items: start; gap: 4px; }
+.day-title { display: grid; grid-template-columns: 120px max-content; align-items: center; gap: 12px; }
 .day-heading .date { font-size: 14px; color: var(--muted-ink); }
-.day-heading .action { margin-top: 8px; }
 .action { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; text-decoration: none; font-size: 13px; font-weight: 500; }
-.action-label { display: inline-block; padding: 4px 8px; border-radius: 3px; background: var(--orange); color: var(--ink); line-height: 20px; }
+.action-label { display: inline-block; padding: 4px 8px; border-radius: 3px; background: var(--orange); color: var(--ink); line-height: 20px; white-space: nowrap; }
 .action:hover .action-label { background: #ff7c48; }
 .day-content { min-width: 0; }
 .empty { color: var(--muted-ink); padding: 10px 0; }
-.run { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px 12px; }
+.run { min-width: 0; }
 .run + .run { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
-.run details { min-width: 0; }
-.run summary { list-style: none; padding: 8px 0; min-height: 64px; }
+.run-overview { padding-top: 8px; }
+.run-actions { display: grid; grid-template-columns: 120px minmax(0, 1fr); column-gap: 12px; }
+.run-actions > details { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+.run-actions > .edit { grid-column: 2; grid-row: 1; justify-self: start; align-self: start; }
+.run summary { list-style: none; display: flex; align-items: center; width: max-content; max-width: 120px; padding: 0; min-height: 44px; }
 .run summary::-webkit-details-marker { display: none; }
 .run-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
-.run-name strong { font-size: 16px; font-weight: 500; }
+.run-name h3 { font-size: 16px; font-weight: 500; margin: 0; }
 .run-name time, .untimed { color: var(--muted-ink); font-size: 14px; }
 .run-summary { display: block; font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
 .disclosure-label { display: inline-flex; align-items: center; min-height: 28px; gap: 6px; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
@@ -101,7 +101,6 @@ a { color: inherit; }
 details[open] > summary .disclosure-label::before { content: "−"; }
 .hide-label, details[open] > summary .show-label { display: none; }
 details[open] > summary .hide-label { display: inline; }
-.edit { margin-top: 6px; }
 .run-detail { padding: 12px 0 4px; }
 .sections { list-style: none; padding: 0; margin: 0 0 16px; counter-reset: section; font-size: 14px; }
 .sections li { counter-increment: section; display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); }
@@ -119,11 +118,7 @@ details[open] > summary .hide-label { display: inline; }
 .day-index button { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; text-align: left; border-color: transparent; padding: 10px; }
 .day-index button small { grid-column: 1 / -1; font-size: 13px; }
 .day-index [aria-pressed="true"] { color: var(--ink); background: var(--panel); border-color: var(--strong-line); box-shadow: inset 3px 0 var(--orange); }
-.focus-layout .day { grid-template-columns: minmax(0, 1fr) auto; }
-.focus-layout .day-heading { flex-direction: row; align-items: center; flex-wrap: wrap; }
-.focus-layout .day-add { grid-column: 2; }
-.focus-layout .day-content { grid-column: 1 / -1; grid-row: 2; }
-.focus-layout .day-heading .action { margin: 0 0 0 auto; }
+.focus-layout .day { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .rules { margin-top: 20px; }
 .rules summary { min-height: 44px; padding: 10px 0; }
@@ -142,13 +137,7 @@ dialog code { overflow-wrap: anywhere; }
 .font-credits pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 @container screen (max-width: 560px) {
   .specimen h1 { font-size: 26px; }
-  .day { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding-block: 16px; }
-  .day-add { grid-column: 2; }
-  .day-content { grid-column: 1 / -1; grid-row: 2; }
-  .day-heading { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-  .day-heading .action { margin: 0 0 0 auto; }
-  .run { gap: 8px; }
-  .run-detail { grid-column: 1 / -1; }
+  .day { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-block: 16px; }
   .focus-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .day-index { grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 4px; }
   .day-index button { display: block; text-align: center; padding: 8px 2px; }
@@ -448,12 +437,12 @@ function runMarkup(r) {
   const label = `${types[r.type]} on ${r.plannedDate}${r.time ? ' at ' + r.time : ', time not set'}`;
   const total = r.sections.reduce((sum, section) => sum + section[0], 0);
   const summary = `${km(total)} · ${r.sections.length} ${r.sections.length === 1 ? 'section' : 'sections'} · ${r.sections.every(s => s[1] === r.sections[0][1]) ? pace(r.sections[0][1]) : 'varied pace'}`;
-  return `<article class="run" aria-label="${escape(label)}"><details data-run="${r.id}" ${opened.has(r.id) ? 'open' : ''}><summary><span class="run-name"><strong>${types[r.type]}</strong>${r.time ? `<time class="mono">${r.time}</time>` : '<span class="untimed">Time not set</span>'}</span><span class="run-summary mono">${summary}</span><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail"><ol class="sections mono" aria-label="Ordered sections for ${escape(label)}">${r.sections.map(s => `<li><span>${km(s[0])}</span><span>${pace(s[1])}</span></li>`).join('')}</ol>${[['Personal note',r.personal],['Trainer note',r.trainer]].filter(n => n[1]).map(n => `<div class="note"><span class="note-label">${n[0]}</span><p>${escape(n[1])}</p></div>`).join('')}</div></details><a class="action edit" href="/runs/${r.id}/edit?week=${monday}" data-edit="${r.id}" aria-label="Edit ${escape(label)}"><span class="action-label">Edit</span></a></article>`;
+  return `<article class="run" aria-label="${escape(label)}"><div class="run-overview"><div class="run-name"><h3>${types[r.type]}</h3>${r.time ? `<time class="mono">${r.time}</time>` : '<span class="untimed">Time not set</span>'}</div><span class="run-summary mono">${summary}</span></div><div class="run-actions"><details data-run="${r.id}" ${opened.has(r.id) ? 'open' : ''}><summary><span class="disclosure-label"><span class="show-label">Show details</span><span class="hide-label">Hide details</span></span><span class="sr-only"> for ${escape(label)}</span></summary><div class="run-detail"><ol class="sections mono" aria-label="Ordered sections for ${escape(label)}">${r.sections.map(s => `<li><span>${km(s[0])}</span><span>${pace(s[1])}</span></li>`).join('')}</ol>${[['Personal note',r.personal],['Trainer note',r.trainer]].filter(n => n[1]).map(n => `<div class="note"><span class="note-label">${n[0]}</span><p>${escape(n[1])}</p></div>`).join('')}</div></details><a class="action edit" href="/runs/${r.id}/edit?week=${monday}" data-edit="${r.id}" aria-label="Edit ${escape(label)}"><span class="action-label">Edit</span></a></div></article>`;
 }
 function dayMarkup(index) {
   const value = offset(monday,index);
   const runs = runsOn(index);
-  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><h2 id="day-${index}">${weekdays[index]}</h2><span class="date mono">${dayLabel(value)}</span></header><div class="day-add"><a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a></div><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : '<p class="empty">No runs planned</p>'}</div></section>`;
+  return `<section class="day" aria-labelledby="day-${index}"><header class="day-heading"><div class="day-title"><h2 id="day-${index}">${weekdays[index]}</h2><a class="action" href="/runs/new?date=${value}&week=${monday}" data-add="${index}" aria-label="Add run for ${weekdays[index]}, ${dayLabel(value)}"><span class="action-label">Add run</span></a></div><span class="date mono">${dayLabel(value)}</span></header><div class="day-content">${runs.length ? runs.map(runMarkup).join('') : '<p class="empty">No runs planned</p>'}</div></section>`;
 }
 function renderContent() {
   const content = $('week-content');
