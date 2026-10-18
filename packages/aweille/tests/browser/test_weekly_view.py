@@ -307,6 +307,8 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
     page.goto(f"{live_server.url}/?week=2026-10-12")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
     page.keyboard.press("Tab")
+    expect(page.get_by_role("button", name="Collapse navigation")).to_be_focused()
+    page.keyboard.press("Tab")
     expect(page.get_by_role("link", name="Schedule", exact=True)).to_be_focused()
     page.get_by_role("button", name="Toggle navigation").focus()
     page.keyboard.press("Tab")

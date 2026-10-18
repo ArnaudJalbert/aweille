@@ -15,8 +15,11 @@ def test_sidebar_collapse_drawer_focus_and_resize(page: Page, live_server: LiveS
     expect(page.locator("#application")).not_to_have_class(re.compile("drawer-mode"))
     box = page.locator(".shell").bounding_box()
     assert box and box["width"] == 628
-    menu.click()
+    expect(page.get_by_text("Training", exact=True)).to_be_visible()
+    expect(page.get_by_text("Planned", exact=True)).to_have_count(2)
+    page.get_by_role("button", name="Collapse navigation").click()
     expect(menu).to_have_attribute("aria-expanded", "false")
+    expect(menu).to_be_focused()
     box = page.locator(".shell").bounding_box()
     assert box and box["width"] == 852
     page.set_viewport_size({"width": 390, "height": 844})

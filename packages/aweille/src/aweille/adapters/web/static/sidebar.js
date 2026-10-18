@@ -13,7 +13,7 @@ function render() {
   application.classList.toggle("drawer-mode", narrow);
   application.classList.toggle("sidebar-expanded", !narrow && desktopExpanded);
   sidebar.hidden = !expanded;
-  close.hidden = !narrow;
+  close.setAttribute("aria-label", narrow ? "Close navigation" : "Collapse navigation");
   menu.setAttribute("aria-expanded", String(expanded));
   backdrop.hidden = !drawerOpen;
   content.inert = drawerOpen;
@@ -41,7 +41,14 @@ menu.onclick = () => {
   if (drawerOpen) close.focus();
   else menu.focus();
 };
-close.onclick = dismiss;
+close.onclick = () => {
+  if (narrow) dismiss();
+  else {
+    desktopExpanded = false;
+    render();
+    menu.focus();
+  }
+};
 backdrop.onclick = dismiss;
 document.addEventListener("keydown", event => {
   if (!drawerOpen) return;
