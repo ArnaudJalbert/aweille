@@ -32,6 +32,6 @@ The corrected schedule, create and edit screens were rechecked in native Firefox
 
 ## Verification
 
-The corrected foundation and schedule layers passed their complete required checks with 350 and 356 tests. Added assertions extend existing public-browser scenarios to protect the restored sidebar control/hierarchy, single Day heading, Running label, rendered timeline and quiet/icon section actions. Final combined checks and the separate Standards/Spec review results are recorded in [integrated acceptance](redesign-acceptance.md).
+The corrected foundation and schedule layers passed their complete required checks with 350 and 356 tests. Added assertions extend existing public-browser scenarios to protect the restored sidebar control/hierarchy, single Day heading, Running label, rendered timeline and quiet/icon section actions. The corrected combined implementation passed all 366 tests, ty, Ruff lint/format and diff checks. The 16-scenario Day/Week/create/edit integration and control-state/contrast pass also passed again after the corrections. Both Standards and Spec review have zero remaining findings, recorded separately in [integrated acceptance](redesign-acceptance.md).
 
 Physical-phone software keyboard/touch/hardware safe areas and screen-reader review remain pending. These visual comparisons do not close #51 or the redesign milestone.

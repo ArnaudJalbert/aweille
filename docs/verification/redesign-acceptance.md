@@ -2,7 +2,17 @@
 
 ## October 18 visual correction
 
-Maintainer review exposed visual omissions despite the earlier passing behavior checks. The [visual comparison and correction record](redesign-visual-parity.md) identifies the approved screenshots, missing elements, fixes and intentional handoff differences. Linked schedule/form captures have been refreshed. The October 17 automated result below is historical; repeated checks and review results for the correction are recorded after that work completes.
+Maintainer review exposed visual omissions despite the earlier passing behavior checks. The [visual comparison and correction record](redesign-visual-parity.md) identifies the approved screenshots, missing elements, fixes and intentional handoff differences. Linked schedule/form captures have been refreshed. The corrected combined code at `0340310` is identical under `packages/` to tested/reviewed head `ce954a0`, which passed all 366 tests in 78.70 seconds. Restacking changed commit hashes and documentation captures only. Ty, Ruff lint/format and diff checks also passed. The corrected foundation and schedule separately passed all required checks with 350 and 356 tests. Later commits refresh documentation/captures only.
+
+### Standards correction review
+
+No remaining documented-standard violations or actionable smells at `ce954a0`. Review caught the older specimen's green-only active indicator and transparent disabled controls; corrections restore the consolidated panel surfaces and a real 3px ink selection boundary with supplementary green. Existing behavior tests remain intact, including the disabled-surface regression. This was a read-only review without an independent full-suite repeat.
+
+### Spec correction review
+
+No remaining specification findings at `ce954a0`. The reviewer compared corrected images with the approved sources and confirmed the major schedule/form composition omissions are restored. A public Chromium forced-color check confirmed the real ink selection boundary remains visible after the decorative green stripe disappears. Physical-phone and screen-reader checks remain pending.
+
+Correction review totals: Standards 0 remaining findings; Spec 0 remaining findings. The 16-scenario dense/long-content/sidebar/viewport integration pass and control-state/contrast checks were also repeated successfully on the corrected code. Native Firefox 158.0 actual 200% zoom was repeated on the corrected schedule/create/edit; zoom was restored and the temporary tab closed. No implementation PR was merged or deployed.
 
 Implementation for #29, #50 and #51 follows the merged #52 handoff. The implementation PRs remain open in dependency order; the two downstream PRs remain draft while their prerequisites are unmerged. This record describes the implementation branches and their disposable local verification, not a deployed application. Physical-phone and screen-reader acceptance remain pending, so #51 and the Aweille redesign milestone stay open.
 
