@@ -113,6 +113,7 @@ textarea { min-height: 112px; resize: vertical; }
 .form-message:has(> #save-status[hidden]) { display: none; }
 .form-message:has(> #save-status[role="alert"]) { border-left-color: var(--error); }
 #save-status.notice { margin: 0; padding: 0; border: 0; color: var(--ink); }
+#save-status p { margin: 6px 0 0; }
 .form-message button { margin-top: 0; }
 .form-message button:hover:not(:disabled), .form-footer .button:hover { background: transparent; }
 .delete-area { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 12px; }
@@ -217,5 +218,5 @@ dialog::backdrop { background: #202b2877; }
 #recovery, .confirmation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 #confirm-delete { background: var(--panel); color: var(--error); border-color: var(--error); }
 #delete-confirmation h2 { font-size: 18px; margin-bottom: 12px; }
-@media (max-width: 420px) { .paired-fields, .section-inputs { gap: 12px; } .page-heading { gap: 6px; } .form-shell h1 { font-size: 26px; } }
+@media (max-width: 420px) { .paired-fields, .section-inputs { gap: 12px; } .page-heading { gap: 6px; } .form-shell h1 { font-size: 26px; } #delete-confirmation { padding: 12px; } }
 @media (max-height: 480px) { .form-footer { position: static; } }
