@@ -1,16 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Edit a planned run | Aweille</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='weekly.css') }}">
-  <script type="module" src="{{ url_for('static', path='edit_run.js') }}"></script>
-</head>
-<body>
-  <header class="brand"><a href="/">Aweille</a></header>
-  <main class="shell">
-    <header class="page-heading"><h1 tabindex="-1">Edit a planned run</h1></header>
+{% extends 'base.html' %}
+{% block title %}Edit a planned run | Aweille{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='edit_run.js') }}"></script>{% endblock %}
+{% block screen_class %}form-shell{% endblock %}
+{% block content %}
+    <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Edit a planned run</h1></header>
     <form id="run-form" class="form-card" novalidate>
       <fieldset id="form-fields" disabled>
         <div class="field-grid">
@@ -90,6 +83,4 @@
         </div>
       </fieldset>
     </template>
-  </main>
-</body>
-</html>
+{% endblock %}

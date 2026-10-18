@@ -104,7 +104,7 @@ function dirty() {
 }
 
 window.addEventListener("beforeunload", event => {
-  if (dirty() && !window.leavingEditor) event.preventDefault();
+  if ((dirty() || writePending) && !window.leavingEditor) event.preventDefault();
 });
 
 function leave(url) {
@@ -280,7 +280,7 @@ sections.onclick = editSections;
 document.querySelector("#add-section").onclick = () => addSection();
 document.querySelector("#cancel").onclick = event => {
   event.preventDefault();
-  if (!dirty() || confirm("Discard your unsaved changes?")) leave(editorWeek());
+  guardedLeave();
 };
 function reloadRun() {
   if (!dirty() || confirm("Discard your unsaved draft and reload the saved run?")) loadRun(Boolean(baseline));
@@ -288,3 +288,9 @@ function reloadRun() {
 document.querySelector("#reload-run").onclick = reloadRun;
 document.querySelector("#retry-load").onclick = reloadRun;
 loadRun();
+
+function guardedLeave() {
+  const message = writePending ? "Leave while a write is pending? Leaving does not cancel the request, which may still complete." : "Discard your unsaved changes?";
+  if ((!dirty() && !writePending) || confirm(message)) leave(editorWeek());
+}
+document.addEventListener("schedule-navigation", guardedLeave);
