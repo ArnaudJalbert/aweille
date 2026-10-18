@@ -136,6 +136,7 @@ button:disabled { opacity: .45; cursor: default; }
 .schedule-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; margin-bottom: 12px; }
 .schedule-heading > div { min-width: 0; }
 .heading-actions { display: flex; align-items: center; gap: 8px; }
+.period-navigation { display: flex; }
 #exact-date { margin: 8px 0 0; color: var(--muted-ink); }
 #day-add { margin-left: auto; }
 #day-add:empty { display: none; }
@@ -184,6 +185,8 @@ dialog::backdrop { background: #202b2877; }
 #calendar footer button { font-size: 15px; }
 #calendar footer button:hover:not(:disabled), #calendar .icon-button:hover:not(:disabled) { background: transparent; }
 @container (max-width: 559px) {
+  .schedule-heading { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .heading-actions { justify-content: space-between; }
   .week-view .day { display: block; }
   .week-view .day-heading { flex-direction: row; align-items: center; justify-content: space-between; }
   .week-view .day-heading h2 { display: block; }

@@ -98,13 +98,21 @@ def test_section_editing_exact_conversion_and_save_to_changed_week(
     fill_section(page, 3, "0001.01000", "0:01")
     page.get_by_role("button", name="Add section", exact=True).click()
     page.get_by_role("button", name="Remove section 4").click()
-    page.get_by_role("button", name="Move section 2 up").click()
+    up_arrow = page.get_by_role("button", name="Move section 2 up").locator("svg")
+    expect(up_arrow).to_be_visible()
+    assert (
+        up_arrow.evaluate("node => getComputedStyle(node).stroke") == "rgb(32, 43, 40)"
+    )
+    assert up_arrow.evaluate("node => getComputedStyle(node).fill") == "none"
+    up_arrow.click()
     expect(
         page.get_by_role("group", name="Section 1", exact=True).get_by_label(
             "Distance km"
         )
     ).to_have_value("9007199254740993.123")
-    page.get_by_role("button", name="Move section 1 down").click()
+    down_arrow = page.get_by_role("button", name="Move section 1 down").locator("svg")
+    expect(down_arrow).to_be_visible()
+    down_arrow.click()
     page.get_by_role("button", name="Move section 3 up").click()
     expect(page.get_by_role("button", name="Move section 3 down")).to_be_disabled()
     page.get_by_label("Planned date").fill("2026-10-21")

@@ -18,7 +18,7 @@ The October 18 request to reproduce the final prototype also restores its tinted
 
 At exactly 900px of available width, the expanded sidebar leaves 628px for content after padding. Use the available application width rather than browser identity to select drawer behavior. Collapsing the desktop sidebar frees its full column while retaining a reopen control.
 
-Keep Today at the end of the schedule toolbar. Calendar and Add run stay beside their date heading. Preserve the [accepted schedule](schedule-layout.md), including Day as default, the time column, view-specific disclosure defaults, multiple runs per day, and no schedule arrows.
+Keep Today at the end of the schedule toolbar. Calendar and Add run stay beside their date heading. Preserve the [accepted schedule](schedule-layout.md), including Day as default, the time column, view-specific disclosure defaults, multiple runs per day, and the October 18 request for direct day/week navigation arrows. Narrow content places the calendar/arrows and Add run below the date heading.
 
 ## Navigation and focus
 

@@ -8,6 +8,8 @@ Date/time and distance/pace remain paired at phone widths. Notes use full-width 
 
 The real create/edit/delete controllers, UUID/revision policies, exact arithmetic, draft protection and recovery rules remain in production. No fixture switch, fake save feedback or future activity API was ported. The pinned three font files remain self-hosted, without synthesized weights. The calendar title uses the available medium weight rather than the specimen's incidental browser-default bold.
 
+The follow-up request also adds direct schedule arrows around the calendar, stepping one day or seven days according to the view. This is an explicit update to the final specimen's calendar-only schedule. Narrow content keeps the new controls and Add run below the full-width heading. All arrow SVGs now carry the specimen's own fill/stroke attributes, including section movement, calendar months and sidebar collapse. Public browser checks click the actual arrow graphics and verify saved section order.
+
 ## Direct comparison
 
 Comparison used the immutable specimen and the running production branch, both rendered with Playwright Chromium 156.0.8078.4 at 390px and 1280px. The edit fixture matches its 07:00 interval run and 2/3/1 km sections at 6:45/5:45/7:00. This is disposable data, separate from training records.
@@ -26,5 +28,6 @@ The production navigation edge uses a real 3px border in place of the specimen's
 - [Desktop edit](redesign/form-edit-desktop.png), [phone edit](redesign/form-edit-phone.png), [desktop create](redesign/form-create-desktop.png), [phone create](redesign/form-create-phone.png)
 - [Desktop Week](redesign/schedule-week-desktop.png), [phone Week](redesign/schedule-week-phone.png), [desktop Day](redesign/schedule-day-desktop.png), [phone Day](redesign/schedule-day-phone.png)
 - [Calendar](redesign/schedule-calendar-phone.png), [loading](redesign/form-initial-loading-phone.png), [read failure](redesign/form-initial-failure-phone.png), [saved-target confirmation](redesign/form-delete-confirmation-phone.png), [pending deletion](redesign/form-pending-delete-phone.png), [uncertain save](redesign/form-uncertain-save-phone.png)
+- [Phone section arrows after moving a loaded section up and back down](redesign/form-section-arrows-phone.png)
 
 Final checks and independent Standards/Spec results are recorded in [integrated acceptance](redesign-acceptance.md). Physical-phone software keyboard/touch/hardware safe areas, screen-reader review and maintainer visual acceptance remain open. Future stretching, yoga and strength remain outside the current run-only implementation.

@@ -131,7 +131,12 @@ def test_invalid_week_does_not_guess_a_range_and_can_recover(
     assert reads == []
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
     expect(page.get_by_role("button", name="Choose date")).to_be_enabled()
-    expect(page.get_by_role("button", name="Previous week")).to_have_count(0)
+    expect(
+        page.get_by_role("button", name=re.compile(r"^Previous (day|week)$"))
+    ).to_be_disabled()
+    expect(
+        page.get_by_role("button", name=re.compile(r"^Next (day|week)$"))
+    ).to_be_disabled()
     page.get_by_role("button", name="Today", exact=True).click()
     expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(1)
@@ -353,6 +358,8 @@ def test_calendar_limits_allow_complete_api_ranges(
 ):
     page.goto(f"{live_server.url}/?week={selection}&view=week")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
+    boundary = "Previous week" if selection.startswith("0001") else "Next week"
+    expect(page.get_by_role("button", name=boundary, exact=True)).to_be_disabled()
     page.get_by_role("button", name="Choose date").click()
     if selection.startswith("0001"):
         expect(page.get_by_role("button", name="Previous month")).to_be_disabled()
@@ -360,6 +367,13 @@ def test_calendar_limits_allow_complete_api_ranges(
         expect(page.get_by_role("button", name="Next month")).to_be_disabled()
         expect(page.get_by_role("gridcell", name="9999-12-31")).to_be_disabled()
     expect(page.get_by_role("button", name="Cancel", exact=True)).to_be_enabled()
+    page.get_by_role("button", name="Cancel", exact=True).click()
+    if selection.startswith("0001"):
+        page.get_by_role("button", name="Day", exact=True).click()
+        expect(page.get_by_role("button", name="Previous day")).to_be_disabled()
+    else:
+        page.goto(f"{live_server.url}/?view=day&date=9999-12-26")
+        expect(page.get_by_role("button", name="Next day")).to_be_disabled()
 
 
 def test_returning_to_invalid_selection_ignores_an_outstanding_read(
