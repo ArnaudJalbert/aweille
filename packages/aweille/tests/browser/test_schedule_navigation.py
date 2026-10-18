@@ -14,6 +14,8 @@ def test_day_default_and_week_switch_preserve_date(page: Page, live_server: Live
         "aria-pressed", "true"
     )
     expect(page.get_by_role("heading", level=1)).to_have_text("Today")
+    expect(page.get_by_text("Training schedule", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", level=2)).to_have_count(0)
     expect(page.get_by_role("region")).to_have_count(1)
     expect(page.get_by_role("link", name="Add run")).to_have_count(1)
     page.get_by_role("button", name="Week", exact=True).click()
@@ -38,6 +40,19 @@ def test_disclosures_and_cancel_restore_each_view_and_initiating_focus(
     }
     assert page.request.post(f"{live_server.url}/v1/runs", data=run).status == 201
     page.goto(f"{live_server.url}/?view=day&date=2026-10-14")
+    expect(page.get_by_text("Running", exact=True)).to_be_visible()
+    assert (
+        page.locator(".run-content").evaluate(
+            "node => getComputedStyle(node).borderLeftWidth"
+        )
+        == "1px"
+    )
+    assert (
+        page.locator(".run-content").evaluate(
+            "node => getComputedStyle(node, '::before').width"
+        )
+        == "7px"
+    )
     expect(page.get_by_role("link", name="Edit easy run")).to_contain_text(
         "9007199254740994.123 km · 2 sections · 6:30/km"
     )

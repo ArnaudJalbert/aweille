@@ -70,6 +70,7 @@ function renderRun(run) {
   const article = element("article", undefined, "run");
   article.append(element("div", run.planned_start_time ?? "Untimed", "run-time measurement"));
   const body = element("div", undefined, "run-content");
+  body.append(element("span", "Running", "activity-kind"));
   const edit = element("a", undefined, "run-summary");
   edit.id = `run-${run.id}`;
   edit.href = `/runs/${encodeURIComponent(run.id)}/edit?week=${dateString(containingMonday(selectedDate))}`;
@@ -128,7 +129,7 @@ function renderDays(runs) {
   for (const date of visible) {
     const key = dateString(date);
     const day = element("section", undefined, "day");
-    day.setAttribute("aria-labelledby", `day-${key}`);
+    day.setAttribute("aria-label", `${date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })} ${monthName(date, "short")} ${date.getUTCDate()}`);
     const header = element("header", undefined, "day-heading");
     const title = element("h2", `${date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })} `);
     title.id = `day-${key}`;
@@ -137,10 +138,12 @@ function renderDays(runs) {
     if (view === "week") header.append(addRun(date));
     const body = element("div", undefined, "day-body");
     const planned = runs.filter(run => run.planned_date === key);
+    if (planned.length > 1) title.lastElementChild.append(element("span", ` · ${planned.length} runs`, "day-count"));
     body.append(...planned.map(renderRun));
     if (!planned.length) body.append(element("p", "No runs planned", "muted"));
     day.classList.toggle("empty-day", !planned.length);
-    day.append(header, body); cards.push(day);
+    if (view === "week") day.append(header);
+    day.append(body); cards.push(day);
   }
   days.replaceChildren(...cards);
 }

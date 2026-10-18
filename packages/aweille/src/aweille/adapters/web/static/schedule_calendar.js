@@ -9,6 +9,8 @@ export function setupCalendar(select, selection) {
   let view;
   let selected;
   function render() {
+    document.querySelector("#calendar-title").textContent = view === "day" ? "Choose day" : "Choose week";
+    document.querySelector("#calendar-context").textContent = view === "day" ? "Choose the day you want to see." : "Choose any date in the week you want to see.";
     document.querySelector("#calendar-heading").textContent = month.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
     grid.replaceChildren();
     const labels = document.createElement("div");

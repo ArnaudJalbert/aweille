@@ -1,5 +1,11 @@
 # Day/Week schedule verification
 
+## Visual review correction
+
+The October 18 review identified presentation omitted from the [approved sidebar/schedule specimen](https://github.com/ArnaudJalbert/aweille/blob/76e8ade669d2932542a336eeabd9e06cc63213f1/docs/design/sidebar-integration-review.md). Corrected captures below now show the Training schedule label, Week/Day order, right-aligned line-icon calendar, 116px desktop day column, time-column timeline and markers, Running labels, run counts, plus/minus disclosures and flat section/note treatment. Phone dates sit below weekdays. Day no longer repeats its selected date as a second heading. The contextual calendar again names the chosen day/week and uses the specimen's compact geometry.
+
+The captures use representative run-only disposable data, so the approved study's future stretching/yoga/strength examples are intentionally absent. Green actions, 13px buttons, readable disabled controls, 14px time labels and 4px radii retain the consolidated handoff values where older captures differ. Public browser regressions now check the missing hierarchy, timeline and desktop collapse/focus as well as existing behavior.
+
 Layer 2 for [#50](https://github.com/ArnaudJalbert/aweille/issues/50), built from the validated [foundation PR #53](https://github.com/ArnaudJalbert/aweille/pull/53). Review and merge #53 first. This branch deliberately includes its commits while it remains unmerged.
 
 ```text
