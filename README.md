@@ -260,7 +260,7 @@ uv run pytest packages/aweille/tests/api
 
 With the local server running, open [Aweille](http://127.0.0.1:8000/) in a browser. Day defaults to Montreal's current calendar date. Week shows all seven dates. To open the representative week, use [October 12 to 18, 2026](http://127.0.0.1:8000/?view=week&date=2026-10-14).
 
-Week/Day preserves the selected date. Today selects Day using Montreal's date when pressed. The contextual calendar supports month navigation, arrow keys, Enter, Today or This Week, and Cancel/Escape. Relative headings retain exact dates underneath. There are no previous/next schedule arrows.
+Week/Day preserves the selected date. Today selects Day using Montreal's date when pressed. The contextual calendar supports month navigation, arrow keys, Enter, Today or This Week, and Cancel/Escape. Relative headings retain exact dates underneath. Previous/next arrows beside the calendar move one day in Day or seven days in Week, preserving the selected weekday. Movement outside complete API week ranges is disabled.
 
 The URL records `week`, `view` and `date`; reload/history restore selection with disclosure defaults. Existing `?week=YYYY-MM-DD` links remain valid. Without an explicit date, they select today within the current week or Monday in another week. Invalid or incomplete calendar ranges show an explanation with calendar and Today recovery.
 
