@@ -132,6 +132,7 @@ def test_initial_missing_run_never_enables_empty_form(
     expect(page.get_by_role("button", name="Reload saved run")).to_be_hidden()
     page.get_by_role("link", name="Cancel").click()
     expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
+    expect(page.get_by_role("heading", level=1)).to_be_focused()
 
 
 def test_uppercase_uuid_direct_link_loads_and_saves(

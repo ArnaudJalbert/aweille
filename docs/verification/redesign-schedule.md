@@ -31,3 +31,5 @@ The T3 preview initially worked, then twice failed its snapshot operation with `
 Physical-phone, actual zoom, screen-reader and complete form presentation acceptance remain pending for the final integrated layer. Browser widths are emulation, not physical-device evidence. No merge or deployment is requested.
 
 Required checks passed on this layer: `uv run pytest` with 355 tests; `uv run ty check`; `uv run ruff check .`; `uv run ruff format --check .`; and `git diff --check`.
+
+The final integrated review also corrected this prerequisite: measurement times use 14px, forced-color selection no longer overrides focus, and missing/consumed form context returns heading focus while preserving its fallback week. Restored the JavaScript-disabled/missing-module scenario's real navigation and explanatory-status assertions. A new public form-reload regression protects one-use context. The updated schedule head passed all 356 tests and every required static/diff check before the form branch was restacked.

@@ -273,6 +273,12 @@ def test_untimed_runs_exact_numbers_plain_text_notes_and_phone_layout(
     expect(page.get_by_role("img")).to_have_count(0)
     assert page.locator("body").get_attribute("data-injected") is None
     expect(wednesday.get_by_text("Trainer note", exact=True)).to_have_count(0)
+    assert (
+        wednesday.get_by_text("Untimed", exact=True).evaluate(
+            "node => getComputedStyle(node).fontSize"
+        )
+        == "14px"
+    )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     expect(page.get_by_text("Aweille", exact=True)).not_to_be_visible()
     expect(page.get_by_role("button", name="Toggle navigation")).to_be_visible()
@@ -284,6 +290,13 @@ def test_javascript_disabled_or_missing_explains_why_runs_cannot_load(
 ):
     with browser.new_context(java_script_enabled=javascript_enabled) as context:
         page = context.new_page()
+        if javascript_enabled:
+            page.route("**/static/weekly.js", lambda route: route.abort())
+        page.goto(live_server.url)
+        expect(page.get_by_role("status")).to_have_text(
+            "JavaScript is required to load your runs."
+        )
+        expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
         expect(page.get_by_role("link", name="Add run")).to_have_count(0)
         expect(page.get_by_role("button", name="Save run")).to_have_count(0)
 

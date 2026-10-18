@@ -118,7 +118,7 @@ button:disabled { background: var(--panel); color: var(--muted-ink); border-colo
 [aria-pressed="true"], #calendar [aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 [aria-pressed="true"]:hover { background: var(--ink); }
 #today { margin-left: auto; }
-.schedule-heading { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+.schedule-heading { display: grid; grid-template-columns: minmax(0, max-content) 44px minmax(74px, 1fr); gap: 12px; align-items: center; margin-bottom: 24px; }
 .schedule-heading > div { min-width: 0; }
 #exact-date { margin: 8px 0 0; }
 #open-calendar { font-size: 22px; }
@@ -128,7 +128,7 @@ button:disabled { background: var(--panel); color: var(--muted-ink); border-colo
 .add-run:hover { background: transparent; }
 .add-run:hover span { background: var(--primary-hover); text-decoration: underline; }
 .run { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; }
-.run-time { padding-top: 10px; font-size: 12px; }
+.run-time { padding-top: 10px; }
 .run-content { min-width: 0; }
 .run-summary { display: block; padding: 6px 0; text-decoration: none; min-height: 44px; }
 .run-summary h3 { margin: 0 0 4px; }
@@ -158,10 +158,12 @@ dialog::backdrop { background: var(--backdrop); }
   .week-view .day-heading { flex-direction: row; align-items: center; justify-content: space-between; }
   .week-view .day-heading h2 { display: flex; }
   .week-view .day-heading h2 span { margin: 0; }
-  .run { grid-template-columns: 52px minmax(0, 1fr); gap: 8px; }
+  .run { grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
 }
-@media (forced-colors: active) { [aria-pressed="true"], #calendar [aria-selected="true"] { outline: 2px solid Highlight; } }
-.schedule-heading { display: grid; grid-template-columns: minmax(0, max-content) 44px minmax(74px, 1fr); }
+@media (forced-colors: active) {
+  [aria-pressed="true"], #calendar [aria-selected="true"] { border: 2px solid ButtonText; }
+  :focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+}
 #day-add { justify-self: end; }
 .week-view .empty-day .day-heading { display: contents; }
 .week-view .empty-day .day-heading h2 { padding-block: 12px; }

@@ -13,6 +13,10 @@ let choices = { day: {}, week: {} };
 let readVersion = 0;
 let returnContext = takeScheduleReturn();
 let pendingFocus = returnContext?.focus;
+if (location.hash === "#week-heading") {
+  pendingFocus ??= "week-heading";
+  history.replaceState(null, "", location.pathname + location.search);
+}
 
 function monthName(date, length = "long") {
   return date.toLocaleDateString("en-US", { month: length, timeZone: "UTC" });

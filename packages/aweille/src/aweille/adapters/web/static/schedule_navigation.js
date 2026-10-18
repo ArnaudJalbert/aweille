@@ -74,7 +74,11 @@ export function takeFormContext() {
   return validContext(value) && token === value.token && value.target === url.pathname + url.search ? value : null;
 }
 export function returnToSchedule(context, { outcome = "cancel", date, id, fallback = "/" } = {}) {
-  if (!validContext(context) && outcome !== "save") return fallback;
+  if (!validContext(context) && outcome !== "save") {
+    const url = new URL(fallback, location.origin);
+    url.hash = "week-heading";
+    return url.pathname + url.search + url.hash;
+  }
   const selectedDate = outcome === "save" ? date : context.date;
   const view = context?.view ?? "day";
   const url = new URL(scheduleUrl(view, selectedDate), location.origin);
@@ -87,7 +91,8 @@ export function returnToSchedule(context, { outcome = "cancel", date, id, fallba
     token: crypto.randomUUID(),
   };
   if (validContext(value) && put(returnKey, value)) url.searchParams.set("return", value.token);
-  return url.pathname + url.search;
+  else url.hash = "week-heading";
+  return url.pathname + url.search + url.hash;
 }
 export function takeScheduleReturn() {
   const value = take(returnKey);

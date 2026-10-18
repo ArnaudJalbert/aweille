@@ -71,6 +71,7 @@ def test_disclosures_and_cancel_restore_each_view_and_initiating_focus(
 def test_calendar_keyboard_months_contextual_week_and_escape(
     page: Page, live_server: LiveServer
 ):
+    page.emulate_media(forced_colors="active")
     page.goto(f"{live_server.url}/?view=day&date=2026-10-14")
     calendar = page.get_by_role("button", name="Choose date")
     calendar.click()
@@ -86,6 +87,17 @@ def test_calendar_keyboard_months_contextual_week_and_escape(
     page.get_by_role("button", name="Week", exact=True).click()
     calendar.click()
     expect(page.locator('[role="gridcell"][aria-selected="true"]')).to_have_count(7)
+    page.keyboard.press("ArrowLeft")
+    focused = page.get_by_role("gridcell", name="2026-10-21", exact=True)
+    expect(focused).to_be_focused()
+    assert focused.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
+    assert focused.evaluate("node => getComputedStyle(node).outlineOffset") == "3px"
+    assert (
+        page.get_by_role("gridcell", name="2026-10-20", exact=True).evaluate(
+            "node => getComputedStyle(node).outlineStyle"
+        )
+        == "none"
+    )
     page.get_by_role("button", name="Next month").click()
     expect(page.get_by_role("heading", name="November 2026")).to_be_visible()
     page.get_by_role("button", name="Previous month").click()
@@ -150,3 +162,18 @@ def test_content_width_controls_week_layout_and_add_targets(
         else:
             assert body["x"] > header["x"] + header["width"]
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+def test_form_reload_falls_back_to_heading_focus_without_reusing_context(
+    page: Page, live_server: LiveServer
+):
+    page.goto(f"{live_server.url}/?view=week&date=2026-10-14")
+    page.get_by_role("link", name="Add run for Wednesday").click()
+    expect(page.get_by_role("button", name="Save run", exact=True)).to_be_enabled()
+    page.reload()
+    expect(page.get_by_label("Planned date")).to_have_value("2026-10-14")
+    page.get_by_role("link", name="Cancel", exact=True).click()
+    expect(page.get_by_role("heading", level=1)).to_be_focused()
+    expect(page.get_by_role("button", name="Day", exact=True)).to_have_attribute(
+        "aria-pressed", "true"
+    )
