@@ -28,7 +28,7 @@ def test_weekly_edit_prefill_partial_save_and_move(
     assert created.status == 201
     page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     page.get_by_role("link", name="Edit interval run on 2026-10-14").click()
-    expect(page.get_by_role("heading", level=1)).to_have_text("Edit a planned run")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Edit run")
     expect(page.get_by_label("Planned date")).to_have_value("2026-10-14")
     expect(page.get_by_label("Trainer note")).to_have_value("trainer")
     expect(page.get_by_role("group", name="Section 2")).to_be_visible()

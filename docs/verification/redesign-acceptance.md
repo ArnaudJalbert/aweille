@@ -1,5 +1,9 @@
 # Running-app redesign acceptance
 
+## October 18 visual correction
+
+Maintainer review exposed visual omissions despite the earlier passing behavior checks. The [visual comparison and correction record](redesign-visual-parity.md) identifies the approved screenshots, missing elements, fixes and intentional handoff differences. Linked schedule/form captures have been refreshed. The October 17 automated result below is historical; repeated checks and review results for the correction are recorded after that work completes.
+
 Implementation for #29, #50 and #51 follows the merged #52 handoff. The implementation PRs remain open in dependency order; the two downstream PRs remain draft while their prerequisites are unmerged. This record describes the implementation branches and their disposable local verification, not a deployed application. Physical-phone and screen-reader acceptance remain pending, so #51 and the Aweille redesign milestone stay open.
 
 ```text
@@ -13,7 +17,7 @@ Implementation for #29, #50 and #51 follows the merged #52 handoff. The implemen
 
 Verification ran on macOS with Playwright Chromium 156.0.8078.4, Uvicorn and temporary file-backed SQLite. Browser tests use real page/HTTP interfaces; write-failure tests either retain the real committed response or inject failures at HTTP. No real training database, API/core/storage code, deployment configuration or runtime dependency changed.
 
-The final combined implementation head `551dfd4` passes all 366 tests in 82.15 seconds, `uv run ty check`, `uv run ruff check .`, `uv run ruff format --check .`, and `git diff --check`. The foundation and schedule layers also passed their complete required checks before the next branch was built, with 350 and 356 tests respectively. See their [foundation](redesign-foundation.md) and [schedule](redesign-schedule.md) records for intermediate evidence. Final review corrections were also applied to the schedule prerequisite and revalidated before restacking the form branch.
+The October 17 combined implementation head `551dfd4` passed all 366 tests in 82.15 seconds, `uv run ty check`, `uv run ruff check .`, `uv run ruff format --check .`, and `git diff --check`. The foundation and schedule layers also passed their complete required checks before the next branch was built, with 350 and 356 tests respectively. See their [foundation](redesign-foundation.md) and [schedule](redesign-schedule.md) records for intermediate evidence. Those checks did not establish visual fidelity to the approved specimens.
 
 The additional integration pass exercised 16 combinations of Day, Week, create and edit at 320, 390, 900 and 1280 CSS px, using dense equal-time and untimed runs, twelve repeated sections, exact large targets, French text and long unbroken notes. It checked expanded/collapsed desktop navigation, closed/open drawers, backdrop/close/Escape dismissal, focus return, inert background, scroll lock, retained invalid/dirty drafts and page overflow. All passed. The appearance pass sent no write to storage.
 

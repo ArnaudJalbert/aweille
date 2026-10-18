@@ -20,6 +20,11 @@ def test_initial_editor_hides_fields_and_loaded_footer_stays_usable(
     expect(page.locator("#run-form")).to_have_attribute("aria-busy", "true")
     held[0].fulfill(response=held[0].fetch())
     expect(page.get_by_label("Planned date")).to_be_visible()
+    remove = page.get_by_role("button", name="Remove section 1", exact=True)
+    assert remove.evaluate("node => getComputedStyle(node).borderTopWidth") == "0px"
+    move = page.get_by_role("button", name="Move section 1 up", exact=True)
+    expect(move.locator("svg")).to_be_visible()
+    assert move.inner_text() == ""
     cancel = page.get_by_role("link", name="Cancel", exact=True).bounding_box()
     delete = page.get_by_role("button", name="Delete run", exact=True).bounding_box()
     save = page.get_by_role("button", name="Save changes", exact=True).bounding_box()

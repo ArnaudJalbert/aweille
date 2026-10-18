@@ -67,7 +67,7 @@ def test_drawer_schedule_keeps_invalid_create_draft_when_discard_declined(
     expect(page.get_by_label("Distance (km)")).to_have_attribute("aria-invalid", "true")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel", exact=True).click()
-    expect(page.get_by_role("heading", level=1)).not_to_have_text("Add a planned run")
+    expect(page.get_by_role("heading", level=1)).not_to_have_text("Add run")
 
 
 def test_pending_create_navigation_warns_without_cancelling_write(

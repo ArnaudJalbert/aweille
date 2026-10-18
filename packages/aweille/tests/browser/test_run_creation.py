@@ -13,7 +13,7 @@ def open_form(page: Page, server: LiveServer) -> None:
     page.get_by_role("region", name="Wednesday Oct 14").get_by_role(
         "link", name="Add run"
     ).click()
-    expect(page.get_by_role("heading", level=1)).to_have_text("Add a planned run")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Add run")
     expect(page.get_by_label("Planned date", exact=True)).to_have_value("2026-10-14")
     expect(page.get_by_label("Run type", exact=True)).to_have_value("")
 

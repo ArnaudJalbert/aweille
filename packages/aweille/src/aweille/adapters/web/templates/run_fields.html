@@ -7,7 +7,7 @@
       <span id="planned_date-error" class="field-error" hidden></span>
     </div>
     <div class="field-grid">
-      <label class="field" for="planned_start_time">Start time <span class="optional">(optional)</span></label>
+      <label class="field" for="planned_start_time">Start time <span class="optional">Optional</span></label>
       <input id="planned_start_time" name="planned_start_time" type="time" step="60" aria-describedby="planned_start_time-error">
       <span id="planned_start_time-error" class="field-error" hidden></span>
     </div>
@@ -25,20 +25,19 @@
   </div>
   <section class="form-section" aria-labelledby="sections-heading">
     <h2 id="sections-heading">Sections</h2>
-    <p class="muted">Each section is a separate step, in running order.</p>
+    <p class="muted">One step per section, in running order.</p>
     <div id="section-list"></div>
-    <div class="add-section"><button id="add-section" class="positive" type="button">Add section</button></div>
+    <div class="add-section"><button id="add-section" class="quiet-action" type="button">Add section</button></div>
   </section>
-  <section class="form-section" aria-labelledby="notes-heading">
-    <h2 id="notes-heading">Notes</h2>
+  <section class="notes-fields" aria-label="Notes">
     <div class="paired-fields">
       <div class="field-grid">
-        <label class="field" for="user_note">Personal note <span class="optional">(optional)</span></label>
+        <label class="field" for="user_note">Personal note <span class="optional">Optional</span></label>
         <textarea id="user_note" name="user_note" aria-describedby="user_note-error"></textarea>
         <span id="user_note-error" class="field-error" hidden></span>
       </div>
       <div class="field-grid">
-        <label class="field" for="trainer_note">Trainer note <span class="optional">(optional)</span></label>
+        <label class="field" for="trainer_note">Trainer note <span class="optional">Optional</span></label>
         <textarea id="trainer_note" name="trainer_note" aria-describedby="trainer_note-error"></textarea>
         <span id="trainer_note-error" class="field-error" hidden></span>
       </div>
@@ -61,10 +60,10 @@
           </div>
         </div>
         <div class="section-actions">
-          <button data-action="remove" type="button">Remove</button>
+          <button data-action="remove" class="quiet-action" type="button">Remove</button>
           <div class="move-actions">
-            <button data-action="up" type="button">Move up</button>
-            <button data-action="down" type="button">Move down</button>
+            <button data-action="up" class="icon-button" type="button" title="Move section up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+            <button data-action="down" class="icon-button" type="button" title="Move section down"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button>
           </div>
         </div>
       </fieldset>

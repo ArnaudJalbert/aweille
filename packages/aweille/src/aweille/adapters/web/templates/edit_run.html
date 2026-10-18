@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% set editing = true %}
-{% block title %}Edit a planned run | Aweille{% endblock %}
+{% block title %}Edit run | Aweille{% endblock %}
 {% block scripts %}<script type="module" src="{{ url_for('static', path='edit_run.js') }}"></script>{% endblock %}
 {% block screen_class %}form-shell{% endblock %}
 {% block content %}
-  <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Edit a planned run</h1></header>
+  <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Edit run</h1></header>
   <form id="run-form" class="form-card" aria-describedby="form-guidance" novalidate>
     <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
     <div id="recovery" hidden><button type="button" id="reload-run">Reload saved run</button><button type="button" id="retry-load">Retry</button></div>
