@@ -56,7 +56,6 @@ body.drawer-open { overflow: hidden; }
 .skip-link { position: absolute; top: 4px; left: 4px; transform: translateY(-200%); z-index: 30; padding: 8px; background: var(--panel); }
 .skip-link:focus { transform: none; }
 @container (max-width: 559px) { h1 { font-size: 26px; } }
-.week-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
 .days { display: grid; }
 .day { border-top: 1px solid var(--line); min-width: 0; padding: 16px 0; }
 .day-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -66,8 +65,6 @@ body.drawer-open { overflow: hidden; }
 .muted { color: var(--muted-ink); font-size: 14px; }
 .day-body > .muted { margin: 0; }
 .run + .run { border: 0; margin-top: 0; }
-.run h3 { margin-bottom: 12px; }
-.run > .button { margin-top: 14px; }
 .run-layout { display: grid; gap: 14px; }
 .sections { list-style: none; padding: 0; margin: 0; counter-reset: section; }
 .sections li { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; border-top: 1px solid var(--line); padding: 9px 0; }
@@ -82,9 +79,9 @@ body.drawer-open { overflow: hidden; }
 .notice button { margin-top: 12px; }
 .notice[role="alert"], #delete-confirmation { border-color: var(--error); color: var(--error); }
 .positive, .add-run { background: var(--primary); color: var(--ink); border-color: var(--strong-line); }
-.positive:hover:not(:disabled), .add-run:hover { background: var(--primary-hover); }
+.positive:is(:hover, :active):not(:disabled), .add-run:is(:hover, :active) { background: var(--primary-hover); }
 .negative { background: var(--destructive); color: var(--on-destructive); border-color: var(--error); }
-.negative:hover:not(:disabled) { background: var(--destructive-hover); }
+.negative:is(:hover, :active):not(:disabled) { background: var(--destructive-hover); }
 .form-card { padding: 0; }
 fieldset { border: 0; min-width: 0; padding: 0; margin: 0; }
 .field-grid { display: grid; align-content: start; gap: 6px; }
@@ -126,7 +123,7 @@ button:disabled { background: var(--panel); color: var(--muted-ink); border-colo
 .add-run { display: inline-flex; min-height: 44px; align-items: center; padding: 8px 0; font: 500 13px/20px var(--font-sans); text-decoration: none; flex-shrink: 0; background: transparent; }
 .add-run span { display: block; border: 1px solid var(--strong-line); border-radius: var(--radius-control); padding: 3px 8px; background: var(--primary); }
 .add-run:hover { background: transparent; }
-.add-run:hover span { background: var(--primary-hover); text-decoration: underline; }
+.add-run:is(:hover, :active) span { background: var(--primary-hover); text-decoration: underline; }
 .run { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; padding-bottom: 20px; }
 .run:last-child { padding-bottom: 0; }
 .run-time { padding-top: 3px; color: var(--muted-ink); }
@@ -184,3 +181,21 @@ dialog::backdrop { background: var(--backdrop); }
   .week-view .empty-day .day-heading h2 { padding: 0; }
   .week-view .empty-day .add-run { margin: 0; align-self: auto; }
 }
+/* Form geometry follows content width after navigation and page padding. */
+.form-shell { container-type: inline-size; }
+.paired-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+#form-guidance { margin: 0 0 16px; }
+#form-fields { padding-bottom: 24px; }
+.form-section { margin-top: 24px; padding-top: 24px; }
+.form-footer { position: sticky; bottom: 0; z-index: 5; align-items: center; flex-wrap: wrap; background: var(--paper); margin-top: 24px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); }
+.form-footer-left { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.form-footer > #save-run { margin-left: auto; }
+.form-footer button, .form-footer .button { padding-inline: 10px; }
+.form-card input, .form-card select, .form-card textarea { scroll-margin-block: 24px 112px; }
+#recovery, .confirmation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+#confirm-delete { background: var(--panel); color: var(--error); border-color: var(--error); }
+#confirm-delete:hover:not(:disabled) { text-decoration: underline; }
+#confirm-delete:disabled { color: var(--muted-ink); border-color: var(--strong-line); }
+#delete-confirmation h2 { font-size: 18px; }
+@container (max-width: 559px) { .paired-fields { grid-template-columns: minmax(0, 1fr); } }
+@media (max-height: 480px) { .form-footer { position: static; } }

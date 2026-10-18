@@ -72,7 +72,8 @@ document.querySelector("#schedule-link").onclick = event => {
   event.preventDefault();
   if (drawerOpen) dismiss();
   if (document.querySelector("#run-form")) {
-    document.dispatchEvent(new CustomEvent("schedule-navigation"));
+    const handled = !document.dispatchEvent(new CustomEvent("schedule-navigation", { cancelable: true }));
+    if (!handled) location.assign(event.currentTarget.href);
   } else {
     document.querySelector("h1").focus();
   }

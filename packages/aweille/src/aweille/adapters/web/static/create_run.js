@@ -52,6 +52,7 @@ function showSaveError(response, data, submittedDate) {
     if (Array.isArray(data?.detail)) {
       showBodyErrors(data.detail);
       showStatus("Could not save this run", data.detail.map(problem => problem.msg).join(" "));
+      form.querySelector('[aria-invalid="true"]')?.focus();
     } else {
       showStatus("Could not save this run", explanation);
     }
@@ -125,7 +126,10 @@ document.querySelector("#cancel").onclick = event => {
   event.preventDefault();
   navigate(event.currentTarget.href, true);
 };
-document.addEventListener("schedule-navigation", () => navigate(document.querySelector("#cancel").href, true));
+document.addEventListener("schedule-navigation", event => {
+  event.preventDefault();
+  navigate(document.querySelector("#cancel").href, true);
+});
 status.addEventListener("click", event => {
   const link = event.target.closest("a");
   if (link) { event.preventDefault(); navigate(link.href); }

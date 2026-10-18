@@ -285,6 +285,7 @@ def test_pending_deletion_blocks_competing_actions_then_timeout_requires_reload(
     page.get_by_role("button", name="Delete run", exact=True).click()
     page.get_by_role("button", name="Delete permanently").click()
     expect(page.get_by_role("status")).to_contain_text("Deleting run...")
+    expect(page.get_by_role("status")).to_be_focused()
     for name in ("Delete permanently", "Keep run", "Save changes", "Delete run"):
         expect(page.get_by_role("button", name=name, exact=True)).to_be_disabled()
     expect(page.get_by_label("Personal note")).to_be_disabled()

@@ -127,7 +127,9 @@ def test_initial_missing_run_never_enables_empty_form(
     )
     expect(page.get_by_text("Run unavailable")).to_be_visible()
     expect(page.get_by_role("button", name="Save changes")).to_be_disabled()
-    expect(page.get_by_role("button", name="Delete run", exact=True)).to_be_disabled()
+    expect(
+        page.get_by_role("button", name="Delete run", exact=True, include_hidden=True)
+    ).to_be_disabled()
     expect(page.get_by_label("Planned date")).to_be_disabled()
     expect(page.get_by_role("button", name="Reload saved run")).to_be_hidden()
     page.get_by_role("link", name="Cancel").click()
@@ -204,7 +206,9 @@ def test_unreadable_success_cannot_enable_form(
     page.goto(f"{live_server.url}/runs/{run_id}/edit")
     expect(page.get_by_text("Could not load run")).to_be_visible()
     expect(page.get_by_role("button", name="Save changes")).to_be_disabled()
-    expect(page.get_by_role("button", name="Delete run", exact=True)).to_be_disabled()
+    expect(
+        page.get_by_role("button", name="Delete run", exact=True, include_hidden=True)
+    ).to_be_disabled()
 
 
 def test_montreal_gap_validation_retains_draft_for_correction(
@@ -316,8 +320,9 @@ def test_api_field_errors_survive_dismissed_discard_prompts(
         expect(page.locator("#user_note-error")).to_have_text("Note rejected by API")
 
 
+@pytest.mark.parametrize("failure", ["network", "unavailable", "unreadable"])
 def test_lost_success_requires_reload_and_keeps_draft_on_failed_read(
-    page: Page, live_server: LiveServer
+    page: Page, live_server: LiveServer, failure: str
 ) -> None:
     run_id = "00000000-0000-0000-0000-000000000032"
     url = f"{live_server.url}/v1/runs/{run_id}"
@@ -342,7 +347,14 @@ def test_lost_success_requires_reload_and_keeps_draft_on_failed_read(
     def commit_then_drop(route):
         result = route.fetch()
         assert result.status == 200
-        route.abort()
+        if failure == "network":
+            route.abort()
+        elif failure == "unavailable":
+            route.fulfill(status=503, json={"detail": "Result unavailable."})
+        else:
+            route.fulfill(
+                status=200, body="unreadable", content_type="application/json"
+            )
 
     page.route(
         "**/v1/runs/*",
@@ -376,8 +388,9 @@ def test_lost_success_requires_reload_and_keeps_draft_on_failed_read(
     expect(page.get_by_label("Personal note")).to_have_value("draft")
 
 
+@pytest.mark.parametrize("changed", [False, True])
 def test_pending_save_warns_before_closing_dirty_editor(
-    page: Page, live_server: LiveServer
+    page: Page, live_server: LiveServer, changed: bool
 ) -> None:
     run_id = "00000000-0000-0000-0000-000000000032"
     assert (
@@ -405,10 +418,20 @@ def test_pending_save_warns_before_closing_dirty_editor(
             else route.continue_()
         ),
     )
-    page.get_by_label("Personal note").fill("draft")
+    if changed:
+        page.get_by_label("Personal note").fill("draft")
     page.get_by_role("button", name="Save changes").click()
     expect(page.get_by_text("Saving changes...")).to_be_visible()
-    page.wait_for_timeout(100)
+    messages = []
+
+    def decline(dialog):
+        messages.append(dialog.message)
+        dialog.dismiss()
+
+    page.once("dialog", decline)
+    page.get_by_role("link", name="Schedule", exact=True).click()
+    assert messages and "does not cancel" in messages[0]
+    expect(page.get_by_role("status")).to_contain_text("Saving changes...")
     assert len(pending) == 1
     with page.expect_event("dialog") as warning:
         page.close(run_before_unload=True)
@@ -449,3 +472,61 @@ def test_edit_to_unreadable_final_week_stays_with_confirmed_saved_run(
     page.reload()
     expect(page.get_by_label("Planned date")).to_have_value("9999-12-31")
     expect(page.get_by_role("button", name="Save changes")).to_be_enabled()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ["missing-precondition", "bad-precondition", "oversized", "uncertain-noop"],
+)
+def test_write_recovery_states_keep_readable_draft_and_require_explicit_review(
+    page: Page, live_server: LiveServer, run_request, failure: str
+):
+    saved = page.request.post(f"{live_server.url}/v1/runs", data=run_request).json()
+    page.goto(f"{live_server.url}/runs/{saved['id']}/edit")
+    expect(page.get_by_role("button", name="Save changes")).to_be_enabled()
+    note = page.get_by_label("Personal note")
+    if failure != "uncertain-noop":
+        note.fill("draft for review")
+
+    def fail_write(route):
+        if route.request.method != "PATCH":
+            route.continue_()
+        elif failure in ("missing-precondition", "bad-precondition"):
+            headers = {
+                key: value
+                for key, value in route.request.headers.items()
+                if key != "if-match"
+            }
+            if failure == "bad-precondition":
+                headers["if-match"] = "invalid"
+            route.fulfill(response=route.fetch(headers=headers))
+        elif failure == "oversized":
+            route.fulfill(status=413, json={"detail": "Request too large."})
+        else:
+            result = route.fetch()
+            assert result.status == 200 and result.json()["revision"] == "1"
+            route.fulfill(status=500, json={"detail": "Result unavailable."})
+
+    page.route("**/v1/runs/*", fail_write)
+    page.get_by_role("button", name="Save changes").click()
+    expect(page.get_by_role("alert")).to_be_visible()
+    expect(note).to_have_value(
+        "" if failure == "uncertain-noop" else "draft for review"
+    )
+    expect(note).to_be_enabled()
+    if failure == "oversized":
+        expect(page.get_by_role("alert")).to_contain_text(
+            "Reduce the notes or sections"
+        )
+        expect(page.get_by_role("button", name="Save changes")).to_be_enabled()
+    else:
+        expect(page.get_by_role("button", name="Save changes")).to_be_disabled()
+        expect(
+            page.get_by_role("button", name="Delete run", exact=True)
+        ).to_be_disabled()
+        expect(page.get_by_role("button", name="Reload saved run")).to_be_visible()
+    page.unroute_all()
+    assert (
+        page.request.get(f"{live_server.url}/v1/runs/{saved['id']}").json()["revision"]
+        == "1"
+    )
