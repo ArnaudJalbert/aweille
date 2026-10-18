@@ -13,7 +13,7 @@ Implementation for #29, #50 and #51 follows the merged #52 handoff. The implemen
 
 Verification ran on macOS with Playwright Chromium 156.0.8078.4, Uvicorn and temporary file-backed SQLite. Browser tests use real page/HTTP interfaces; write-failure tests either retain the real committed response or inject failures at HTTP. No real training database, API/core/storage code, deployment configuration or runtime dependency changed.
 
-The final combined head passes `uv run pytest`, `uv run ty check`, `uv run ruff check .`, `uv run ruff format --check .`, and `git diff --check`. The foundation and schedule layers also passed their complete required checks before the next branch was built. See their [foundation](redesign-foundation.md) and [schedule](redesign-schedule.md) records for intermediate evidence. Final review corrections were also applied to the schedule prerequisite and revalidated before restacking the form branch.
+The final combined implementation head `551dfd4` passes all 366 tests in 82.15 seconds, `uv run ty check`, `uv run ruff check .`, `uv run ruff format --check .`, and `git diff --check`. The foundation and schedule layers also passed their complete required checks before the next branch was built, with 350 and 356 tests respectively. See their [foundation](redesign-foundation.md) and [schedule](redesign-schedule.md) records for intermediate evidence. Final review corrections were also applied to the schedule prerequisite and revalidated before restacking the form branch.
 
 The additional integration pass exercised 16 combinations of Day, Week, create and edit at 320, 390, 900 and 1280 CSS px, using dense equal-time and untimed runs, twelve repeated sections, exact large targets, French text and long unbroken notes. It checked expanded/collapsed desktop navigation, closed/open drawers, backdrop/close/Escape dismissal, focus return, inert background, scroll lock, retained invalid/dirty drafts and page overflow. All passed. The appearance pass sent no write to storage.
 
@@ -63,6 +63,16 @@ All screenshots use disposable records, not training data. The existing design s
 - [Saved-target deletion confirmation](redesign/form-delete-confirmation-phone.png), [pending deletion](redesign/form-pending-delete-phone.png), [uncertain save](redesign/form-uncertain-save-phone.png)
 - Day/Week/calendar phone and desktop evidence is linked from the [schedule record](redesign-schedule.md).
 
-The code-review skill ran independent Standards and Spec reviews. Standards found and fixed the weakened JavaScript-unavailable test, forced-color focus, 12px time labels and duplicate CSS declarations. Spec found and fixed heading focus after a direct/missing-context return. The focused regression checks pass; no finding was dismissed as manual acceptance.
+The code-review skill ran independent Standards and Spec reviews against the merged handoff baseline. Findings were corrected and both axes reviewed again at `551dfd4`. No finding was dismissed as manual acceptance.
+
+### Standards
+
+No remaining documented-standard violations or actionable smells. The second pass confirmed fixes for the weakened JavaScript-unavailable test, forced-color focus, 12px time labels and duplicate CSS declarations. The reviewer checked the usefulness of the new return, DST, calendar and disclosure assertions and the accuracy of the acceptance record. This axis did not independently repeat the full suite or manual browser evidence.
+
+### Spec
+
+No remaining specification findings. The direct/missing-context return now preserves the fallback destination and focuses the schedule heading, including after a failed schedule read and retry. The second pass confirmed the fix and passed 40 focused public-browser navigation/edit/delete regressions. Physical-phone and screen-reader acceptance remain pending.
+
+Review totals: Standards 0 remaining findings; Spec 0 remaining findings.
 
 No implementation PR has been merged and nothing has been deployed. #52 was merged only after Arnaud explicitly approved it. Authentication/session expiry, future training kinds and custom logo work remain outside these changes.

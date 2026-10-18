@@ -6,7 +6,7 @@ Read the issue or task and agree on scope before coding. Use `gh` for GitHub iss
 
 Before changing core, API, or adapters, read the README's [Architecture](README.md#architecture) and [Public core interface](README.md#public-core-interface). For domain changes, also read [CONTEXT.md](CONTEXT.md) and relevant ADRs if present.
 
-Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the relevant notes in `docs/design/`. Preserve the implemented run behavior while distinguishing selected design decisions, provisional specimen values, and future training kinds. The current app is not yet reskinned.
+Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the relevant notes in `docs/design/`. Preserve the implemented run behavior while distinguishing selected design decisions, provisional specimen values, and future training kinds. See [redesign acceptance](docs/verification/redesign-acceptance.md) for the implementation evidence and pending manual checks.
 
 Work on feature branches and open pull requests targeting `main`. Never push directly to `main`.
 
