@@ -1,3 +1,4 @@
+import { calendarDate, weekUrl, scheduleUrl, takeFormContext, returnToSchedule } from "./schedule_navigation.js";
 import { createRunForm } from "./run_form.js";
 
 const form = document.querySelector("#run-form");
@@ -11,6 +12,7 @@ const confirmDelete = document.querySelector("#confirm-delete");
 const keepRun = document.querySelector("#keep-run");
 const params = new URLSearchParams(location.search);
 const id = location.pathname.split("/")[2];
+const origin = takeFormContext();
 let writePending = false;
 let loading = true;
 let confirmingDelete = false;
@@ -19,22 +21,6 @@ let reloadRequired = false;
 let readVersion = 0;
 const { addSection, editSections, updateSections, showValidation, showBodyErrors, readPayload, populate } =
   createRunForm(form, fields, sections, () => writePending);
-function calendarDate(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.getUTCFullYear() >= 1 &&
-    date.getUTCFullYear() <= 9999 && date.toISOString().slice(0, 10) === value ? date : null;
-}
-function weekUrl(value) {
-  const date = calendarDate(value);
-  if (!date) return "/";
-  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
-  const end = new Date(date);
-  end.setUTCDate(end.getUTCDate() + 7);
-  if (end.getUTCFullYear() > 9999) return "/";
-  return `/?week=${date.toISOString().slice(0, 10)}`;
-}
-
 function showStatus(title, message) {
   status.hidden = false;
   const informational = title === "Changes saved" || title.startsWith("Loading") || title.startsWith("Reloading") || title.startsWith("Saving changes") || title.startsWith("Deleting run");
@@ -88,7 +74,7 @@ function prefill(run) {
   closeConfirmation();
   status.hidden = true;
   document.querySelector("#recovery").hidden = true;
-  document.querySelector("#cancel").href = editorWeek();
+  document.querySelector("#cancel").href = origin ? scheduleUrl(origin.view, origin.date) : editorWeek();
 }
 
 function draftChanges(payload = readPayload().payload) {
@@ -218,7 +204,7 @@ async function saveRun(event) {
         return;
       }
       window.leavingEditor = true;
-      location.assign(destination);
+      location.assign(returnToSchedule(origin, { outcome: "save", date: data.planned_date, id: data.id, fallback: destination }));
       return;
     }
     showWriteFailure(response, data);
@@ -244,7 +230,7 @@ async function deleteRun() {
       signal: AbortSignal.timeout(15000),
     });
     if (response.status === 204) {
-      leave(editorWeek());
+      leave(returnToSchedule(origin, { outcome: "delete", fallback: editorWeek() }));
       return;
     }
     const data = await response.json().catch(() => null);
@@ -291,6 +277,6 @@ loadRun();
 
 function guardedLeave() {
   const message = writePending ? "Leave while a write is pending? Leaving does not cancel the request, which may still complete." : "Discard your unsaved changes?";
-  if ((!dirty() && !writePending) || confirm(message)) leave(editorWeek());
+  if ((!dirty() && !writePending) || confirm(message)) leave(returnToSchedule(origin, { fallback: editorWeek() }));
 }
 document.addEventListener("schedule-navigation", guardedLeave);

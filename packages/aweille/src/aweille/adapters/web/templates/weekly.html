@@ -2,12 +2,29 @@
 {% block title %}Schedule | Aweille{% endblock %}
 {% block scripts %}<script type="module" src="{{ url_for('static', path='weekly.js') }}"></script>{% endblock %}
 {% block content %}
-    <header class="page-heading">{% include 'menu.html' %}<h1 id="week-heading" tabindex="-1"></h1></header>
-    <div id="status" class="notice" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to load your runs.</div>
-    <div id="days" class="days"></div>
-    <nav id="week-navigation" class="week-nav" aria-label="Week navigation" hidden>
-      <button id="previous-week" type="button">Previous week</button>
-      <button id="this-week" type="button">This week</button>
-      <button id="next-week" type="button">Next week</button>
-    </nav>
+  <div class="schedule-toolbar" id="schedule-toolbar" hidden>
+    {% include 'menu.html' %}
+    <div class="view-switch" role="group" aria-label="Schedule view">
+      <button id="view-day" type="button" aria-pressed="true">Day</button>
+      <button id="view-week" type="button" aria-pressed="false">Week</button>
+    </div>
+    <button id="today" type="button">Today</button>
+  </div>
+  <header class="schedule-heading">
+    <div><h1 id="week-heading" tabindex="-1">Schedule</h1><p id="exact-date" class="measurement"></p></div>
+    <button id="open-calendar" type="button" aria-label="Choose date" aria-haspopup="dialog" hidden>▦</button>
+    <span id="day-add"></span>
+  </header>
+  <div id="status" class="notice" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to load your runs.</div>
+  <div id="days" class="days"></div>
+  <dialog id="calendar" aria-labelledby="calendar-heading">
+    <header class="calendar-header">
+      <button id="previous-month" type="button" aria-label="Previous month">‹</button>
+      <h2 id="calendar-heading" aria-live="polite"></h2>
+      <button id="next-month" type="button" aria-label="Next month">›</button>
+    </header>
+    <p id="calendar-help" class="muted">Arrow keys move between dates. Enter selects.</p>
+    <div id="calendar-grid" role="grid" aria-label="Choose a date" aria-describedby="calendar-help"></div>
+    <footer><button id="calendar-shortcut" type="button">Today</button><button id="cancel-calendar" type="button">Cancel</button></footer>
+  </dialog>
 {% endblock %}

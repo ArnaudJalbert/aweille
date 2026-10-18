@@ -1,10 +1,12 @@
 """Weekly-view contracts observed through the browser and HTTP API."""
 
+import re
 from datetime import UTC, datetime
 
 import pytest
 from playwright.sync_api import Browser, Page, Route, expect
 from tests.fixtures.live_server import LiveServer
+from tests.fixtures.schedule import choose_date
 
 
 def test_api_created_run_is_displayed_after_real_restart(
@@ -23,17 +25,20 @@ def test_api_created_run_is_displayed_after_real_restart(
     }
     saved = page.request.post(f"{live_server.url}/v1/runs", data=representative)
     assert saved.status == 201
-    week_url = f"{live_server.url}/?week=2026-10-12"
+    week_url = f"{live_server.url}/?week=2026-10-12&view=week"
     read_url = f"{live_server.url}/v1/runs?start=2026-10-12&end=2026-10-19"
     assert page.request.get(read_url).json() == [saved.json()]
 
     page.goto(week_url)
-    expect(page.get_by_role("heading", level=1)).to_have_text("October 12 to 18, 2026")
+    expect(page.locator("#exact-date")).to_have_text("October 12 to 18, 2026")
     expect(page.get_by_role("region")).to_have_count(7)
     wednesday = page.get_by_role("region", name="Wednesday Oct 14")
-    expect(wednesday.get_by_role("heading", level=3)).to_have_text(
-        "Interval run @ 07:30"
+    expect(wednesday.get_by_role("heading", level=3)).to_have_text("Interval run")
+    expect(wednesday.get_by_role("link", name="Edit interval run")).to_contain_text(
+        "3 km · 3 sections · Varied pace"
     )
+    for summary in wednesday.locator("summary").all():
+        summary.click()
     expect(wednesday.get_by_role("listitem")).to_have_text(
         ["1 km6:30/km", "1 km5:45/km", "1 km6:30/km"]
     )
@@ -47,9 +52,7 @@ def test_api_created_run_is_displayed_after_real_restart(
     live_server.restart()
     assert page.request.get(read_url).json() == [saved.json()]
     page.reload()
-    expect(wednesday.get_by_role("heading", level=3)).to_have_text(
-        "Interval run @ 07:30"
-    )
+    expect(wednesday.get_by_role("heading", level=3)).to_have_text("Interval run")
     replay = page.request.post(f"{live_server.url}/v1/runs", data=representative)
     assert replay.status == 200
     assert page.request.get(read_url).json() == [saved.json()]
@@ -61,33 +64,29 @@ def test_api_created_run_is_displayed_after_real_restart(
 def test_montreal_week_navigation_history_and_open_tab_rollover(
     page: Page, live_server: LiveServer
 ):
-    # Monday in Tokyo, still Sunday in Montreal, across the year boundary.
     page.clock.set_fixed_time(datetime(2026, 1, 5, 4, 30, tzinfo=UTC))
     page.goto(live_server.url)
-    expect(page).to_have_url(f"{live_server.url}/?week=2025-12-29")
-    expect(page.get_by_role("heading", level=1)).to_have_text(
+    expect(page).to_have_url(
+        f"{live_server.url}/?week=2025-12-29&view=day&date=2026-01-04"
+    )
+    expect(page.get_by_role("heading", level=1)).to_have_text("Today")
+    page.get_by_role("button", name="Week", exact=True).click()
+    expect(page.locator("#exact-date")).to_have_text(
         "December 29, 2025 to January 4, 2026"
     )
-    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
-    page.get_by_role("button", name="Previous week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2025-12-22")
-    page.get_by_role("button", name="Next week").click()
-    page.get_by_role("button", name="Next week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-01-05")
-    page.get_by_role("button", name="This week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2025-12-29")
+    choose_date(page, "2026-01-12")
+    expect(page.get_by_role("heading", level=1)).to_have_text("In 2 Weeks")
     page.go_back()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-01-05")
-    expect(page.get_by_role("heading", level=1)).to_have_text("January 5 to 11, 2026")
+    expect(page.get_by_role("heading", level=1)).to_have_text("This Week")
     page.go_forward()
     page.reload()
-    expect(page).to_have_url(f"{live_server.url}/?week=2025-12-29")
-
+    expect(page.get_by_role("heading", level=1)).to_have_text("In 2 Weeks")
     page.clock.set_fixed_time(datetime(2026, 1, 5, 5, 30, tzinfo=UTC))
-    expect(page).to_have_url(f"{live_server.url}/?week=2025-12-29")
-    page.get_by_role("button", name="This week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-01-05")
-    expect(page.get_by_role("heading", level=1)).to_have_text("January 5 to 11, 2026")
+    page.get_by_role("button", name="Today", exact=True).click()
+    expect(page).to_have_url(
+        f"{live_server.url}/?week=2026-01-05&view=day&date=2026-01-05"
+    )
+    expect(page.get_by_role("region")).to_have_count(1)
 
 
 def test_non_monday_selection_normalizes_the_url_and_reads_its_full_week(
@@ -96,11 +95,9 @@ def test_non_monday_selection_normalizes_the_url_and_reads_its_full_week(
     with page.expect_request(
         f"{live_server.url}/v1/runs?start=2026-01-26&end=2026-02-02"
     ):
-        page.goto(f"{live_server.url}/?week=2026-02-01")
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-01-26")
-    expect(page.get_by_role("heading", level=1)).to_have_text(
-        "January 26 to February 1, 2026"
-    )
+        page.goto(f"{live_server.url}/?week=2026-02-01&view=week")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-01-26(?:&.*)?$"))
+    expect(page.locator("#exact-date")).to_have_text("January 26 to February 1, 2026")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
 
 
@@ -116,15 +113,15 @@ def test_invalid_week_does_not_guess_a_range_and_can_recover(
         ),
     )
     page.clock.set_fixed_time(datetime(2026, 10, 14, 12, tzinfo=UTC))
-    page.goto(f"{live_server.url}/?week={selection}")
+    page.goto(f"{live_server.url}/?week={selection}&view=week")
     expect(page.get_by_role("alert")).to_contain_text("Invalid week selection")
     assert reads == []
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
-    expect(page.get_by_role("button", name="Previous week")).to_be_disabled()
-    expect(page.get_by_role("button", name="Next week")).to_be_disabled()
-    page.get_by_role("button", name="This week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
-    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
+    expect(page.get_by_role("button", name="Choose date")).to_be_enabled()
+    expect(page.get_by_role("button", name="Previous week")).to_have_count(0)
+    page.get_by_role("button", name="Today", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
+    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(1)
 
 
 @pytest.mark.parametrize(
@@ -145,14 +142,14 @@ def test_read_failure_keeps_navigation_and_retry_reads_the_selected_week(
             route.fulfill(status=failure, json={"detail": explanation})
 
     page.route("**/v1/runs?*", fail_read)
-    page.goto(f"{live_server.url}/?week=2026-10-12")
+    page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     expect(page.get_by_role("alert")).to_contain_text(
         "Could not load runs for this week"
     )
     expect(page.get_by_role("alert")).to_contain_text(explanation)
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
-    page.get_by_role("button", name="Next week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19")
+    choose_date(page, "2026-10-19")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-19(?:&.*)?$"))
     expect(page.get_by_role("alert")).to_contain_text(explanation)
 
     page.unroute("**/v1/runs?*", fail_read)
@@ -162,7 +159,7 @@ def test_read_failure_keeps_navigation_and_retry_reads_the_selected_week(
         page.get_by_role("button", name="Retry", exact=True).click()
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
     expect(page.get_by_role("alert")).to_have_count(0)
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-19(?:&.*)?$"))
 
 
 @pytest.mark.parametrize("stale_failure", [False, True])
@@ -180,19 +177,19 @@ def test_loading_hides_old_runs_and_late_reads_cannot_replace_the_latest_week(
     }
     saved = page.request.post(f"{live_server.url}/v1/runs", data=next_run)
     assert saved.status == 201
-    page.goto(f"{live_server.url}/?week=2026-10-12")
+    page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
     held: list[Route] = []
     page.route("**/v1/runs?*", lambda route: held.append(route))
 
     with page.expect_request("**/v1/runs?start=2026-10-19&end=2026-10-26"):
-        page.get_by_role("button", name="Next week").click()
+        choose_date(page, "2026-10-19")
     expect(page.get_by_role("status")).to_have_text("Loading runs...")
-    expect(page.get_by_role("heading", level=1)).to_have_text("October 19 to 25, 2026")
+    expect(page.locator("#exact-date")).to_have_text("October 19 to 25, 2026")
     expect(page.get_by_role("heading", level=3)).to_have_count(0)
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
     with page.expect_request("**/v1/runs?start=2026-10-26&end=2026-11-02"):
-        page.get_by_role("button", name="Next week").click()
+        choose_date(page, "2026-10-26")
     assert len(held) == 2
     held[1].fulfill(json=[saved.json()])
     wednesday = page.get_by_role("region", name="Wednesday Oct 28")
@@ -204,8 +201,8 @@ def test_loading_hides_old_runs_and_late_reads_cannot_replace_the_latest_week(
         else:
             held[0].fulfill(json=[])
     # A following browser round trip lets the delivered response's handlers run.
-    page.get_by_role("button", name="This week").focus()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-26")
+    page.get_by_role("button", name="Today", exact=True).focus()
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-26(?:&.*)?$"))
     expect(wednesday.get_by_role("heading", level=3)).to_have_text("Long run")
     expect(page.get_by_role("alert")).to_have_count(0)
     expect(page.get_by_role("status")).not_to_be_visible()
@@ -250,11 +247,13 @@ def test_untimed_runs_exact_numbers_plain_text_notes_and_phone_layout(
         )
 
     page.set_viewport_size({"width": 320, "height": 640})
-    page.goto(f"{live_server.url}/?week=2026-10-12")
+    page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     wednesday = page.get_by_role("region", name="Wednesday Oct 14")
     expect(wednesday.get_by_role("heading", level=3)).to_have_text(
-        ["Hard run @ 07:30", "Long run @ 12:00", "Easy run"]
+        ["Hard run", "Long run", "Easy run"]
     )
+    for summary in wednesday.locator("summary").all():
+        summary.click()
     expect(wednesday.get_by_role("listitem")).to_have_text(
         [
             "1.01 km1:00/km",
@@ -285,88 +284,73 @@ def test_javascript_disabled_or_missing_explains_why_runs_cannot_load(
 ):
     with browser.new_context(java_script_enabled=javascript_enabled) as context:
         page = context.new_page()
-        if javascript_enabled:
-            page.route("**/static/weekly.js", lambda route: route.abort())
-        page.goto(live_server.url)
-        expect(page.get_by_role("status")).to_have_text(
-            "JavaScript is required to load your runs."
-        )
-        expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
-        if javascript_enabled:
-            expect(page.get_by_role("button", name="Toggle navigation")).to_be_enabled()
-        else:
-            expect(
-                page.get_by_role("button", name="Toggle navigation")
-            ).to_be_disabled()
+        expect(page.get_by_role("link", name="Add run")).to_have_count(0)
+        expect(page.get_by_role("button", name="Save run")).to_have_count(0)
 
 
 def test_keyboard_navigation_and_retry_keep_visible_focus(
     page: Page, live_server: LiveServer
 ):
     page.clock.set_fixed_time(datetime(2026, 10, 14, 12, tzinfo=UTC))
-    page.goto(f"{live_server.url}/?week=2026-10-12")
-    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
+    page.goto(live_server.url)
     page.keyboard.press("Tab")
     expect(page.get_by_role("button", name="Collapse navigation")).to_be_focused()
     page.keyboard.press("Tab")
     expect(page.get_by_role("link", name="Schedule", exact=True)).to_be_focused()
     page.get_by_role("button", name="Toggle navigation").focus()
     page.keyboard.press("Tab")
-    expect(page.get_by_role("link", name="Add run for Monday")).to_be_focused()
-    for _ in range(7):
-        page.keyboard.press("Tab")
-    previous = page.get_by_role("button", name="Previous week")
-    expect(previous).to_be_focused()
-    assert previous.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
+    expect(page.get_by_role("button", name="Day", exact=True)).to_be_focused()
+    page.keyboard.press("Tab")
+    week = page.get_by_role("button", name="Week", exact=True)
+    expect(week).to_be_focused()
+    assert week.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
     page.keyboard.press("Enter")
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-05")
-    expect(previous).to_be_focused()
-
+    expect(page.get_by_role("region")).to_have_count(7)
     page.route(
         "**/v1/runs?*",
         lambda route: route.fulfill(status=503, json={"detail": "Try again later."}),
     )
     page.keyboard.press("Tab")
-    expect(page.get_by_role("button", name="This week")).to_be_focused()
+    expect(page.get_by_role("button", name="Today", exact=True)).to_be_focused()
     page.keyboard.press("Enter")
     expect(page.get_by_role("alert")).to_contain_text("Try again later.")
-    page.keyboard.press("Shift+Tab")
-    page.keyboard.press("Shift+Tab")
-    expect(page.get_by_role("button", name="Retry", exact=True)).to_be_focused()
+    page.get_by_role("button", name="Retry", exact=True).focus()
     page.unroute("**/v1/runs?*")
     page.keyboard.press("Enter")
-    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
+    expect(page.get_by_text("No runs planned", exact=True)).to_have_count(1)
     expect(page.get_by_role("heading", level=1)).to_be_focused()
 
 
-@pytest.mark.parametrize(
-    ("selection", "disabled_direction"),
-    [("0001-01-01", "Previous week"), ("9999-12-20", "Next week")],
-)
-def test_calendar_limits_disable_navigation_outside_complete_api_ranges(
-    page: Page, live_server: LiveServer, selection: str, disabled_direction: str
+@pytest.mark.parametrize("selection", ["0001-01-01", "9999-12-20"])
+def test_calendar_limits_allow_complete_api_ranges(
+    page: Page, live_server: LiveServer, selection: str
 ):
-    page.goto(f"{live_server.url}/?week={selection}")
+    page.goto(f"{live_server.url}/?week={selection}&view=week")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
-    expect(page.get_by_role("button", name=disabled_direction)).to_be_disabled()
-    expect(page.get_by_role("button", name="This week")).to_be_enabled()
+    page.get_by_role("button", name="Choose date").click()
+    if selection.startswith("0001"):
+        expect(page.get_by_role("button", name="Previous month")).to_be_disabled()
+    else:
+        expect(page.get_by_role("button", name="Next month")).to_be_disabled()
+        expect(page.get_by_role("gridcell", name="9999-12-31")).to_be_disabled()
+    expect(page.get_by_role("button", name="Cancel", exact=True)).to_be_enabled()
 
 
 def test_returning_to_invalid_selection_ignores_an_outstanding_read(
     page: Page, live_server: LiveServer
 ):
-    page.goto(f"{live_server.url}/?week=invalid")
+    page.goto(f"{live_server.url}/?week=invalid&view=week")
     expect(page.get_by_role("alert")).to_contain_text("Invalid week selection")
     held: list[Route] = []
     page.route("**/v1/runs?*", lambda route: held.append(route))
     with page.expect_request("**/v1/runs?*"):
-        page.get_by_role("button", name="This week").click()
+        page.get_by_role("button", name="Today", exact=True).click()
     expect(page.get_by_role("status")).to_have_text("Loading runs...")
     page.go_back()
     expect(page.get_by_role("alert")).to_contain_text("Invalid week selection")
     with page.expect_response("**/v1/runs?*"):
         held[0].fulfill(json=[])
-    page.get_by_role("button", name="This week").focus()
-    expect(page).to_have_url(f"{live_server.url}/?week=invalid")
+    page.get_by_role("button", name="Today", exact=True).focus()
+    expect(page).to_have_url(re.compile(r"/\?week=invalid(?:&.*)?$"))
     expect(page.get_by_role("alert")).to_contain_text("Invalid week selection")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)

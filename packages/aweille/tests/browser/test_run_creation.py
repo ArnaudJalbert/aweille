@@ -1,5 +1,6 @@
 """Manual creation observed through public browser and HTTP interactions."""
 
+import re
 from uuid import UUID
 
 import pytest
@@ -8,7 +9,7 @@ from tests.fixtures.live_server import LiveServer
 
 
 def open_form(page: Page, server: LiveServer) -> None:
-    page.goto(f"{server.url}/?week=2026-10-12")
+    page.goto(f"{server.url}/?week=2026-10-12&view=week")
     page.get_by_role("region", name="Wednesday Oct 14").get_by_role(
         "link", name="Add run"
     ).click()
@@ -55,9 +56,9 @@ def test_manual_creation_read_display_restart_and_identical_retry(
     }
     read_url = f"{live_server.url}/v1/runs?start=2026-10-12&end=2026-10-19"
     saved = {**submitted, "revision": "1"}
-    expect(page.get_by_role("heading", level=3)).to_have_text("Interval run @ 07:30")
+    expect(page.get_by_role("heading", level=3)).to_have_text("Interval run")
     expect(page.get_by_text("Run saved.", exact=True)).to_have_count(0)
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
 
     for restart in (False, True):
         if restart:
@@ -66,9 +67,8 @@ def test_manual_creation_read_display_restart_and_identical_retry(
         assert page.request.get(read_url).json() == [saved]
         expect(page.get_by_role("region")).to_have_count(7)
         wednesday = page.get_by_role("region", name="Wednesday Oct 14")
-        expect(wednesday.get_by_role("heading", level=3)).to_have_text(
-            "Interval run @ 07:30"
-        )
+        expect(wednesday.get_by_role("heading", level=3)).to_have_text("Interval run")
+        wednesday.get_by_text("Show details", exact=True).click()
         expect(wednesday.get_by_role("listitem")).to_have_text(
             ["1 km6:30/km", "1 km5:45/km", "1 km6:30/km"]
         )
@@ -113,7 +113,7 @@ def test_section_editing_exact_conversion_and_save_to_changed_week(
     with page.expect_response("**/v1/runs") as response:
         page.get_by_role("button", name="Save run", exact=True).click()
     assert response.value.status == 201
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-19(?:&.*)?$"))
     saved = page.request.get(
         f"{live_server.url}/v1/runs?start=2026-10-19&end=2026-10-26"
     ).json()
@@ -145,7 +145,7 @@ def test_cancel_keeps_originating_week_without_creating_a_run(
     fill_section(page, 1, "1", "6:30")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel", exact=True).click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
     assert creates == []
 
@@ -257,8 +257,8 @@ def test_nonexistent_montreal_time_returns_real_field_error_and_can_be_corrected
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
     page.get_by_label("Start time").fill("03:30")
     page.get_by_role("button", name="Save run", exact=True).click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-03-02")
-    expect(page.get_by_role("heading", level=3)).to_have_text("Easy run @ 03:30")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-03-02(?:&.*)?$"))
+    expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
 
 
 @pytest.mark.parametrize("failure", ["network", "unavailable", "unreadable"])
@@ -296,7 +296,7 @@ def test_committed_uncertain_save_retries_same_payload_without_duplication(
     expect(page.get_by_label("Distance (km)")).to_have_value("1")
     expect(page.get_by_label("Pace (m:ss/km)")).to_have_value("6:30")
     expect(page.get_by_role("link", name="View submitted week")).to_have_attribute(
-        "href", "/?week=2026-10-12"
+        "href", "/?week=2026-10-12&view=week"
     )
     page.unroute("**/v1/runs", lose_response)
     with page.expect_response("**/v1/runs") as retried:
@@ -360,7 +360,7 @@ def test_editing_uncertain_save_conflicts_and_links_to_original_submitted_week(
     assert stored[0]["user_note"] is None
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="View submitted week").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
 
 
@@ -398,11 +398,13 @@ def test_multiple_uncertain_dates_keep_a_link_to_the_week_that_actually_saved(
         "This run ID belongs to different saved data"
     )
     actual_week = "2026-10-12" if first_attempt_committed else "2026-10-26"
-    link = page.get_by_role("alert").locator(f'a[href="/?week={actual_week}"]')
+    link = page.get_by_role("alert").locator(
+        f'a[href="/?week={actual_week}&view=week"]'
+    )
     expect(link).to_be_visible()
     page.once("dialog", lambda dialog: dialog.accept())
     link.click()
-    expect(page).to_have_url(f"{live_server.url}/?week={actual_week}")
+    expect(page).to_have_url(re.compile(rf"/\?week={actual_week}(?:&.*)?$"))
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
     assert attempts[0]["id"] == attempts[1]["id"]
 

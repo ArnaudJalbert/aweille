@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from playwright.sync_api import Page, expect
 from tests.fixtures.live_server import LiveServer
@@ -20,7 +22,7 @@ def test_inline_confirmation_keeps_draft_then_deletes_and_survives_restart(
     page: Page, live_server: LiveServer, saved_run
 ) -> None:
     page.set_viewport_size({"width": 390, "height": 844})
-    page.goto(f"{live_server.url}/?week=2026-10-12")
+    page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     expect(page.get_by_role("button", name="Delete run", exact=True)).to_have_count(0)
     page.get_by_role("link", name="Edit easy run on 2026-10-14").click()
     expect(page.get_by_label("Personal note")).to_have_value("saved note")
@@ -63,7 +65,7 @@ def test_inline_confirmation_keeps_draft_then_deletes_and_survives_restart(
     assert result.value.request.method == "DELETE"
     assert result.value.request.headers["if-match"] == '"1"'
     assert result.value.request.post_data is None
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     expect(page.locator(".run")).to_have_count(0)
     assert len(writes) == 1
     live_server.restart()
@@ -119,7 +121,7 @@ def test_stale_deletion_requires_confirmed_reload_and_new_confirmation(
     with page.expect_response(url) as result:
         page.get_by_role("button", name="Delete permanently").click()
     assert result.value.request.headers["if-match"] == '"2"'
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     assert page.request.get(url).status == 404
 
 
@@ -145,7 +147,7 @@ def test_competing_deletion_keeps_draft_and_offers_return_without_claiming_succe
     expect(page).to_have_url(editor)
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-05")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-05(?:&.*)?$"))
 
 
 @pytest.mark.parametrize(
