@@ -146,8 +146,8 @@ def test_confirmed_cross_week_save_selects_run_and_retry_only_reads(
     page.get_by_role("link", name="Add run for Wednesday").click()
     page.get_by_label("Planned date").fill("2026-10-28")
     page.get_by_label("Run type").select_option("easy")
-    page.get_by_label("Distance (km)").fill("1")
-    page.get_by_label("Pace (m:ss/km)").fill("6:30")
+    page.get_by_label("Distance km").fill("1")
+    page.get_by_label("Pace m:ss/km").fill("6:30")
     writes = []
     page.on(
         "request",

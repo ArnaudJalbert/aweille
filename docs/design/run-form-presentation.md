@@ -2,6 +2,10 @@
 
 Arnaud approved the complete presentation through [Define run-form, deletion, and recovery presentations](https://github.com/ArnaudJalbert/aweille/issues/46#issuecomment-6243248791). This is the design handoff for the current run-only app. The browser implementation follows this decision; [integrated verification](../verification/redesign-acceptance.md) records evidence and remaining manual acceptance.
 
+## October 18 visual reference update
+
+Arnaud asked to reproduce the final green prototype directly in production. Follow its paired date/time and target fields even on phones, full-width vertical note rows with the Notes heading, Sans editable values, quiet actions and original button/state treatments. [DESIGN.md](../../DESIGN.md#production-visual-reference) records this update, which supersedes the earlier visual-token precedence below. Real writes and all recovery/draft/focus behavior remain authoritative.
+
 ## Form and actions
 
 Create/edit replaces the schedule content area beside the [approved sidebar](sidebar-integration.md). Put the menu beside the form heading. Keep the field order: planned date and optional start time, run type, ordered sections, then separate optional personal and trainer notes. Persistent labels include units; explain that fields are required unless marked optional. Draft text stays readable and available through recoverable failures.

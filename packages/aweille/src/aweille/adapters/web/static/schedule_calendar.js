@@ -21,6 +21,7 @@ export function setupCalendar(select, selection) {
     }
     grid.append(labels);
     const start = containingMonday(month);
+    const today = dateString(montrealToday());
     for (let row = 0; row < 6; row++) {
       const week = document.createElement("div"); week.setAttribute("role", "row");
       for (let col = 0; col < 7; col++) {
@@ -32,6 +33,7 @@ export function setupCalendar(select, selection) {
         button.setAttribute("aria-label", value);
         button.setAttribute("aria-selected", String(view === "day" ? value === dateString(selected) : dateString(containingMonday(date)) === dateString(containingMonday(selected))));
         button.classList.toggle("other-month", date.getUTCMonth() !== month.getUTCMonth());
+        button.classList.toggle("is-today", value === today);
         button.disabled = !calendarDate(value) || !readableWeek(date);
         button.tabIndex = value === dateString(cursor) ? 0 : -1;
         button.onclick = () => { dialog.close(); select(date); };

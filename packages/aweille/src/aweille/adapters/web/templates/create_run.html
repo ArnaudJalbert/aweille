@@ -6,7 +6,10 @@
 {% block content %}
   <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Add run</h1></header>
   <form id="run-form" class="form-card" aria-describedby="form-guidance" novalidate>
-    <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
+    <p id="form-guidance" class="muted">Fields are required unless marked optional.</p>
+    <div class="form-message">
+      <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
+    </div>
     {% include 'run_fields.html' %}
     <footer class="form-footer">
       <div class="form-footer-left">

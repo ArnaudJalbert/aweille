@@ -2,6 +2,10 @@
 
 Arnaud approved the palette, type/geometry, three self-hosted font files, ordered production PRs, and acceptance requirements in [Finalize design tokens and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47). This completes the design handoff for the [redesign planning map](https://github.com/ArnaudJalbert/aweille/issues/43). The production redesign and [Aweille redesign milestone](https://github.com/ArnaudJalbert/aweille/milestone/2) remain open until implementation and acceptance finish.
 
+## October 18 visual precedence update
+
+Arnaud subsequently requested the prototype's look directly in production. Use the [production visual reference](../../DESIGN.md#production-visual-reference), including paired phone date/target fields, full-width stacked notes, Sans field values and prototype control/state treatments. This supersedes earlier consolidated presentation differences below. Keep the production behavior, required checks, three open PRs and manual acceptance gates from this handoff.
+
 ## Unattended execution
 
 When asked to implement the complete redesign while Arnaud is away, one agent owns [the foundation/sidebar](https://github.com/ArnaudJalbert/aweille/issues/29), [schedule](https://github.com/ArnaudJalbert/aweille/issues/50), and [forms/recovery](https://github.com/ArnaudJalbert/aweille/issues/51) in that order. The approved decisions and public browser/HTTP test seams are sufficient authorization for this scope. Settle reversible implementation details using the existing code and smallest working option; record the choice in the relevant PR instead of reopening design questions.
@@ -83,7 +87,7 @@ Use affected browser tests and `ty` during work. Each production PR runs `uv run
 | [Weekly view](../../packages/aweille/tests/browser/test_weekly_view.py) always exposes seven days and all details | Explicit Day/Week selection; Day expanded/Week collapsed; expand disclosures before checking detail content | Exact large units, section order/repetition, chronological/untimed order, escaped plain text, note line breaks and no overflow |
 | Weekly top brand and below-Sunday Previous/This/Next controls | Sidebar-only brand, approved menu/view/Today/calendar locations and no schedule arrows | Clear current selection, recovery, keyboard navigation and meaningful focus |
 | Old schedule Tab sequence | Menu, view controls, Today, calendar, run summary and independent disclosure through native interactions | Visible focus, Enter/Space semantics and Retry-to-heading recovery |
-| [Creation](../../packages/aweille/tests/browser/test_run_creation.py) hardcodes old green/red/white controls and two input columns at 320px | Exact accepted tokens and single-column narrow fields; compact footer targets | Add/remove/reorder focus, last-section rule, invalid feedback, visible errors, labels/units, targets and no overflow |
+| [Creation](../../packages/aweille/tests/browser/test_run_creation.py) hardcodes old green/red/white controls and two input columns at 320px | Prototype paired date/target fields at 320px and full-width note rows; compact footer targets | Add/remove/reorder focus, last-section rule, invalid feedback, visible errors, labels/units, targets and no overflow |
 | JavaScript-unavailable page has no buttons anywhere | Truthful unavailable schedule/form state; no usable data/write actions; shell controls may exist without claiming loaded data | No invented empty schedule or saveable blank edit form |
 
 Keep [creation contracts](../../packages/aweille/tests/browser/test_run_creation.py), [editing/recovery contracts](../../packages/aweille/tests/browser/test_run_editing.py), and [deletion contracts](../../packages/aweille/tests/browser/test_run_deletion.py). Adapt selectors and approved navigation assertions; do not remove the behavior they protect. Assert user-visible actions, saved state, network results and focus, not an implementation's helper calls.

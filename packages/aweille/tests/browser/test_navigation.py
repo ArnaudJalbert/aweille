@@ -51,20 +51,20 @@ def test_drawer_schedule_keeps_invalid_create_draft_when_discard_declined(
 ):
     page.set_viewport_size({"width": 320, "height": 640})
     page.goto(f"{live_server.url}/runs/new?date=2026-10-14&week=2026-10-12")
-    page.get_by_label("Distance (km)").fill("partial")
+    page.get_by_label("Distance km").fill("partial")
     page.get_by_role("button", name="Save run", exact=True).click()
-    expect(page.get_by_label("Distance (km)")).to_have_attribute("aria-invalid", "true")
+    expect(page.get_by_label("Distance km")).to_have_attribute("aria-invalid", "true")
     menu = page.get_by_role("button", name="Toggle navigation")
     menu.click()
     page.keyboard.press("Escape")
     expect(menu).to_be_focused()
-    expect(page.get_by_label("Distance (km)")).to_have_value("partial")
+    expect(page.get_by_label("Distance km")).to_have_value("partial")
     menu.click()
     page.once("dialog", lambda dialog: dialog.dismiss())
     page.get_by_role("link", name="Schedule", exact=True).click()
     expect(menu).to_be_focused()
-    expect(page.get_by_label("Distance (km)")).to_have_value("partial")
-    expect(page.get_by_label("Distance (km)")).to_have_attribute("aria-invalid", "true")
+    expect(page.get_by_label("Distance km")).to_have_value("partial")
+    expect(page.get_by_label("Distance km")).to_have_attribute("aria-invalid", "true")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel", exact=True).click()
     expect(page.get_by_role("heading", level=1)).not_to_have_text("Add run")
@@ -75,8 +75,8 @@ def test_pending_create_navigation_warns_without_cancelling_write(
 ):
     page.goto(f"{live_server.url}/runs/new?date=2026-10-14&week=2026-10-12")
     page.get_by_label("Run type").select_option("easy")
-    page.get_by_label("Distance (km)").fill("1")
-    page.get_by_label("Pace (m:ss/km)").fill("6:30")
+    page.get_by_label("Distance km").fill("1")
+    page.get_by_label("Pace m:ss/km").fill("6:30")
     held = []
     page.route("**/v1/runs", lambda route: held.append(route))
     page.get_by_role("button", name="Save run", exact=True).click()
@@ -90,7 +90,7 @@ def test_pending_create_navigation_warns_without_cancelling_write(
     page.once("dialog", decline)
     page.get_by_role("link", name="Schedule", exact=True).click()
     assert messages and "does not cancel" in messages[0]
-    expect(page.get_by_label("Distance (km)")).to_have_value("1")
+    expect(page.get_by_label("Distance km")).to_have_value("1")
     assert len(held) == 1
     held[0].fulfill(response=held[0].fetch())
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
@@ -126,7 +126,7 @@ def test_shared_layout_fonts_and_fallback(
     )
     assert page.evaluate("document.fonts.check('500 16px \"IBM Plex Sans\"')")
     assert page.evaluate(
-        "document.fonts.ready.then(() => "
+        "document.fonts.load('400 14px \"IBM Plex Mono\"').then(() => "
         "document.fonts.check('400 14px \"IBM Plex Mono\"'))"
     )
     assert page.evaluate(

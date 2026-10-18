@@ -2,6 +2,8 @@
 
 Arnaud approved this integration on October 17, 2026 through [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45). It extends the earlier full-sidebar choice to the accepted schedule. The browser implementation follows this decision; [integrated verification](../verification/redesign-acceptance.md) records evidence and remaining manual acceptance.
 
+The October 18 request to reproduce the final prototype also restores its tinted active row, green edge, icon hover and disabled navigation appearance. See [production visual reference](../../DESIGN.md#production-visual-reference). Geometry and navigation behavior below remain unchanged.
+
 ## Selected geometry and placement
 
 | Part | Selected behavior |

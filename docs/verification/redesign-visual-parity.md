@@ -1,37 +1,30 @@
-# Redesign visual correction
+# Prototype presentation in production
 
-Arnaud's October 18 review found that the first implementation did not reproduce the approved presentation. The behavioral suite and previous reviews missed visible omissions. This correction compares rendered screens directly with the approved screenshots, as well as repeating behavior checks.
+Arnaud asked on October 18 to use the approved prototype's look directly in production. The final green [form specimen](https://github.com/ArnaudJalbert/aweille/blob/a336dcbe2be9c2d08dd5f3c3cbcf2cc04848b9bd/docs/design/run-form-prototype.html) is now the visual reference for the current run screens. The first implementation and its first correction still changed the phone form and control treatments. This final presentation pass removes those differences.
 
-## Primary sources
+## Ported presentation
 
-- [Approved sidebar/schedule study and captures](https://github.com/ArnaudJalbert/aweille/blob/76e8ade669d2932542a336eeabd9e06cc63213f1/docs/design/sidebar-integration-review.md), particularly its desktop Week and phone Week screens.
-- [Approved form/state study and captures](https://github.com/ArnaudJalbert/aweille/blob/a336dcbe2be9c2d08dd5f3c3cbcf2cc04848b9bd/docs/design/run-form-review.md), particularly its desktop edit-ready screen.
-- [Consolidated tokens and responsive rules](../../DESIGN.md), which supersede older specimen colors, typography, target sizes and paired-field thresholds.
+Date/time and distance/pace remain paired at phone widths. Notes use full-width vertical rows under Notes. Editable values use Plex Sans. Form headings, label units, quiet section actions, arrow controls, footer padding and green/red button borders follow the specimen. Schedule toolbar buttons use its 16px regular text; Add run and form actions use 13px medium text. The tinted navigation selection has the prototype's green edge and disabled navigation/action appearance. Draft values and progress remain opaque and readable. Recovery controls now sit inside the same notice panel as their explanation. The calendar keeps its contextual title, native keyboard semantics and visible Today marker.
 
-## Corrected omissions
+The real create/edit/delete controllers, UUID/revision policies, exact arithmetic, draft protection and recovery rules remain in production. No fixture switch, fake save feedback or future activity API was ported. The pinned three font files remain self-hosted, without synthesized weights. The calendar title uses the available medium weight rather than the specimen's incidental browser-default bold.
 
-The foundation PR restores the Training group, navigation line icons, Planned captions, green active indicator, and desktop collapse control inside the sidebar. Menu/collapse icons match the specimen while retaining their names, focus behavior and 44px targets.
+## Direct comparison
 
-The schedule PR restores the Training schedule label, Week/Day ordering, right-aligned line-icon calendar, 116px desktop day column, timeline lines and circle markers, Running labels, multiple-run counts, plus/minus disclosures and flat sections/notes. Phone weekdays and dates use two lines. Day has one date heading. The calendar names its day/week context and uses the compact specimen geometry.
+Comparison used the immutable specimen and the running production branch, both rendered with Playwright Chromium 156.0.8078.4 at 390px and 1280px. The edit fixture matches its 07:00 interval run and 2/3/1 km sections at 6:45/5:45/7:00. This is disposable data, separate from training records.
 
-The form PR restores the short Add run/Edit run headings, compact spacing, legends interrupting section rules, quiet Remove/Add section actions, icon-only named up/down actions, right-aligned Optional labels and taller notes. The fields/helper and create/edit write controllers retain their existing behavior. No recovery policy, API, storage or dependency changes accompany the presentation correction.
+For ten form roles, computed family, size, weight, line height, padding, border color/width/radius, background, opacity, gap and grid columns match the specimen at both widths. The relative boxes also match exactly:
 
-## Render comparison
+- At 390px, date/time is 358px wide by 73px high at y=101; the date input is 173px by 48px at y=126; the first section is 358px by 152px at y=359; notes are 358px by 338px at y=978.
+- At 1280px, date/time is 640px by 73px at y=101; the date input is 312px by 48px at y=126; the first section is 640px by 152px at y=359; notes are 640px by 338px at y=978.
 
-Playwright Chromium 156.0.8078.4 rendered the corrected application at 1280px and 390px with no page errors or overflow. The desktop edit fixture uses the approved specimen's 07:00 interval run with 2/3/1 km sections at 6:45/5:45/7:00, making the spacing and control comparison direct. All captures use a separate disposable database. Capturing failure/pending states intercepted writes; no capture sent a write to storage.
+These positions are relative to the form content, excluding the study's wrapper controls and the production sidebar. The source date field was focused in historical captures; focus rings depend on interaction state.
 
-- [Corrected desktop Week](redesign/schedule-week-desktop.png) and [phone Week](redesign/schedule-week-phone.png)
-- [Corrected desktop Day](redesign/schedule-day-desktop.png) and [phone Day](redesign/schedule-day-phone.png)
-- [Contextual calendar](redesign/schedule-calendar-phone.png)
-- [Desktop edit](redesign/form-edit-desktop.png), [phone edit](redesign/form-edit-phone.png), [desktop create](redesign/form-create-desktop.png) and [phone create](redesign/form-create-phone.png)
-- Refreshed [loading](redesign/form-initial-loading-phone.png), [read failure](redesign/form-initial-failure-phone.png), [saved-target confirmation](redesign/form-delete-confirmation-phone.png), [pending deletion](redesign/form-pending-delete-phone.png) and [uncertain save](redesign/form-uncertain-save-phone.png)
+The production navigation edge uses a real 3px border in place of the specimen's shadow, with compensated padding so normal placement matches. In forced colors it remains visible as ButtonText. Focus outlines and native control semantics remain intact. The short-viewport footer fallback and enlarged-action wrapping protect operation without changing ordinary geometry.
 
-The run-only schedule intentionally omits the studies' future stretching, yoga and strength fixtures. Green actions, 13px buttons, 14px time labels, 46px fields, readable disabled controls and 4px radii follow the consolidated handoff. The active sidebar uses the required panel surface and real 3px ink boundary with a supplementary green stripe, including a visible boundary in forced colors. Disabled section/navigation controls retain panel surfaces. Below 560px of content, target/date/note fields stack even where an older specimen capture paired them. Native details, exact values and accessible labels remain present.
+## Rendered evidence
 
-The corrected schedule, create and edit screens were rechecked in native Firefox 158.0 at actual 200% browser zoom on October 18. The browser indicator confirmed 200%, navigation reflowed to a closed drawer, fields stayed readable, and the edit footer's Cancel returned to the schedule heading. No write was sent. Zoom was reset and only the temporary tab closed.
+- [Desktop edit](redesign/form-edit-desktop.png), [phone edit](redesign/form-edit-phone.png), [desktop create](redesign/form-create-desktop.png), [phone create](redesign/form-create-phone.png)
+- [Desktop Week](redesign/schedule-week-desktop.png), [phone Week](redesign/schedule-week-phone.png), [desktop Day](redesign/schedule-day-desktop.png), [phone Day](redesign/schedule-day-phone.png)
+- [Calendar](redesign/schedule-calendar-phone.png), [loading](redesign/form-initial-loading-phone.png), [read failure](redesign/form-initial-failure-phone.png), [saved-target confirmation](redesign/form-delete-confirmation-phone.png), [pending deletion](redesign/form-pending-delete-phone.png), [uncertain save](redesign/form-uncertain-save-phone.png)
 
-## Verification
-
-The corrected foundation and schedule layers passed their complete required checks with 350 and 356 tests. Added assertions extend existing public-browser scenarios to protect the restored sidebar control/hierarchy, single Day heading, Running label, rendered timeline and quiet/icon section actions. The corrected combined implementation passed all 366 tests, ty, Ruff lint/format and diff checks. The 16-scenario Day/Week/create/edit integration and control-state/contrast pass also passed again after the corrections. Both Standards and Spec review have zero remaining findings, recorded separately in [integrated acceptance](redesign-acceptance.md).
-
-Physical-phone software keyboard/touch/hardware safe areas and screen-reader review remain pending. These visual comparisons do not close #51 or the redesign milestone.
+Final checks and independent Standards/Spec results are recorded in [integrated acceptance](redesign-acceptance.md). Physical-phone software keyboard/touch/hardware safe areas, screen-reader review and maintainer visual acceptance remain open. Future stretching, yoga and strength remain outside the current run-only implementation.

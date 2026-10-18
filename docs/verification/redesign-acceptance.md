@@ -1,6 +1,10 @@
 # Running-app redesign acceptance
 
-## October 18 visual correction
+## Prototype presentation follow-up
+
+Arnaud subsequently requested the prototype's appearance directly in production. [DESIGN.md](../../DESIGN.md#production-visual-reference) records that preference over the earlier consolidated presentation differences. The [direct specimen comparison](redesign-visual-parity.md) now verifies the paired phone fields, full-width notes, Sans values and prototype control/state treatments. This supersedes the earlier stacked-field, Mono-input, outlined-primary and opaque-disabled-action claims below. All production write/recovery contracts and manual acceptance gates remain.
+
+## Earlier October 18 visual correction
 
 Maintainer review exposed visual omissions despite the earlier passing behavior checks. The [visual comparison and correction record](redesign-visual-parity.md) identifies the approved screenshots, missing elements, fixes and intentional handoff differences. Linked schedule/form captures have been refreshed. The corrected combined code at `0340310` is identical under `packages/` to tested/reviewed head `ce954a0`, which passed all 366 tests in 78.70 seconds. Restacking changed commit hashes and documentation captures only. Ty, Ruff lint/format and diff checks also passed. The corrected foundation and schedule separately passed all required checks with 350 and 356 tests. Later commits refresh documentation/captures only.
 

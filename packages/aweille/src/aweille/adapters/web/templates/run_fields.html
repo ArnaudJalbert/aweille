@@ -1,5 +1,4 @@
 <fieldset id="form-fields" disabled{% if editing %} hidden{% endif %}>
-  <p id="form-guidance" class="muted">Fields are required unless marked optional.</p>
   <div class="paired-fields">
     <div class="field-grid">
       <label class="field" for="planned_date">Planned date</label>
@@ -29,8 +28,9 @@
     <div id="section-list"></div>
     <div class="add-section"><button id="add-section" class="quiet-action" type="button">Add section</button></div>
   </section>
-  <section class="notes-fields" aria-label="Notes">
-    <div class="paired-fields">
+  <section class="form-section" aria-labelledby="notes-heading">
+    <h2 id="notes-heading">Notes</h2>
+    <div class="form-notes">
       <div class="field-grid">
         <label class="field" for="user_note">Personal note <span class="optional">Optional</span></label>
         <textarea id="user_note" name="user_note" aria-describedby="user_note-error"></textarea>
@@ -49,13 +49,13 @@
         <legend></legend>
         <div class="section-inputs">
           <div class="field-grid">
-            <label class="field" data-label="distance_m">Distance (km)</label>
-            <input data-field="distance_m" inputmode="decimal" placeholder="e.g. 1" required>
+            <label class="field" data-label="distance_m">Distance <span class="optional">km</span></label>
+            <input data-field="distance_m" inputmode="decimal" required>
             <span class="field-error" data-error="distance_m" hidden></span>
           </div>
           <div class="field-grid">
-            <label class="field" data-label="target_pace_seconds_per_km">Pace (m:ss/km)</label>
-            <input data-field="target_pace_seconds_per_km" placeholder="e.g. 6:30" required>
+            <label class="field" data-label="target_pace_seconds_per_km">Pace <span class="optional">m:ss/km</span></label>
+            <input data-field="target_pace_seconds_per_km" placeholder="6:30" required>
             <span class="field-error" data-error="target_pace_seconds_per_km" hidden></span>
           </div>
         </div>

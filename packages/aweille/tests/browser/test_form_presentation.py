@@ -60,10 +60,13 @@ def test_long_form_footer_clearance_thresholds_and_enlarged_text(
         date = page.get_by_label("Planned date").bounding_box()
         time = page.get_by_label("Start time").bounding_box()
         assert date and time
-        if width <= 591:
-            assert time["y"] > date["y"]
-        else:
-            assert time["y"] == date["y"]
+        assert time["y"] == date["y"]
+        assert time["x"] > date["x"]
+        assert (
+            page.get_by_label("Planned date")
+            .evaluate("node => getComputedStyle(node).fontFamily")
+            .startswith('"IBM Plex Sans"')
+        )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.set_viewport_size({"width": 320, "height": 700})
     expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute(

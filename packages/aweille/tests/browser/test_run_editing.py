@@ -66,8 +66,8 @@ def test_editor_prefills_exact_large_targets_and_order(
     first = page.get_by_role("group", name="Section 1")
     last = page.get_by_role("group", name="Section 3")
     expected_km = huge[:-3] + "." + huge[-3:]
-    expect(first.get_by_label("Distance (km)")).to_have_value(expected_km)
-    expect(last.get_by_label("Distance (km)")).to_have_value(expected_km)
+    expect(first.get_by_label("Distance km")).to_have_value(expected_km)
+    expect(last.get_by_label("Distance km")).to_have_value(expected_km)
     with page.expect_response("**/v1/runs/*") as result:
         page.get_by_role("button", name="Save changes").click()
     assert result.value.request.post_data_json == {}
@@ -290,7 +290,7 @@ def test_api_field_errors_survive_dismissed_discard_prompts(
         ),
     )
     page.get_by_role("button", name="Save changes").click()
-    distance = page.get_by_role("group", name="Section 1").get_by_label("Distance (km)")
+    distance = page.get_by_role("group", name="Section 1").get_by_label("Distance km")
     note = page.get_by_label("Personal note")
     expect(distance).to_have_attribute("aria-invalid", "true")
     expect(note).to_have_attribute("aria-invalid", "true")

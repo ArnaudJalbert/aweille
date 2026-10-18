@@ -28,6 +28,8 @@ The preview embeds Latin and Latin Extended WOFF2 files from Google Fonts, inclu
 
 The selected pairing is recorded in the [design tokens](../../DESIGN.md#typography) and applied to the [layout prototype](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html). The browser implementation now uses the pinned production files below; [integrated verification](../verification/redesign-acceptance.md) records loading/fallback and pending manual acceptance. Switching to another pairing inside the comparison remains a local preview and does not change the recorded decision.
 
+The October 18 production presentation request uses Sans for editable values as in the final prototype. Mono remains for displayed schedule measurements. This changes no pinned font file or licence.
+
 ## Production files
 
 Arnaud accepted three unchanged, complete, self-hosted WOFF2 files through [Finalize design tokens and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47). Copy these exact upstream files and both complete licence notices into the application's static font directory in the first production PR. No npm runtime dependency, external font service, subset generation, or embedded prototype font is needed.
