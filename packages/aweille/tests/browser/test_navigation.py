@@ -17,6 +17,14 @@ def test_sidebar_collapse_drawer_focus_and_resize(page: Page, live_server: LiveS
     assert box and box["width"] == 628
     expect(page.get_by_text("Training", exact=True)).to_be_visible()
     expect(page.get_by_text("Planned", exact=True)).to_have_count(2)
+    page.emulate_media(forced_colors="active")
+    selected = page.get_by_role("link", name="Schedule", exact=True)
+    assert selected.evaluate("node => getComputedStyle(node).borderLeftWidth") == "3px"
+    assert selected.evaluate(
+        "node => getComputedStyle(node).borderLeftColor !== "
+        "getComputedStyle(node).backgroundColor"
+    )
+    page.emulate_media(forced_colors="none")
     page.get_by_role("button", name="Collapse navigation").click()
     expect(menu).to_have_attribute("aria-expanded", "false")
     expect(menu).to_be_focused()

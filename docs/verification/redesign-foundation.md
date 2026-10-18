@@ -30,4 +30,6 @@ Required checks passed on this layer: `uv run pytest`, `uv run ty check`, `uv ru
 
 Arnaud's October 18 review exposed missing presentation from the [approved sidebar specimen](https://github.com/ArnaudJalbert/aweille/blob/76e8ade669d2932542a336eeabd9e06cc63213f1/docs/design/sidebar-integration-review/desktop-expanded.png). The correction restores the Training group, navigation icons, Planned captions, green active indicator and in-sidebar desktop collapse control. Menu and collapse controls use the specimen's line icons rather than text glyphs and retain 44px targets. Disabled entries keep readable contrast instead of the specimen's reduced opacity. The public navigation regression now exercises desktop collapse from the sidebar and its focus return as well as drawer dismissal.
 
+The consolidated active state retains its panel surface and 3px ink indicator, with a supplementary green stripe. Disabled entries retain panel surfaces and readable ink. These handoff states supersede the older specimen's green-only selection and faded disabled entries.
+
 The earlier images above predate this correction. Final corrected screenshots and comparisons belong to the forms/integration layer; behavior checks alone did not establish visual fidelity.
