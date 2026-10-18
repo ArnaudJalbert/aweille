@@ -26,7 +26,9 @@ Playwright Chromium 156.0.8078.4 rendered the corrected application at 1280px an
 - [Desktop edit](redesign/form-edit-desktop.png), [phone edit](redesign/form-edit-phone.png), [desktop create](redesign/form-create-desktop.png) and [phone create](redesign/form-create-phone.png)
 - Refreshed [loading](redesign/form-initial-loading-phone.png), [read failure](redesign/form-initial-failure-phone.png), [saved-target confirmation](redesign/form-delete-confirmation-phone.png), [pending deletion](redesign/form-pending-delete-phone.png) and [uncertain save](redesign/form-uncertain-save-phone.png)
 
-The run-only schedule intentionally omits the studies' future stretching, yoga and strength fixtures. Green actions, 13px buttons, 14px time labels, 46px fields, readable disabled controls and 4px radii follow the consolidated handoff. Below 560px of content, target/date/note fields stack even where an older specimen capture paired them. Native details, exact values and accessible labels remain present.
+The run-only schedule intentionally omits the studies' future stretching, yoga and strength fixtures. Green actions, 13px buttons, 14px time labels, 46px fields, readable disabled controls and 4px radii follow the consolidated handoff. The active sidebar uses the required panel surface and real 3px ink boundary with a supplementary green stripe, including a visible boundary in forced colors. Disabled section/navigation controls retain panel surfaces. Below 560px of content, target/date/note fields stack even where an older specimen capture paired them. Native details, exact values and accessible labels remain present.
+
+The corrected schedule, create and edit screens were rechecked in native Firefox 158.0 at actual 200% browser zoom on October 18. The browser indicator confirmed 200%, navigation reflowed to a closed drawer, fields stayed readable, and the edit footer's Cancel returned to the schedule heading. No write was sent. Zoom was reset and only the temporary tab closed.
 
 ## Verification
 

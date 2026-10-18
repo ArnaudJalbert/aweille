@@ -101,7 +101,7 @@ textarea { min-height: 112px; resize: vertical; }
 .section-actions { margin-top: 4px; align-items: center; }
 .quiet-action { border: 0; background: transparent; padding: 8px 0; text-decoration: underline; text-underline-offset: 3px; }
 .quiet-action:hover:not(:disabled) { background: transparent; }
-.quiet-action:disabled, .form-card .icon-button:disabled { border: 0; background: transparent; }
+.quiet-action:disabled { border: 0; }
 .move-actions { display: flex; }
 .add-section { display: flex; }
 .notes-fields { margin-top: 16px; }
