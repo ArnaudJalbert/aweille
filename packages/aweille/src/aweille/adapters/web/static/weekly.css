@@ -90,7 +90,7 @@ label.field { font-size: 14px; font-weight: 400; margin-top: 8px; }
 input, select, textarea { font: inherit; font-size: 16px; width: 100%; min-width: 0; min-height: var(--field-min); padding: 9px 10px; border: 1px solid var(--strong-line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); }
 input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 textarea { min-height: 64px; resize: vertical; }
-.form-section { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
+.form-section { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
 .section-editor { border-bottom: 1px solid var(--line); padding: 12px 0; margin-bottom: 12px; }
 .section-editor legend { float: left; width: 100%; margin-bottom: 8px; font-size: 14px; font-weight: 500; }
 .section-inputs { clear: both; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -186,7 +186,6 @@ dialog::backdrop { background: var(--backdrop); }
 .paired-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 #form-guidance { margin: 0 0 16px; }
 #form-fields { padding-bottom: 24px; }
-.form-section { margin-top: 24px; padding-top: 24px; }
 .form-footer { position: sticky; bottom: 0; z-index: 5; align-items: center; flex-wrap: wrap; background: var(--paper); margin-top: 24px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom)); }
 .form-footer-left { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .form-footer > #save-run { margin-left: auto; }

@@ -1,6 +1,6 @@
 # Schedule composition and interactions
 
-Accepted by Arnaud on October 17, 2026 through [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44). This records the selected design for later implementation. The production application is unchanged.
+Accepted by Arnaud on October 17, 2026 through [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44). This records the selected design implemented by the browser schedule. See [schedule verification](../verification/redesign-schedule.md) and [integrated acceptance](../verification/redesign-acceptance.md) for the implementation PRs and remaining manual checks.
 
 ## Views and activities
 
@@ -35,4 +35,4 @@ Loading and failures hide old activities while keeping date selection available.
 
 The [accepted study and evidence](https://github.com/ArnaudJalbert/aweille/blob/5d6e125fa8953d7844f5d70953af8b58d87f86ff/docs/design/weekly-layout-review.md) retain the self-contained interactive prototype and final phone/desktop Day/Week captures on a disposable branch. Earlier screenshots preserve superseded iterations. Browser checks cover narrow and desktop widths, exact sample units, independent disclosures, keyboard actions, create/edit preview return, date selection/history, Montreal dates, long content, empty/busy weeks, and absence of schedule arrows.
 
-The [sidebar integration](sidebar-integration.md) is also approved. [DESIGN.md](../../DESIGN.md) and the [implementation handoff](implementation-handoff.md) settle exact tokens, fonts and the production sequence. Physical-phone, screen-reader, actual browser zoom, production sidebar integration, and complete production recovery checks remain for implementation acceptance. The prototype's local save feedback and fixtures must stay out of production.
+The [sidebar integration](sidebar-integration.md) is also approved. [DESIGN.md](../../DESIGN.md) and the [implementation handoff](implementation-handoff.md) settle exact tokens, fonts and the production sequence. The [integration record](../verification/redesign-acceptance.md) now covers real browser/API/sidebar/recovery checks and actual Firefox 200% zoom. Physical-phone and screen-reader acceptance remain pending. The prototype's local save feedback and fixtures must stay out of production.

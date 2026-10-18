@@ -72,7 +72,7 @@ components:
 
 ## Overview
 
-Accepted implementation specification, following [Finalize design tokens and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47). Arnaud approved the exact palette, type, geometry, production font policy, three-PR sequence, and acceptance requirements in that decision. The precise appearance with selective color comes from the watch, TimeMoto, and editorial references in his [Pinterest board](https://ca.pinterest.com/ark__no/aweille-ui/). Production still has the rejected earlier appearance until the execution issues ship.
+Accepted implementation specification, following [Finalize design tokens and implementation handoff](https://github.com/ArnaudJalbert/aweille/issues/47). Arnaud approved the exact palette, type, geometry, production font policy, three-PR sequence, and acceptance requirements in that decision. The precise appearance with selective color comes from the watch, TimeMoto, and editorial references in his [Pinterest board](https://ca.pinterest.com/ark__no/aweille-ui/). The browser implementation applies this specification. The [integration record](docs/verification/redesign-acceptance.md) documents automated checks, actual desktop zoom and remaining manual acceptance; the implementation PRs remain open and no deployment is implied.
 
 Use the exact values here across schedule, create, and edit. The [implementation handoff](docs/design/implementation-handoff.md) defines shared code boundaries, production PRs, and checks. [Reference notes](docs/design/visual-direction.md) and immutable studies preserve the evidence; this specification takes precedence where their older specimen values differ.
 

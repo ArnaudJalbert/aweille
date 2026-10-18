@@ -1,6 +1,6 @@
 # Run-form, deletion, and recovery presentation
 
-Arnaud approved the complete presentation through [Define run-form, deletion, and recovery presentations](https://github.com/ArnaudJalbert/aweille/issues/46#issuecomment-6243248791). This is the design handoff for the current run-only app. Production implementation remains deferred.
+Arnaud approved the complete presentation through [Define run-form, deletion, and recovery presentations](https://github.com/ArnaudJalbert/aweille/issues/46#issuecomment-6243248791). This is the design handoff for the current run-only app. The browser implementation follows this decision; [integrated verification](../verification/redesign-acceptance.md) records evidence and remaining manual acceptance.
 
 ## Form and actions
 
@@ -46,4 +46,4 @@ The [self-contained specimen](https://github.com/ArnaudJalbert/aweille/blob/a336
 
 The evidence records Chromium checks from 320px through 1280px, long-form sticky actions, exact large-target save/reopen, section controls/focus, validation/draft retention, saved-target deletion, explicit reload recovery, create retry distinctions, schedule-read retry without duplicate writes, and drawer behavior. This approval session rechecked confirmation focus, Keep run focus return, and uncertain-save blocked writes with retained draft. HTML renders at 390px and 1280px reported no console errors.
 
-Implementation must preserve the existing public browser contracts in [creation](../../packages/aweille/tests/browser/test_run_creation.py), [editing/recovery](../../packages/aweille/tests/browser/test_run_editing.py), and [permanent deletion](../../packages/aweille/tests/browser/test_run_deletion.py), and verify presentation intentionally against the accepted matrix. Physical devices, screen readers, actual zoom/software keyboards, hardware safe areas, and real HTTP/storage/concurrency recovery remain implementation checks. Specimen checks do not prove production behavior.
+Implementation must preserve the existing public browser contracts in [creation](../../packages/aweille/tests/browser/test_run_creation.py), [editing/recovery](../../packages/aweille/tests/browser/test_run_editing.py), and [permanent deletion](../../packages/aweille/tests/browser/test_run_deletion.py), and verify presentation intentionally against the accepted matrix. The [integration record](../verification/redesign-acceptance.md) now verifies real HTTP/storage/concurrency recovery and actual desktop zoom. Physical-phone touch/software keyboards, hardware safe areas and screen-reader review remain pending. Specimen checks do not prove production behavior.

@@ -145,7 +145,7 @@ async function loadRun(reloading = false) {
   if (version !== readVersion) return;
   loading = false;
   if (response.status === 404 || response.status === 422 && data?.detail?.some?.(problem => problem.loc?.[0] === "path")) {
-    blockWrites("Run unavailable", "This planned run is unavailable. Your draft is still here.");
+    blockWrites("Run unavailable", baseline ? "This planned run is unavailable. Your draft is still here." : "This planned run is unavailable. Return to the schedule.");
     document.querySelector("#recovery").hidden = true;
     fields.disabled = !baseline;
   } else if (response.ok && validRun(data)) {

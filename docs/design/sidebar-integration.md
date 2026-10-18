@@ -1,6 +1,6 @@
 # Sidebar integration
 
-Arnaud approved this integration on October 17, 2026 through [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45). It extends the earlier full-sidebar choice to the accepted schedule. Production implementation remains deferred.
+Arnaud approved this integration on October 17, 2026 through [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45). It extends the earlier full-sidebar choice to the accepted schedule. The browser implementation follows this decision; [integrated verification](../verification/redesign-acceptance.md) records evidence and remaining manual acceptance.
 
 ## Selected geometry and placement
 
