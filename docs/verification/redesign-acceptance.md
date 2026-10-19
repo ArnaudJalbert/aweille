@@ -1,5 +1,21 @@
 # Running-app redesign acceptance
 
+## Navigation and section arrows
+
+Arnaud requested the missing navigation and section arrows on October 18. Code head `ba2c2bd` adds Previous/Next beside the calendar, stepping one day in Day or seven days in Week through the existing selection flow. Invalid selections and incomplete API week ranges disable movement. Names follow the current view, the heading announces selection, and focus stays on the activated arrow. Narrow content places the controls and Add run below the date heading. This explicitly supersedes the earlier calendar-only schedule decision recorded below.
+
+All arrow graphics now carry the prototype's fill/stroke attributes directly, including section up/down, calendar months and sidebar collapse. The existing section controller is unchanged. The real-write section regression now clicks the SVG graphics and verifies exact saved section order. The [visual record](redesign-visual-parity.md#rendered-evidence) includes refreshed schedule captures and the phone section arrows after moving a loaded section up and back down without a storage write.
+
+The new navigation test failed before implementation and passed afterward at 320px and 1280px. All 48 affected tests passed in 30.39 seconds; the final code passed **368 tests in 80.80 seconds**, ty, Ruff lint/format and diff checks. Public preview checks also verified painted 44px targets and both month-arrow graphics. Native Firefox actual 200% zoom showed visible arrows; clicking Next day updated the date and retained focus. Zoom was restored and the temporary tab closed.
+
+### Standards
+
+No code-standard violations or actionable smells at `ba2c2bd`. Review found one stale README sentence claiming no schedule arrows; documentation-only `41bf1b6` corrects it to day/week stepping and range limits. No remaining finding after that correction.
+
+### Spec
+
+No findings at `ba2c2bd`. Independent public checks at 320px and 1280px confirmed visible SVG clicks, weekday preservation, focus, URL selection, section reordering and no horizontal overflow. No write-controller changes or scope creep found. Neither reviewer repeated the full suite independently. Physical-phone, screen-reader and maintainer acceptance remain pending; #51 and milestone 2 stay open.
+
 ## Prototype presentation follow-up
 
 Arnaud subsequently requested the prototype's appearance directly in production. [DESIGN.md](../../DESIGN.md#production-visual-reference) records that preference over the earlier consolidated presentation differences. The [direct specimen comparison](redesign-visual-parity.md) now verifies the paired phone fields, full-width notes, Sans values and prototype control/state treatments. This supersedes the earlier stacked-field, Mono-input, outlined-primary and opaque-disabled-action claims below. All production write/recovery contracts and manual acceptance gates remain.
