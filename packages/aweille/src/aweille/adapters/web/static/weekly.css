@@ -114,7 +114,7 @@ button:disabled { background: var(--panel); color: var(--muted-ink); border-colo
 .view-switch { display: flex; gap: 4px; }
 .view-switch button { min-width: 64px; }
 [aria-pressed="true"], #calendar [aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-[aria-pressed="true"]:hover { background: var(--ink); }
+button[aria-pressed="true"]:hover { background: var(--ink); }
 #today { margin-left: auto; }
 .eyebrow { color: var(--muted-ink); font-size: 14px; margin: 0; }
 .schedule-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; margin-bottom: 12px; }

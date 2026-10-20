@@ -88,7 +88,8 @@ function renderRun(run) {
   details.open = choices[view][run.id] ?? view === "day";
   const disclosure = element("summary");
   disclosure.append(element("span", "Show details", "show-details"), element("span", "Hide details", "hide-details"));
-  disclosure.setAttribute("aria-label", `Details for ${run.run_type} run on ${run.planned_date}${run.planned_start_time ? ` at ${run.planned_start_time}` : ""}`);
+  const nameDisclosure = () => disclosure.setAttribute("aria-label", `${details.open ? "Hide" : "Show"} details for ${run.run_type} run on ${run.planned_date}${run.planned_start_time ? ` at ${run.planned_start_time}` : ""}`);
+  nameDisclosure();
   details.append(disclosure);
   const layout = element("div", undefined, "run-layout");
   const sections = element("ol", undefined, "sections");
@@ -112,6 +113,7 @@ function renderRun(run) {
   const viewChoices = choices[view];
   let initial = true;
   details.addEventListener("toggle", () => {
+    nameDisclosure();
     if (!initial) viewChoices[run.id] = details.open;
     initial = false;
   });
