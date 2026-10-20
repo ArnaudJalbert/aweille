@@ -60,12 +60,21 @@ def test_day_default_and_week_switch_preserve_date(page: Page, live_server: Live
     expect(page.get_by_role("region")).to_have_count(1)
     expect(page.get_by_role("region", name="Wednesday Oct 14")).to_be_visible()
 
+    for name in ("Day", "Week"):
+        selected = page.get_by_role("button", name=name, exact=True)
+        selected.click()
+        selected.hover()
+        expect(selected).to_have_attribute("aria-pressed", "true")
+        expect(selected).to_have_css("background-color", "rgb(32, 43, 40)")
+        expect(selected).to_have_css("color", "rgb(250, 251, 246)")
+
 
 def test_disclosures_and_cancel_restore_each_view_and_initiating_focus(
     page: Page, live_server: LiveServer, run_request
 ):
     run = {
         **run_request,
+        "planned_start_time": "07:30",
         "sections": [
             {"distance_m": "1000", "target_pace_seconds_per_km": "390"},
             {"distance_m": "9007199254740993123", "target_pace_seconds_per_km": "390"},
@@ -91,11 +100,26 @@ def test_disclosures_and_cancel_restore_each_view_and_initiating_focus(
     )
     details = page.get_by_text("Hide details", exact=True)
     expect(details).to_be_visible()
-    details.click()
+    disclosure = page.locator("summary")
+    expect(disclosure).to_have_accessible_name(
+        "Hide details for easy run on 2026-10-14 at 07:30"
+    )
+    disclosure.focus()
+    page.keyboard.press("Space")
     expect(page.get_by_text("Show details", exact=True)).to_be_visible()
+    expect(disclosure).to_have_accessible_name(
+        "Show details for easy run on 2026-10-14 at 07:30"
+    )
     page.get_by_role("button", name="Week", exact=True).click()
-    page.get_by_text("Show details", exact=True).click()
+    expect(disclosure).to_have_accessible_name(
+        "Show details for easy run on 2026-10-14 at 07:30"
+    )
+    disclosure.focus()
+    page.keyboard.press("Enter")
     expect(page.get_by_text("Hide details", exact=True)).to_be_visible()
+    expect(disclosure).to_have_accessible_name(
+        "Hide details for easy run on 2026-10-14 at 07:30"
+    )
     page.get_by_role("link", name="Edit easy run").click()
     page.get_by_role("link", name="Cancel", exact=True).click()
     expect(page.get_by_role("button", name="Week", exact=True)).to_have_attribute(
