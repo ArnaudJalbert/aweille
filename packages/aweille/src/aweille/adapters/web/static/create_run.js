@@ -52,7 +52,6 @@ function showSaveError(response, data, submittedDate) {
     if (Array.isArray(data?.detail)) {
       showBodyErrors(data.detail);
       showStatus("Could not save this run", data.detail.map(problem => problem.msg).join(" "));
-      form.querySelector('[aria-invalid="true"]')?.focus();
     } else {
       showStatus("Could not save this run", explanation);
     }
@@ -100,6 +99,7 @@ async function saveRun(event) {
     form.setAttribute("aria-busy", "false");
     updateSections();
   }
+  form.querySelector('[aria-invalid="true"]')?.focus();
 }
 
 form.elements.planned_date.value = params.get("date") ?? "";

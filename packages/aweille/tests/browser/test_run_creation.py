@@ -237,6 +237,7 @@ def test_api_field_errors_keep_correct_section_values_and_id_for_retry(
     )
     expect(second.get_by_text("This section's target pace is invalid.")).to_be_visible()
     expect(page.get_by_label("Run type")).to_have_attribute("aria-invalid", "true")
+    expect(page.get_by_label("Run type")).to_be_focused()
     expect(second.get_by_label("Distance km")).to_have_value("2")
     expect(second.get_by_label("Pace m:ss/km")).to_have_value("5:45")
     expect(page.get_by_label("Personal note")).to_have_value(
@@ -262,6 +263,7 @@ def test_nonexistent_montreal_time_returns_real_field_error_and_can_be_corrected
     assert response.value.status == 422
     expect(page.get_by_label("Start time")).to_have_attribute("aria-invalid", "true")
     expect(page.get_by_label("Start time")).to_have_value("02:30")
+    expect(page.get_by_label("Start time")).to_be_focused()
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
     page.get_by_label("Start time").fill("03:30")
     page.get_by_role("button", name="Save run", exact=True).click()
