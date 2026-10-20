@@ -330,6 +330,10 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
     expect(page.get_by_role("link", name="Schedule", exact=True)).to_be_focused()
     page.get_by_role("button", name="Toggle navigation").focus()
     page.keyboard.press("Tab")
+    day = page.get_by_role("button", name="Day", exact=True)
+    expect(day).to_be_focused()
+    assert day.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
+    page.keyboard.press("Tab")
     week = page.get_by_role("button", name="Week", exact=True)
     expect(week).to_be_focused()
     assert week.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
@@ -339,8 +343,6 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
         "**/v1/runs?*",
         lambda route: route.fulfill(status=503, json={"detail": "Try again later."}),
     )
-    page.keyboard.press("Tab")
-    expect(page.get_by_role("button", name="Day", exact=True)).to_be_focused()
     page.keyboard.press("Tab")
     expect(page.get_by_role("button", name="Today", exact=True)).to_be_focused()
     page.keyboard.press("Enter")

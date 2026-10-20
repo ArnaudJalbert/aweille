@@ -4,7 +4,7 @@ Accepted by Arnaud on October 17, 2026 through [Choose weekly layout and run-det
 
 ## Views and activities
 
-- Day is the default on phone and desktop. It shows only the selected date, without a week index. Week shows all seven days, including empty days. A Week/Day switcher stays inside the product header.
+- Day is the default on phone and desktop. It shows only the selected date, without a week index. Week shows all seven days, including empty days. The header switcher places Day before Week in both visual and keyboard order.
 - Use the compact time-column treatment. Each independent activity shows its time or Untimed, kind/name, and relevant summary. Timed activities come first chronologically, followed by untimed activities. Preserve several runs on one date and stable ordering for equal times.
 - Run summaries show run type, exact total distance, section count, and shared pace or varied pace. Sections retain their order; personal and trainer notes remain separate.
 - Mixed stretching, strength, and yoga examples establish room for future independent blocks. They do not authorize new production activity kinds, editors, metrics, or API changes. Production retains Add run and existing run fields.
