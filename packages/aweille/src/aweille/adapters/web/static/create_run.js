@@ -1,3 +1,4 @@
+import { weekUrl, scheduleUrl, takeFormContext, returnToSchedule } from "./schedule_navigation.js";
 import { createRunForm } from "./run_form.js";
 
 const form = document.querySelector("#run-form");
@@ -7,6 +8,7 @@ const status = document.querySelector("#save-status");
 const save = document.querySelector("#save-run");
 const params = new URLSearchParams(location.search);
 const id = crypto.randomUUID();
+const origin = takeFormContext();
 let saving = false;
 let leaving = false;
 let initialDraft;
@@ -14,12 +16,9 @@ const uncertainWeeks = new Set();
 const { addSection, editSections, updateSections, showValidation, showBodyErrors, readPayload } =
   createRunForm(form, fields, sections, () => saving);
 
-function weekUrl(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "")) return "/";
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return "/";
-  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
-  return `/?week=${date.toISOString().slice(0, 10)}`;
+function inspectionUrl(value) {
+  const url = weekUrl(value);
+  return url === "/" ? url : `${url}&view=week`;
 }
 
 function showStatus(title, message, inspectWeeks = []) {
@@ -43,10 +42,10 @@ function showStatus(title, message, inspectWeeks = []) {
 function showSaveError(response, data, submittedDate) {
   const explanation = typeof data?.detail === "string" ? data.detail : "The server could not save this run. Try again.";
   if (response.status === 503 || response.status >= 500) {
-    uncertainWeeks.add(weekUrl(submittedDate));
+    uncertainWeeks.add(inspectionUrl(submittedDate));
     showStatus("Saving could not be confirmed", `${explanation} Retrying the same run with unchanged values is safe.`, uncertainWeeks);
   } else if (response.status === 409) {
-    showStatus("This run ID belongs to different saved data", `${explanation} Your earlier save may have succeeded. Check the submitted week.`, uncertainWeeks.size ? uncertainWeeks : new Set([weekUrl(submittedDate)]));
+    showStatus("This run ID belongs to different saved data", `${explanation} Your earlier save may have succeeded. Check the submitted week.`, uncertainWeeks.size ? uncertainWeeks : new Set([inspectionUrl(submittedDate)]));
   } else if (response.status === 413) {
     showStatus("Could not save this run", `The request exceeds the 1 MiB (1,048,576 bytes) limit. Reduce the notes or sections and try again. ${explanation}`);
   } else {
@@ -84,14 +83,14 @@ async function saveRun(event) {
     saving = false;
     if ((response.status === 201 || response.status === 200) && data?.id === id && data?.planned_date === payload.planned_date) {
       leaving = true;
-      location.assign(weekUrl(data.planned_date));
+      location.assign(returnToSchedule(origin, { outcome: "save", date: data.planned_date, id, fallback: weekUrl(data.planned_date) }));
       return;
     }
     if (response.ok) throw new Error("Unreadable save response");
     showSaveError(response, data, payload.planned_date);
   } catch {
     saving = false;
-    uncertainWeeks.add(weekUrl(payload.planned_date));
+    uncertainWeeks.add(inspectionUrl(payload.planned_date));
     showStatus("Saving could not be confirmed", "The connection was interrupted or the response was unreadable. Retrying the same run with unchanged values is safe.", uncertainWeeks);
   } finally {
     saving = false;
@@ -103,7 +102,7 @@ async function saveRun(event) {
 }
 
 form.elements.planned_date.value = params.get("date") ?? "";
-document.querySelector("#cancel").href = weekUrl(params.get("week"));
+document.querySelector("#cancel").href = origin ? scheduleUrl(origin.view, origin.date) : weekUrl(params.get("week"));
 document.querySelector("#add-section").onclick = () => addSection();
 sections.onclick = editSections;
 form.onsubmit = saveRun;
@@ -115,18 +114,18 @@ status.hidden = true;
 function draft() {
   return JSON.stringify([...form.querySelectorAll("input, select, textarea")].map(input => input.value));
 }
-function navigate(url) {
+function navigate(url, returnOrigin = false) {
   const message = saving ? "Leave while saving? Leaving does not cancel the request, which may still complete." : "Discard your unsaved changes?";
   if ((saving || draft() !== initialDraft) && !confirm(message)) return;
   leaving = true;
-  location.assign(url);
+  location.assign(returnOrigin ? returnToSchedule(origin, { fallback: url }) : url);
 }
 initialDraft = draft();
 document.querySelector("#cancel").onclick = event => {
   event.preventDefault();
-  navigate(event.currentTarget.href);
+  navigate(event.currentTarget.href, true);
 };
-document.addEventListener("schedule-navigation", () => navigate(document.querySelector("#cancel").href));
+document.addEventListener("schedule-navigation", () => navigate(document.querySelector("#cancel").href, true));
 status.addEventListener("click", event => {
   const link = event.target.closest("a");
   if (link) { event.preventDefault(); navigate(link.href); }

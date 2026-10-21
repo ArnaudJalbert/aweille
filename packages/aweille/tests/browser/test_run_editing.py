@@ -1,5 +1,7 @@
 """Edit saved workouts through the weekly page and shared HTTP API."""
 
+import re
+
 import pytest
 from playwright.sync_api import Page, expect
 from tests.fixtures.live_server import LiveServer
@@ -24,7 +26,7 @@ def test_weekly_edit_prefill_partial_save_and_move(
         },
     )
     assert created.status == 201
-    page.goto(f"{live_server.url}/?week=2026-10-12")
+    page.goto(f"{live_server.url}/?week=2026-10-12&view=week")
     page.get_by_role("link", name="Edit interval run on 2026-10-14").click()
     expect(page.get_by_role("heading", level=1)).to_have_text("Edit a planned run")
     expect(page.get_by_label("Planned date")).to_have_value("2026-10-14")
@@ -35,8 +37,8 @@ def test_weekly_edit_prefill_partial_save_and_move(
         page.get_by_role("button", name="Save changes").click()
     assert result.value.status == 200
     assert result.value.request.post_data_json == {"planned_date": "2026-10-21"}
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-19")
-    expect(page.get_by_role("heading", level=3)).to_have_text("Interval run @ 07:30")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-19(?:&.*)?$"))
+    expect(page.get_by_role("heading", level=3)).to_have_text("Interval run")
 
 
 def test_editor_prefills_exact_large_targets_and_order(
@@ -129,7 +131,8 @@ def test_initial_missing_run_never_enables_empty_form(
     expect(page.get_by_label("Planned date")).to_be_disabled()
     expect(page.get_by_role("button", name="Reload saved run")).to_be_hidden()
     page.get_by_role("link", name="Cancel").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
+    expect(page.get_by_role("heading", level=1)).to_be_focused()
 
 
 def test_uppercase_uuid_direct_link_loads_and_saves(
@@ -154,7 +157,7 @@ def test_uppercase_uuid_direct_link_loads_and_saves(
     expect(page.get_by_role("button", name="Save changes")).to_be_enabled()
     page.get_by_label("Personal note").fill("edited")
     page.get_by_role("button", name="Save changes").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     assert (
         page.request.get(f"{live_server.url}/v1/runs/{run_id}").json()["user_note"]
         == "edited"
@@ -231,7 +234,7 @@ def test_montreal_gap_validation_retains_draft_for_correction(
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
     page.get_by_label("Start time").fill("")
     page.get_by_role("button", name="Save changes").click()
-    expect(page).to_have_url(f"{live_server.url}/?week=2026-03-02")
+    expect(page).to_have_url(re.compile(r"/\?week=2026-03-02(?:&.*)?$"))
     saved = page.request.get(f"{live_server.url}/v1/runs/{run_id}").json()
     assert saved["planned_date"] == "2026-03-08"
     assert saved["planned_start_time"] is None

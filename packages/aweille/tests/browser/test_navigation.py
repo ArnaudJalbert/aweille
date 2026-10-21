@@ -107,7 +107,7 @@ def test_shared_layout_fonts_and_fallback(
     }
     assert page.request.post(f"{live_server.url}/v1/runs", data=run).status == 201
     paths = {
-        "schedule": "/?week=2026-10-12",
+        "schedule": "/?view=day&date=2026-10-14",
         "create": "/runs/new?date=2026-10-14",
         "edit": f"/runs/{run['id']}/edit",
     }
