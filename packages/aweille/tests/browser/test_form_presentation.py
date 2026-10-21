@@ -1,5 +1,6 @@
 """Form presentation and integration at the public page and HTTP seams."""
 
+import pytest
 from playwright.sync_api import Page, expect
 from tests.fixtures.live_server import LiveServer
 
@@ -36,15 +37,23 @@ def test_initial_editor_hides_fields_and_loaded_footer_stays_usable(
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
 
+@pytest.mark.parametrize("editing", [False, True])
 def test_long_form_footer_clearance_thresholds_and_enlarged_text(
-    page: Page, live_server: LiveServer
+    page: Page, live_server: LiveServer, run_request, editing: bool
 ):
-    page.goto(f"{live_server.url}/runs/new?date=2026-10-14")
+    url = f"{live_server.url}/runs/new?date=2026-10-14"
+    if editing:
+        assert (
+            page.request.post(f"{live_server.url}/v1/runs", data=run_request).status
+            == 201
+        )
+        url = f"{live_server.url}/runs/{run_request['id']}/edit"
+    page.goto(url)
     for _ in range(5):
         page.get_by_role("button", name="Add section", exact=True).click()
     page.get_by_label("Personal note").fill("Élève à Montréal.\n" * 40)
     page.get_by_label("Trainer note").fill("Review targets.\n" * 20)
-    for width in (320, 390, 591, 592, 900, 1280):
+    for width in (320, 390, 591, 592, 899, 900, 1280):
         page.set_viewport_size({"width": width, "height": 700})
         expect(page.get_by_role("button", name="Toggle navigation")).to_have_attribute(
             "aria-expanded", "true" if width >= 900 else "false"
@@ -60,8 +69,13 @@ def test_long_form_footer_clearance_thresholds_and_enlarged_text(
         date = page.get_by_label("Planned date").bounding_box()
         time = page.get_by_label("Start time").bounding_box()
         assert date and time
-        assert time["y"] == date["y"]
-        assert time["x"] > date["x"]
+        if width < 900:
+            assert time["y"] >= date["y"] + date["height"]
+            assert time["x"] == date["x"]
+            assert time["width"] == date["width"]
+        else:
+            assert time["y"] == date["y"]
+            assert time["x"] > date["x"]
         assert (
             page.get_by_label("Planned date")
             .evaluate("node => getComputedStyle(node).fontFamily")

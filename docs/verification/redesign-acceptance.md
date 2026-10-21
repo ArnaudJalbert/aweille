@@ -1,5 +1,15 @@
 # Running-app redesign acceptance
 
+## October 21 phone acceptance and date fields
+
+Arnaud reported that all requested checks passed on his physical iPhone Safari: Day/Week, calendar/arrows, sidebar touch operation, editing the long Interval run's last note with the software keyboard open, reaching Save, rotation, clearance from Safari's bars and the home indicator, saved edit/reopen, and Delete run followed by Keep run. The phone model and iOS version were not supplied. Screen-reader testing is deferred at his request, and the earlier desktop approval and actual zoom evidence remain recorded separately.
+
+He also requested Planned date above optional Start time in phone mode because the paired fields were too close. Create and edit now stack that group in the existing drawer mode below 900px of available application width. Desktop date/time and all section distance/pace fields remain paired. This supersedes the earlier phone date/time specimen, without changing field order, validation, values or save behavior.
+
+The updated long-form browser scenario failed before the CSS change and passed afterward for both create and edit. It checks 320/390/591/592/899/900/1280px widths, footer clearance, enlarged footer actions, short viewports and overflow. The reported physical-phone pass predates this final date/time arrangement; the new arrangement is a subsequent layout request, not an additional physical-device pass. Earlier pending-phone statements below describe their dated verification stages.
+
+All 373 tests passed in 83.90 seconds, along with ty, Ruff lint/format and diff checks. Standards review reported no findings. Spec review found an outdated pending-manual-check sentence in the form decision; that paragraph now links the current acceptance record and distinguishes the later layout change.
+
 ## October 21 physical-phone HTTP blocker
 
 Arnaud's iPhone Safari check reached the form but showed "JavaScript is required to save a run." The same failure reproduced on the LAN HTTP address in desktop Chromium. All scripts loaded, but form initialization threw `TypeError: crypto.randomUUID is not a function`. The [Web Crypto specification](https://www.w3.org/TR/WebCryptoAPI/#crypto-interface) restricts `randomUUID` to secure contexts; the phone's plain HTTP origin does not qualify.
@@ -8,7 +18,7 @@ Run IDs and schedule handoff tokens now share UUID v4 generation using `crypto.g
 
 All 372 tests passed in 82.72 seconds; the 33 affected browser tests passed separately. Ty, Ruff lint/format and diff checks passed. Independent Standards and Spec reviews against `cf46ec1` each reported zero findings.
 
-Arnaud confirmed that the form works on his physical iPhone Safari after the fix. The phone model and iOS version have not been supplied. Touch navigation, long-form software-keyboard use and hardware safe-area acceptance still need his confirmation. Arnaud explicitly deferred VoiceOver and screen-reader testing on October 21; screen-reader acceptance is outside the current completion gate. His earlier local review approved the desktop application. No additional phone checks are inferred from form startup or desktop results.
+Arnaud confirmed that the form works on his physical iPhone Safari after the fix, then reported all requested phone checks passed as recorded above. The phone model and iOS version have not been supplied. Arnaud explicitly deferred VoiceOver and screen-reader testing on October 21; screen-reader acceptance is outside the current completion gate. His earlier local review approved the desktop application.
 
 ## October 21 focus follow-ups
 
