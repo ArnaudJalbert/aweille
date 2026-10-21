@@ -1,6 +1,8 @@
 # Sidebar integration
 
-Arnaud approved this integration on October 17, 2026 through [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45). It extends the earlier full-sidebar choice to the accepted schedule. Production implementation remains deferred.
+Arnaud approved this integration on October 17, 2026 through [Fit the approved sidebar into the new design](https://github.com/ArnaudJalbert/aweille/issues/45). It extends the earlier full-sidebar choice to the accepted schedule. The browser implementation follows this decision; [integrated verification](../verification/redesign-acceptance.md) records evidence and remaining manual acceptance.
+
+The October 18 request to reproduce the final prototype also restores its tinted active row, green edge, icon hover and disabled navigation appearance. See [production visual reference](../../DESIGN.md#production-visual-reference). Geometry and navigation behavior below remain unchanged.
 
 ## Selected geometry and placement
 
@@ -16,7 +18,7 @@ Arnaud approved this integration on October 17, 2026 through [Fit the approved s
 
 At exactly 900px of available width, the expanded sidebar leaves 628px for content after padding. Use the available application width rather than browser identity to select drawer behavior. Collapsing the desktop sidebar frees its full column while retaining a reopen control.
 
-Keep Today at the end of the schedule toolbar. Calendar and Add run stay beside their date heading. Preserve the [accepted schedule](schedule-layout.md), including Day as default, the time column, view-specific disclosure defaults, multiple runs per day, and no schedule arrows.
+Keep Today at the end of the schedule toolbar. Calendar and Add run stay beside their date heading. Preserve the [accepted schedule](schedule-layout.md), including Day as default, the time column, view-specific disclosure defaults, multiple runs per day, and the October 18 request for direct day/week navigation arrows. Narrow content places the calendar/arrows and Add run below the date heading.
 
 ## Navigation and focus
 

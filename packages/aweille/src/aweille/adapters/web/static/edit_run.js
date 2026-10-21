@@ -23,7 +23,7 @@ const { addSection, editSections, updateSections, showValidation, showBodyErrors
   createRunForm(form, fields, sections, () => writePending);
 function showStatus(title, message) {
   status.hidden = false;
-  const informational = title === "Changes saved" || title.startsWith("Loading") || title.startsWith("Reloading") || title.startsWith("Saving changes") || title.startsWith("Deleting run");
+  const informational = title === "Changes saved" || title === "Saved run loaded" || title.startsWith("Loading") || title.startsWith("Reloading") || title.startsWith("Saving changes") || title.startsWith("Deleting run");
   status.setAttribute("role", informational ? "status" : "alert");
   status.setAttribute("aria-live", informational ? "polite" : "assertive");
   const heading = document.createElement("strong");
@@ -53,6 +53,10 @@ function validRun(data) {
 }
 
 function updateControls() {
+  fields.hidden = !baseline;
+  deleteButton.hidden = !baseline;
+  form.setAttribute("aria-busy", String(loading || writePending));
+  document.querySelector("#reload-run").hidden = !baseline;
   fields.disabled = loading || writePending || confirmingDelete || !baseline;
   save.disabled = fields.disabled || reloadRequired;
   deleteButton.disabled = fields.disabled || reloadRequired;
@@ -141,7 +145,7 @@ async function loadRun(reloading = false) {
   if (version !== readVersion) return;
   loading = false;
   if (response.status === 404 || response.status === 422 && data?.detail?.some?.(problem => problem.loc?.[0] === "path")) {
-    blockWrites("Run unavailable", "This planned run is unavailable. Your draft is still here.");
+    blockWrites("Run unavailable", baseline ? "This planned run is unavailable. Your draft is still here." : "This planned run is unavailable. Return to the schedule.");
     document.querySelector("#recovery").hidden = true;
     fields.disabled = !baseline;
   } else if (response.ok && validRun(data)) {
@@ -224,6 +228,7 @@ async function deleteRun() {
   updateControls();
   form.setAttribute("aria-busy", "true");
   showStatus("Deleting run...", "Please wait. Leaving this page does not cancel deletion.");
+  status.focus();
   try {
     const response = await fetch(`/v1/runs/${encodeURIComponent(id)}`, {
       method: "DELETE", headers: { "If-Match": `"${baseline.revision}"` },
@@ -279,4 +284,7 @@ function guardedLeave() {
   const message = writePending ? "Leave while a write is pending? Leaving does not cancel the request, which may still complete." : "Discard your unsaved changes?";
   if ((!dirty() && !writePending) || confirm(message)) leave(returnToSchedule(origin, { fallback: editorWeek() }));
 }
-document.addEventListener("schedule-navigation", guardedLeave);
+document.addEventListener("schedule-navigation", event => {
+  event.preventDefault();
+  guardedLeave();
+});

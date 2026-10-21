@@ -13,15 +13,15 @@ def open_form(page: Page, server: LiveServer) -> None:
     page.get_by_role("region", name="Wednesday Oct 14").get_by_role(
         "link", name="Add run"
     ).click()
-    expect(page.get_by_role("heading", level=1)).to_have_text("Add a planned run")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Add run")
     expect(page.get_by_label("Planned date", exact=True)).to_have_value("2026-10-14")
     expect(page.get_by_label("Run type", exact=True)).to_have_value("")
 
 
 def fill_section(page: Page, number: int, distance: str, pace: str) -> None:
     section = page.get_by_role("group", name=f"Section {number}", exact=True)
-    section.get_by_label("Distance (km)", exact=True).fill(distance)
-    section.get_by_label("Pace (m:ss/km)", exact=True).fill(pace)
+    section.get_by_label("Distance km", exact=True).fill(distance)
+    section.get_by_label("Pace m:ss/km", exact=True).fill(pace)
 
 
 def test_manual_creation_read_display_restart_and_identical_retry(
@@ -98,13 +98,21 @@ def test_section_editing_exact_conversion_and_save_to_changed_week(
     fill_section(page, 3, "0001.01000", "0:01")
     page.get_by_role("button", name="Add section", exact=True).click()
     page.get_by_role("button", name="Remove section 4").click()
-    page.get_by_role("button", name="Move section 2 up").click()
+    up_arrow = page.get_by_role("button", name="Move section 2 up").locator("svg")
+    expect(up_arrow).to_be_visible()
+    assert (
+        up_arrow.evaluate("node => getComputedStyle(node).stroke") == "rgb(32, 43, 40)"
+    )
+    assert up_arrow.evaluate("node => getComputedStyle(node).fill") == "none"
+    up_arrow.click()
     expect(
         page.get_by_role("group", name="Section 1", exact=True).get_by_label(
-            "Distance (km)"
+            "Distance km"
         )
     ).to_have_value("9007199254740993.123")
-    page.get_by_role("button", name="Move section 1 down").click()
+    down_arrow = page.get_by_role("button", name="Move section 1 down").locator("svg")
+    expect(down_arrow).to_be_visible()
+    down_arrow.click()
     page.get_by_role("button", name="Move section 3 up").click()
     expect(page.get_by_role("button", name="Move section 3 down")).to_be_disabled()
     page.get_by_label("Planned date").fill("2026-10-21")
@@ -153,11 +161,11 @@ def test_cancel_keeps_originating_week_without_creating_a_run(
 @pytest.mark.parametrize(
     ("distance", "pace", "invalid_field"),
     [
-        ("0.0001", "6:30", "Distance (km)"),
-        ("1e3", "6:30", "Distance (km)"),
-        ("0", "6:30", "Distance (km)"),
-        ("1", "5:75", "Pace (m:ss/km)"),
-        ("1", "0:00", "Pace (m:ss/km)"),
+        ("0.0001", "6:30", "Distance km"),
+        ("1e3", "6:30", "Distance km"),
+        ("0", "6:30", "Distance km"),
+        ("1", "5:75", "Pace m:ss/km"),
+        ("1", "0:00", "Pace m:ss/km"),
     ],
 )
 def test_invalid_section_format_is_reported_without_rounding_or_losing_values(
@@ -173,8 +181,8 @@ def test_invalid_section_format_is_reported_without_rounding_or_losing_values(
     expect(input).to_be_focused()
     error_id = input.get_attribute("aria-describedby")
     expect(page.locator(f"#{error_id}")).to_be_visible()
-    expect(page.get_by_label("Distance (km)", exact=True)).to_have_value(distance)
-    expect(page.get_by_label("Pace (m:ss/km)", exact=True)).to_have_value(pace)
+    expect(page.get_by_label("Distance km", exact=True)).to_have_value(distance)
+    expect(page.get_by_label("Pace m:ss/km", exact=True)).to_have_value(pace)
     assert (
         page.request.get(
             f"{live_server.url}/v1/runs?start=2026-10-12&end=2026-10-19"
@@ -221,16 +229,17 @@ def test_api_field_errors_keep_correct_section_values_and_id_for_retry(
     )
     first = page.get_by_role("group", name="Section 1", exact=True)
     second = page.get_by_role("group", name="Section 2", exact=True)
-    expect(first.get_by_label("Pace (m:ss/km)")).not_to_have_attribute(
+    expect(first.get_by_label("Pace m:ss/km")).not_to_have_attribute(
         "aria-invalid", "true"
     )
-    expect(second.get_by_label("Pace (m:ss/km)")).to_have_attribute(
+    expect(second.get_by_label("Pace m:ss/km")).to_have_attribute(
         "aria-invalid", "true"
     )
     expect(second.get_by_text("This section's target pace is invalid.")).to_be_visible()
     expect(page.get_by_label("Run type")).to_have_attribute("aria-invalid", "true")
-    expect(second.get_by_label("Distance (km)")).to_have_value("2")
-    expect(second.get_by_label("Pace (m:ss/km)")).to_have_value("5:45")
+    expect(page.get_by_label("Run type")).to_be_focused()
+    expect(second.get_by_label("Distance km")).to_have_value("2")
+    expect(second.get_by_label("Pace m:ss/km")).to_have_value("5:45")
     expect(page.get_by_label("Personal note")).to_have_value(
         "Keep this note.\nAnd this line."
     )
@@ -254,6 +263,7 @@ def test_nonexistent_montreal_time_returns_real_field_error_and_can_be_corrected
     assert response.value.status == 422
     expect(page.get_by_label("Start time")).to_have_attribute("aria-invalid", "true")
     expect(page.get_by_label("Start time")).to_have_value("02:30")
+    expect(page.get_by_label("Start time")).to_be_focused()
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
     page.get_by_label("Start time").fill("03:30")
     page.get_by_role("button", name="Save run", exact=True).click()
@@ -293,8 +303,8 @@ def test_committed_uncertain_save_retries_same_payload_without_duplication(
     page.get_by_role("button", name="Save run", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Saving could not be confirmed")
     expect(page.get_by_role("alert")).to_contain_text("unchanged values is safe")
-    expect(page.get_by_label("Distance (km)")).to_have_value("1")
-    expect(page.get_by_label("Pace (m:ss/km)")).to_have_value("6:30")
+    expect(page.get_by_label("Distance km")).to_have_value("1")
+    expect(page.get_by_label("Pace m:ss/km")).to_have_value("6:30")
     expect(page.get_by_role("link", name="View submitted week")).to_have_attribute(
         "href", "/?week=2026-10-12&view=week"
     )
@@ -430,8 +440,8 @@ def test_reported_save_failure_retains_values_and_actual_safe_explanation(
     )
     page.get_by_role("button", name="Save run", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text(explanation)
-    expect(page.get_by_label("Distance (km)")).to_have_value("2")
-    expect(page.get_by_label("Pace (m:ss/km)")).to_have_value("5:45")
+    expect(page.get_by_label("Distance km")).to_have_value("2")
+    expect(page.get_by_label("Pace m:ss/km")).to_have_value("5:45")
     expect(page.get_by_label("Trainer note")).to_have_value("Keep this trainer note.")
     expect(page.get_by_role("button", name="Save run", exact=True)).to_be_enabled()
 
@@ -449,8 +459,8 @@ def test_active_save_keeps_values_and_prevents_duplicate_submission(
     expect(page.get_by_role("status")).to_contain_text("Saving run...")
     expect(page.get_by_role("button", name="Save run", exact=True)).to_be_disabled()
     expect(page.get_by_role("button", name="Add section", exact=True)).to_be_disabled()
-    expect(page.get_by_label("Distance (km)")).to_be_disabled()
-    expect(page.get_by_label("Distance (km)")).to_have_value("1")
+    expect(page.get_by_label("Distance km")).to_be_disabled()
+    expect(page.get_by_label("Distance km")).to_have_value("1")
     page.keyboard.press("Enter")
     assert len(held) == 1
     held[0].fulfill(response=held[0].fetch())
@@ -478,24 +488,24 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
     page.get_by_role("button", name="Add section", exact=True).focus()
     page.keyboard.press("Enter")
     second = page.get_by_role("group", name="Section 2", exact=True)
-    expect(second.get_by_label("Distance (km)")).to_be_focused()
+    expect(second.get_by_label("Distance km")).to_be_focused()
     page.get_by_role("button", name="Remove section 1").focus()
     page.keyboard.press("Enter")
-    expect(page.get_by_label("Distance (km)")).to_be_focused()
+    expect(page.get_by_label("Distance km")).to_be_focused()
     expect(page.get_by_role("button", name="Remove section 1")).to_be_disabled()
     fill_section(page, 1, "1", "5:75")
     page.get_by_role("button", name="Save run", exact=True).click()
     page.mouse.move(0, 0)
-    distance = page.get_by_label("Distance (km)").bounding_box()
-    pace = page.get_by_label("Pace (m:ss/km)").bounding_box()
+    distance = page.get_by_label("Distance km").bounding_box()
+    pace = page.get_by_label("Pace m:ss/km").bounding_box()
     remove = page.get_by_role("button", name="Remove section 1").bounding_box()
     up = page.get_by_role("button", name="Move section 1 up").bounding_box()
     cancel = page.get_by_role("link", name="Cancel", exact=True).bounding_box()
     save = page.get_by_role("button", name="Save run", exact=True).bounding_box()
     error = page.get_by_role("alert").bounding_box()
     assert distance and pace and remove and up and cancel and save and error
-    assert distance["y"] < pace["y"]
-    assert distance["x"] == pace["x"]
+    assert distance["y"] == pace["y"]
+    assert distance["x"] < pace["x"]
     assert remove["x"] < up["x"]
     assert cancel["x"] < save["x"]
     assert error["y"] + error["height"] < save["y"]
@@ -509,13 +519,13 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
         page.get_by_role("button", name="Remove section 1").evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(250, 251, 246)"
+        == "rgba(0, 0, 0, 0)"
     )
     assert (
         page.get_by_role("link", name="Cancel", exact=True).evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(250, 251, 246)"
+        == "rgba(0, 0, 0, 0)"
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 

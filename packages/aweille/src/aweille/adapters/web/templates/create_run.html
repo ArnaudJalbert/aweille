@@ -1,74 +1,21 @@
 {% extends 'base.html' %}
-{% block title %}Add a planned run | Aweille{% endblock %}
+{% set editing = false %}
+{% block title %}Add run | Aweille{% endblock %}
 {% block scripts %}<script type="module" src="{{ url_for('static', path='create_run.js') }}"></script>{% endblock %}
 {% block screen_class %}form-shell{% endblock %}
 {% block content %}
-    <header class="page-heading">{% include 'menu.html' %}<h1>Add a planned run</h1></header>
-    <form id="run-form" class="form-card" novalidate>
-      <fieldset id="form-fields" disabled>
-        <div class="field-grid">
-          <label class="field" for="planned_date">Planned date</label>
-          <input id="planned_date" name="planned_date" type="date" required aria-describedby="planned_date-error">
-          <span id="planned_date-error" class="field-error" hidden></span>
-          <label class="field" for="planned_start_time">Start time <span class="optional">(optional)</span></label>
-          <input id="planned_start_time" name="planned_start_time" type="time" step="60" aria-describedby="planned_start_time-error">
-          <span id="planned_start_time-error" class="field-error" hidden></span>
-          <label class="field" for="run_type">Run type</label>
-          <select id="run_type" name="run_type" required aria-describedby="run_type-error">
-            <option value="">Choose a run type</option>
-            <option value="easy">Easy</option>
-            <option value="hard">Hard</option>
-            <option value="interval">Interval</option>
-            <option value="long">Long</option>
-          </select>
-          <span id="run_type-error" class="field-error" hidden></span>
-        </div>
-        <section class="form-section" aria-labelledby="sections-heading">
-          <h2 id="sections-heading">Sections</h2>
-          <p class="muted">Each section is a separate step, in running order.</p>
-          <div id="section-list"></div>
-          <div class="add-section"><button id="add-section" class="positive" type="button">Add section</button></div>
-        </section>
-        <section class="form-section" aria-labelledby="notes-heading">
-          <h2 id="notes-heading">Notes</h2>
-          <div class="field-grid">
-            <label class="field" for="user_note">Personal note <span class="optional">(optional)</span></label>
-            <textarea id="user_note" name="user_note" aria-describedby="user_note-error"></textarea>
-            <span id="user_note-error" class="field-error" hidden></span>
-            <label class="field" for="trainer_note">Trainer note <span class="optional">(optional)</span></label>
-            <textarea id="trainer_note" name="trainer_note" aria-describedby="trainer_note-error"></textarea>
-            <span id="trainer_note-error" class="field-error" hidden></span>
-          </div>
-        </section>
-      </fieldset>
-      <div id="save-status" class="notice" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
-      <footer class="form-footer">
+  <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Add run</h1></header>
+  <form id="run-form" class="form-card" aria-describedby="form-guidance" novalidate>
+    <p id="form-guidance" class="muted">Fields are required unless marked optional.</p>
+    <div class="form-message">
+      <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a run.</div>
+    </div>
+    {% include 'run_fields.html' %}
+    <footer class="form-footer">
+      <div class="form-footer-left">
         <a id="cancel" class="button" href="/">Cancel</a>
-        <button id="save-run" class="positive" type="submit" disabled>Save run</button>
-      </footer>
-    </form>
-    <template id="section-template">
-      <fieldset class="section-editor">
-        <legend></legend>
-        <div class="section-inputs">
-          <div class="field-grid">
-            <label class="field" data-label="distance_m">Distance (km)</label>
-            <input data-field="distance_m" inputmode="decimal" placeholder="e.g. 1" required>
-            <span class="field-error" data-error="distance_m" hidden></span>
-          </div>
-          <div class="field-grid">
-            <label class="field" data-label="target_pace_seconds_per_km">Pace (m:ss/km)</label>
-            <input data-field="target_pace_seconds_per_km" placeholder="e.g. 6:30" required>
-            <span class="field-error" data-error="target_pace_seconds_per_km" hidden></span>
-          </div>
-        </div>
-        <div class="section-actions">
-          <button class="negative" data-action="remove" type="button">Remove</button>
-          <div class="move-actions">
-            <button data-action="up" type="button">Move up</button>
-            <button data-action="down" type="button">Move down</button>
-          </div>
-        </div>
-      </fieldset>
-    </template>
+      </div>
+      <button id="save-run" class="positive" type="submit" disabled>Save run</button>
+    </footer>
+  </form>
 {% endblock %}

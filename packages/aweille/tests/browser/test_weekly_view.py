@@ -88,6 +88,19 @@ def test_montreal_week_navigation_history_and_open_tab_rollover(
     )
     expect(page.get_by_role("region")).to_have_count(1)
 
+    # Montreal's DST change still uses calendar weeks and the new UTC-4 midnight.
+    page.clock.set_fixed_time(datetime(2026, 3, 8, 6, 30, tzinfo=UTC))
+    page.get_by_role("button", name="Today", exact=True).click()
+    page.get_by_role("button", name="Week", exact=True).click()
+    expect(page.locator("#exact-date")).to_have_text("March 2 to 8, 2026")
+    choose_date(page, "2026-03-09")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Next Week")
+    page.clock.set_fixed_time(datetime(2026, 3, 9, 4, 30, tzinfo=UTC))
+    page.get_by_role("button", name="Today", exact=True).click()
+    expect(page).to_have_url(
+        f"{live_server.url}/?week=2026-03-09&view=day&date=2026-03-09"
+    )
+
 
 def test_non_monday_selection_normalizes_the_url_and_reads_its_full_week(
     page: Page, live_server: LiveServer
@@ -118,7 +131,12 @@ def test_invalid_week_does_not_guess_a_range_and_can_recover(
     assert reads == []
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
     expect(page.get_by_role("button", name="Choose date")).to_be_enabled()
-    expect(page.get_by_role("button", name="Previous week")).to_have_count(0)
+    expect(
+        page.get_by_role("button", name=re.compile(r"^Previous (day|week)$"))
+    ).to_be_disabled()
+    expect(
+        page.get_by_role("button", name=re.compile(r"^Next (day|week)$"))
+    ).to_be_disabled()
     page.get_by_role("button", name="Today", exact=True).click()
     expect(page).to_have_url(re.compile(r"/\?week=2026-10-12(?:&.*)?$"))
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(1)
@@ -312,6 +330,10 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
     expect(page.get_by_role("link", name="Schedule", exact=True)).to_be_focused()
     page.get_by_role("button", name="Toggle navigation").focus()
     page.keyboard.press("Tab")
+    day = page.get_by_role("button", name="Day", exact=True)
+    expect(day).to_be_focused()
+    assert day.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
+    page.keyboard.press("Tab")
     week = page.get_by_role("button", name="Week", exact=True)
     expect(week).to_be_focused()
     assert week.evaluate("node => getComputedStyle(node).outlineWidth") == "3px"
@@ -321,8 +343,6 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
         "**/v1/runs?*",
         lambda route: route.fulfill(status=503, json={"detail": "Try again later."}),
     )
-    page.keyboard.press("Tab")
-    expect(page.get_by_role("button", name="Day", exact=True)).to_be_focused()
     page.keyboard.press("Tab")
     expect(page.get_by_role("button", name="Today", exact=True)).to_be_focused()
     page.keyboard.press("Enter")
@@ -340,6 +360,8 @@ def test_calendar_limits_allow_complete_api_ranges(
 ):
     page.goto(f"{live_server.url}/?week={selection}&view=week")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
+    boundary = "Previous week" if selection.startswith("0001") else "Next week"
+    expect(page.get_by_role("button", name=boundary, exact=True)).to_be_disabled()
     page.get_by_role("button", name="Choose date").click()
     if selection.startswith("0001"):
         expect(page.get_by_role("button", name="Previous month")).to_be_disabled()
@@ -347,6 +369,13 @@ def test_calendar_limits_allow_complete_api_ranges(
         expect(page.get_by_role("button", name="Next month")).to_be_disabled()
         expect(page.get_by_role("gridcell", name="9999-12-31")).to_be_disabled()
     expect(page.get_by_role("button", name="Cancel", exact=True)).to_be_enabled()
+    page.get_by_role("button", name="Cancel", exact=True).click()
+    if selection.startswith("0001"):
+        page.get_by_role("button", name="Day", exact=True).click()
+        expect(page.get_by_role("button", name="Previous day")).to_be_disabled()
+    else:
+        page.goto(f"{live_server.url}/?view=day&date=9999-12-26")
+        expect(page.get_by_role("button", name="Next day")).to_be_disabled()
 
 
 def test_returning_to_invalid_selection_ignores_an_outstanding_read(

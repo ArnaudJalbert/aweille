@@ -20,7 +20,7 @@ Arnaud agrees on training with an external agent, then reviews and changes plann
 
 ## Capabilities and Constraints
 
-The implemented browser supports weekly viewing and planned-run creation, editing, and permanent deletion. A planned run has a date, an optional time, a run type, ordered sections with distance and pace, and separate personal and trainer notes. Preserve exact units, section order, draft recovery, keyboard access, and existing save, deletion confirmation, and recovery behavior during visual work.
+The implemented browser supports Day/Week viewing and planned-run creation, editing, and permanent deletion. A planned run has a date, an optional time, a run type, ordered sections with distance and pace, and separate personal and trainer notes. Preserve exact units, section order, draft recovery, keyboard access, and existing save, deletion confirmation, and recovery behavior during visual work.
 
 Future scope includes stretching, strength/bodyweight training, and yoga alongside running. Arnaud confirmed that each is an independent training block that can be scheduled, moved, or skipped separately, with several blocks on the same day. Timed blocks come first in chronological order, followed by untimed blocks. The design must accommodate this; these additional kinds and skipping are not implemented by the current run API. See [training blocks](docs/design/training-blocks.md).
 

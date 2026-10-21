@@ -99,6 +99,7 @@ async function saveRun(event) {
     form.setAttribute("aria-busy", "false");
     updateSections();
   }
+  form.querySelector('[aria-invalid="true"]')?.focus();
 }
 
 form.elements.planned_date.value = params.get("date") ?? "";
@@ -125,7 +126,10 @@ document.querySelector("#cancel").onclick = event => {
   event.preventDefault();
   navigate(event.currentTarget.href, true);
 };
-document.addEventListener("schedule-navigation", () => navigate(document.querySelector("#cancel").href, true));
+document.addEventListener("schedule-navigation", event => {
+  event.preventDefault();
+  navigate(document.querySelector("#cancel").href, true);
+});
 status.addEventListener("click", event => {
   const link = event.target.closest("a");
   if (link) { event.preventDefault(); navigate(link.href); }

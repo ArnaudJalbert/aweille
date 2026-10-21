@@ -2,7 +2,7 @@
 
 I'm building Aweille to structure my running training. I want an editable weekly schedule, a record of planned workouts and actual results, and an external trainer agent that can manage my plan through an API.
 
-This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit/delete HTTP API, weekly browser view, and manual creation and editing forms are implemented.
+This README defines the first version I want to build. The planned-run core, SQLite storage, create/read/edit/delete HTTP API, Day/Week browser schedule, and manual creation and editing forms are implemented.
 
 The code and tests define implemented behavior. The original [create-and-display map](https://github.com/ArnaudJalbert/aweille/issues/1) and [editing-and-deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) preserve the planning decisions; their implementation workflows are complete. Older issue comments and verification reports describe dated stages, not current delivery status.
 
@@ -11,7 +11,7 @@ Skipping, actual results, and end-to-end use with a selected trainer agent remai
 ## Documentation
 
 - [CONTEXT.md](CONTEXT.md) defines domain terms, including agreed future training blocks.
-- [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the accepted visual direction and exact implementation tokens. The redesign is not applied to the production app.
+- [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the accepted visual direction and exact implementation tokens. The browser applies the accepted redesign; [integration verification](docs/verification/redesign-acceptance.md) records checks and pending manual acceptance.
 - [Training blocks](docs/design/training-blocks.md) separates future mixed-training rules from today's run-only model.
 - [Planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
 - [CONTRIBUTING.md](CONTRIBUTING.md) defines the contributor workflow; [AGENTS.md](AGENTS.md) routes agent work to the relevant guidance.
@@ -256,23 +256,27 @@ Stop Uvicorn and start it again with the same database path, then repeat the rea
 uv run pytest packages/aweille/tests/api
 ```
 
-## Weekly browser view
+## Day/Week browser schedule
 
-With the local server running, open [Aweille](http://127.0.0.1:8000/) in a browser. The view defaults to the current Monday-Sunday week in Montreal, using the browser's clock. To open the representative run's week, use [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12).
+With the local server running, open [Aweille](http://127.0.0.1:8000/) in a browser. Day defaults to Montreal's current calendar date. Week shows all seven dates. To open the representative week, use [October 12 to 18, 2026](http://127.0.0.1:8000/?view=week&date=2026-10-14).
 
-The selected Monday stays in `?week=YYYY-MM-DD`. Previous week, This week, and Next week controls sit below Sunday. Browser history and reload preserve selection. A valid non-Monday date selects its containing week; invalid or incomplete calendar ranges show an explanation and a This week recovery control.
+Week/Day preserves the selected date. Today selects Day using Montreal's date when pressed. The contextual calendar supports month navigation, arrow keys, Enter, Today or This Week, and Cancel/Escape. Relative headings retain exact dates underneath. Previous/next arrows beside the calendar move one day in Day or seven days in Week, preserving the selected weekday. Movement outside complete API week ranges is disabled.
 
-Each day shows every run and section in API order. Distances are displayed exactly in kilometres, and paces in `m:ss/km`, including large values. Optional start times appear beside the run type; untimed runs have no time label. Personal note and Trainer note remain separate plain text with line breaks.
+The URL records `week`, `view` and `date`; reload/history restore selection with disclosure defaults. Existing `?week=YYYY-MM-DD` links remain valid. Without an explicit date, they select today within the current week or Monday in another week. Invalid or incomplete calendar ranges show an explanation with calendar and Today recovery.
 
-Reload or navigate to fetch newly API-created runs. An open tab keeps its selected week across Monday. Loading clears previous runs, failures offer Retry for the selected week, and late responses cannot replace a newer selection. JavaScript is required; a message explains when it cannot load the runs.
+Runs stay in API order, with a time column and Untimed label. Summary links show run type, exact total kilometres, section count and common or varied pace. Independent native Show/Hide controls reveal ordered sections and separate plain-text Personal note and Trainer note. Details default open in Day and closed in Week. Each view's manual choices survive same-week date/view changes and a form Cancel; week changes, ordinary reload and history restore defaults. There is no saved disclosure preference.
+
+The desktop sidebar collapses completely; below 900px of application width it becomes a closed-by-default modal drawer. Menu toggles retain schedule state and form values. The drawer supports close/backdrop/Escape dismissal, keyboard focus containment and return. Aweille appears only in navigation.
+
+Reload or navigate for fresh API data. Loading hides old runs, failures offer Retry for the current selection, and late reads cannot replace a newer selection. JavaScript-unavailable pages explain the unloaded state. A failed schedule read after a confirmed write retries only the read.
 
 ### Create a run in the browser
 
-With the server running, open [October 12 to 18, 2026](http://127.0.0.1:8000/?week=2026-10-12) and choose Wednesday's Add run. The separate form prefills October 14 and lets you change it. Choose Interval, enter the optional start time `07:30`, and fill the first section with distance `1` km and pace `6:30`. Add two sections with `1` km at `5:45` and `1` km at `6:30`. Enter `Keep the first section easy.` as the Personal note and `Finish relaxed.` as the Trainer note, then choose Save run.
+With the server running, open [October 12 to 18, 2026](http://127.0.0.1:8000/?view=week&date=2026-10-14) and choose Wednesday's Add run. The separate form prefills October 14 and lets you change it. Choose Interval, enter the optional start time `07:30`, and fill the first section with distance `1` km and pace `6:30`. Add two sections with `1` km at `5:45` and `1` km at `6:30`. Enter `Keep the first section easy.` as the Personal note and `Finish relaxed.` as the Trainer note, then choose Save run.
 
-The form saves through `POST /v1/runs`, using the same API as external callers. It opens the saved run's week. Sections keep their order and repeated entries; Remove, Move up, and Move down change that order before saving. The last section cannot be removed. Distances convert exactly to whole-metre strings, and paces to whole-second strings. Values such as `0.0001` km or `5:75` are rejected without rounding. Empty time and notes become absent values. Cancel returns to the originating week without saving.
+The form saves through `POST /v1/runs`, using the same API as external callers. It selects the saved run's date in the originating view and focuses its summary. Sections keep their order and repeated entries; Remove, Move up, and Move down change that order before saving. The last section cannot be removed. Distances convert exactly to whole-metre strings, and paces to whole-second strings. Values such as `0.0001` km or `5:75` are rejected without rounding. Empty time and notes become absent values. Cancel restores originating selection, disclosures and focus without saving. Changed or invalid drafts ask before discard; pending writes explain that leaving does not cancel the request.
 
-Save failures retain your fields and show errors beside affected inputs, with the overall explanation above Save run. A lost response, timeout, or server failure may leave the save uncertain. Retrying unchanged values uses the same UUID and payload, so it can confirm a committed run without creating a duplicate. If you change the values after an uncertain save and receive a conflict, use View submitted week to inspect the earlier run. When uncertain attempts span different weeks, the form keeps a link to each possible week. It never overwrites a saved run or generates a replacement ID on retry. Requests are limited to 1 MiB; reduce notes or sections if the API reports that limit.
+Save failures retain your fields and show errors beside affected inputs, with the overall explanation above the fields. A lost response, timeout, or server failure may leave the save uncertain. Retrying unchanged values uses the same UUID and payload, so it can confirm a committed run without creating a duplicate. If you change the values after an uncertain save and receive a conflict, use View submitted week to inspect the earlier run. When uncertain attempts span different weeks, the form keeps a link to each possible week. It never overwrites a saved run or generates a replacement ID on retry. Requests are limited to 1 MiB; reduce notes or sections if the API reports that limit.
 
 Stop and restart the server using the same database file, then reopen the week. The saved run remains available through the browser and the range-read API above.
 
@@ -287,7 +291,7 @@ These checks use the public browser and HTTP API. Separate API and manual creati
 
 ### Edit or delete a run in the browser
 
-Choose a run card's Edit link. The editor loads saved fields and the current revision through the API. Save changes sends only changed fields, then opens the saved run's week. Cancel returns to the originating week without a write and asks before discarding a dirty draft.
+Choose a run summary link. The editor loads saved fields and the current revision through the API. Save changes sends only changed fields, then selects and focuses the saved run, including after a cross-week move. Cancel restores originating selection and focus without a write and asks before discarding a dirty draft.
 
 Delete run opens inline confirmation using the saved date and type, not draft values. Keep run preserves the draft without writing. Delete permanently discards unsaved edits and sends bodyless DELETE with the loaded revision, then returns to a freshly fetched originating week. Deletion cannot be undone.
 

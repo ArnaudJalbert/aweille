@@ -195,16 +195,29 @@ async function loadSelection() {
 }
 function showSelectionError() {
   readVersion++; selectedDate = null;
+  updatePeriodNavigation();
   heading.textContent = "Choose a date"; exact.textContent = "";
   days.replaceChildren(); dayAdd.replaceChildren(); days.setAttribute("aria-busy", "false");
   status.hidden = false; status.className = "notice";
   status.setAttribute("role", "alert"); status.setAttribute("aria-live", "assertive");
   status.replaceChildren(element("strong", "Invalid week selection"), element("p", "Choose a valid calendar date for a complete Monday-to-Sunday week, or select Today."));
 }
+function updatePeriodNavigation() {
+  for (const [direction, step, label] of [["previous", -1, "Previous"], ["next", 1, "Next"]]) {
+    const button = document.querySelector(`#${direction}-period`);
+    const offset = step * (view === "week" ? 7 : 1);
+    button.hidden = false;
+    button.setAttribute("aria-label", `${label} ${view}`);
+    button.title = `${label} ${view}`;
+    button.disabled = !selectedDate || !readableWeek(offsetDate(selectedDate, offset));
+    button.onclick = () => select(offsetDate(selectedDate, offset));
+  }
+}
 function select(date, nextView = view, push = true) {
   if (!readableWeek(date)) { showSelectionError(); return; }
   if (selectedDate && dateString(containingMonday(selectedDate)) !== dateString(containingMonday(date))) choices = { day: {}, week: {} };
   selectedDate = date; view = nextView;
+  updatePeriodNavigation();
   document.querySelector("#view-day").setAttribute("aria-pressed", String(view === "day"));
   document.querySelector("#view-week").setAttribute("aria-pressed", String(view === "week"));
   days.classList.toggle("week-view", view === "week");

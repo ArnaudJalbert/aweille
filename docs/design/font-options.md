@@ -26,7 +26,9 @@ The comparison includes paces, distances, small labels, notes, and editable fiel
 
 The preview embeds Latin and Latin Extended WOFF2 files from Google Fonts, including the relevant copyright notices and OFL texts under its credits disclosure. It runs without a font service connection or installation on the user's computer. The specimen requests regular, medium, and semibold sans weights and regular mono. Italics and broader script coverage have not been evaluated.
 
-The selected pairing is recorded in the [design tokens](../../DESIGN.md#typography) and applied to the [layout prototype](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html). The production application has not been reskinned. Switching to another pairing inside the comparison remains a local preview and does not change the recorded decision.
+The selected pairing is recorded in the [design tokens](../../DESIGN.md#typography) and applied to the [layout prototype](https://github.com/ArnaudJalbert/aweille/blob/af16a8045c216c375d12a100ba6eed10c848eb1a/docs/design/aweille-ui-prototype.html). The browser implementation now uses the pinned production files below; [integrated verification](../verification/redesign-acceptance.md) records loading/fallback and pending manual acceptance. Switching to another pairing inside the comparison remains a local preview and does not change the recorded decision.
+
+The October 18 production presentation request uses Sans for editable values as in the final prototype. Mono remains for displayed schedule measurements. This changes no pinned font file or licence.
 
 ## Production files
 
@@ -54,4 +56,4 @@ ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a  IBMPlexSans-Re
 ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350  IBMPlexMono-Regular.woff2
 ```
 
-Implementation checks must verify same-origin loading, actual computed families/weights, accented notes and exact measurements on all three screens, and readable fallback with font requests blocked. Include wrapping, zoom, long values, and sticky actions in both loaded and fallback states. Font binary/coverage inspection has passed; production loading and physical-device rendering have not been tested by this planning ticket.
+Implementation checks must verify same-origin loading, actual computed families/weights, accented notes and exact measurements on all three screens, and readable fallback with font requests blocked. Include wrapping, zoom, long values, and sticky actions in both loaded and fallback states. The planning ticket verified binary/coverage inspection. The [implementation record](../verification/redesign-acceptance.md) adds same-origin browser loading/fallback checks; physical-device rendering remains pending.

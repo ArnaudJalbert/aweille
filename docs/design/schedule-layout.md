@@ -1,17 +1,17 @@
 # Schedule composition and interactions
 
-Accepted by Arnaud on October 17, 2026 through [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44). This records the selected design for later implementation. The production application is unchanged.
+Accepted by Arnaud on October 17, 2026 through [Choose weekly layout and run-detail disclosure behavior](https://github.com/ArnaudJalbert/aweille/issues/44). This records the selected design implemented by the browser schedule. See [schedule verification](../verification/redesign-schedule.md) and [integrated acceptance](../verification/redesign-acceptance.md) for the implementation PRs and remaining manual checks.
 
 ## Views and activities
 
-- Day is the default on phone and desktop. It shows only the selected date, without a week index. Week shows all seven days, including empty days. A Week/Day switcher stays inside the product header.
+- Day is the default on phone and desktop. It shows only the selected date, without a week index. Week shows all seven days, including empty days. The header switcher places Day before Week in both visual and keyboard order.
 - Use the compact time-column treatment. Each independent activity shows its time or Untimed, kind/name, and relevant summary. Timed activities come first chronologically, followed by untimed activities. Preserve several runs on one date and stable ordering for equal times.
 - Run summaries show run type, exact total distance, section count, and shared pace or varied pace. Sections retain their order; personal and trainer notes remain separate.
 - Mixed stretching, strength, and yoga examples establish room for future independent blocks. They do not authorize new production activity kinds, editors, metrics, or API changes. Production retains Add run and existing run fields.
 
 ## Date selection
 
-The small calendar icon near the heading opens a date picker. In Day, choosing a date selects that day. In Week, choosing any date selects its Monday-to-Sunday week and highlights all seven dates. The picker supports month navigation, arrow-key focus movement, Enter selection, and a contextual Today/This Week shortcut. Cancel or Escape returns focus to the calendar icon. There are no previous/next arrows above or below the schedule.
+The small calendar icon near the heading opens a date picker. In Day, choosing a date selects that day. In Week, choosing any date selects its Monday-to-Sunday week and highlights all seven dates. The picker supports month navigation, arrow-key focus movement, Enter selection, and a contextual Today/This Week shortcut. Cancel or Escape returns focus to the calendar icon. Arnaud requested direct previous/next schedule arrows on October 18. Place them around the calendar control, moving by one day in Day and seven days in Week while preserving the selected weekday. This supersedes the earlier calendar-only navigation decision. Keep focus on the activated arrow, update its accessible day/week name, announce the new relative heading, and disable movement outside complete API week ranges or from an invalid selection. Preserve URL/history, disclosure and read-failure behavior through the existing selection flow. On narrow content, place this control group and Add run below the full-width date heading.
 
 The main Today shortcut switches to Day on Montreal's current calendar date. Resolve the date when pressed, including after midnight and when the browser uses another timezone. Preserve the selected date when switching views. Without an explicit date, select today within the current week or Monday within another selected week.
 
@@ -35,4 +35,4 @@ Loading and failures hide old activities while keeping date selection available.
 
 The [accepted study and evidence](https://github.com/ArnaudJalbert/aweille/blob/5d6e125fa8953d7844f5d70953af8b58d87f86ff/docs/design/weekly-layout-review.md) retain the self-contained interactive prototype and final phone/desktop Day/Week captures on a disposable branch. Earlier screenshots preserve superseded iterations. Browser checks cover narrow and desktop widths, exact sample units, independent disclosures, keyboard actions, create/edit preview return, date selection/history, Montreal dates, long content, empty/busy weeks, and absence of schedule arrows.
 
-The [sidebar integration](sidebar-integration.md) is also approved. [DESIGN.md](../../DESIGN.md) and the [implementation handoff](implementation-handoff.md) settle exact tokens, fonts and the production sequence. Physical-phone, screen-reader, actual browser zoom, production sidebar integration, and complete production recovery checks remain for implementation acceptance. The prototype's local save feedback and fixtures must stay out of production.
+The [sidebar integration](sidebar-integration.md) is also approved. [DESIGN.md](../../DESIGN.md) and the [implementation handoff](implementation-handoff.md) settle exact tokens, fonts and the production sequence. The [integration record](../verification/redesign-acceptance.md) now covers real browser/API/sidebar/recovery checks and actual Firefox 200% zoom. Physical-phone and screen-reader acceptance remain pending. The prototype's local save feedback and fixtures must stay out of production.
