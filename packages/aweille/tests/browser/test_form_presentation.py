@@ -68,7 +68,13 @@ def test_long_form_footer_clearance_thresholds_and_enlarged_text(
         assert note["y"] + note["height"] <= footer["y"]
         date = page.get_by_label("Planned date").bounding_box()
         time = page.get_by_label("Start time").bounding_box()
-        assert date and time
+        form_fields = page.locator("#form-fields").bounding_box()
+        assert date and time and form_fields
+        for control in (date, time):
+            assert control["x"] >= form_fields["x"]
+            assert control["x"] + control["width"] <= (
+                form_fields["x"] + form_fields["width"] + 1
+            )
         if width < 900:
             assert time["y"] >= date["y"] + date["height"]
             assert time["x"] == date["x"]
@@ -79,7 +85,9 @@ def test_long_form_footer_clearance_thresholds_and_enlarged_text(
         assert (
             page.get_by_label("Planned date")
             .evaluate("node => getComputedStyle(node).fontFamily")
-            .startswith('"IBM Plex Sans"')
+            .split(",")[0]
+            .strip('"')
+            == "IBM Plex Sans"
         )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.set_viewport_size({"width": 320, "height": 700})
@@ -109,5 +117,8 @@ def test_unavailable_form_script_keeps_schedule_navigation_operable(
     page.route("**/static/create_run.js", lambda route: route.abort())
     page.goto(f"{live_server.url}/runs/new")
     expect(page.get_by_role("button", name="Save run", exact=True)).to_be_disabled()
+    navigation = page.get_by_role("button", name="Toggle navigation")
+    if navigation.get_attribute("aria-expanded") == "false":
+        navigation.click()
     page.get_by_role("link", name="Schedule", exact=True).click()
     expect(page.get_by_role("button", name="Day", exact=True)).to_be_visible()

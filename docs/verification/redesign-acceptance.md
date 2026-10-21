@@ -1,5 +1,15 @@
 # Running-app redesign acceptance
 
+## October 21 iOS date/time overflow
+
+After loading the stacked layout, Arnaud's physical iPhone Safari screenshot showed date/time inputs extending beyond the form's right edge while Run type and section fields stayed within it. This matches [WebKit bug 301648](https://bugs.webkit.org/show_bug.cgi?id=301648), whose iOS native date/time sizing can override border-box sizing when padding is applied. The upstream report explicitly distinguishes iOS from macOS; desktop WebKit emulation did not reproduce this overflow.
+
+Only date/time input appearance is reset so the existing border-box sizing applies. The inputs retain their date/time types, optional time, labels, validation, values and pickers. Arnaud checked the updated form at the uncached LAN test instance and confirmed both fields align with Run type and both native pickers still open. This is physical-phone confirmation of the final stacked arrangement and overflow correction. The model and iOS version remain unspecified.
+
+The existing create/edit long-form scenario now checks each date/time input against the form's horizontal bounds at every tested width. Its font-family assertion accepts equivalent browser serialization, and the script-unavailable navigation scenario opens the drawer before selecting Schedule when needed. These changes allow the same public-page checks to run in Chromium and macOS WebKit, including the iPhone 13 preset, without claiming that preset reproduces native iOS rendering.
+
+All 373 Chromium-suite tests passed in 84.62 seconds. The four form-presentation checks also passed separately in Chromium, macOS WebKit 27.2 at the default desktop viewport, and WebKit with the iPhone 13 preset. Ty, Ruff lint/format and diff checks passed. Independent Standards and Spec reviews against `be678f9` each reported zero findings. The trial server now sends `Cache-Control: no-store` on its separate LAN address to avoid reusing old styling during phone checks; this is a local test-server option, not a production caching change.
+
 ## October 21 phone acceptance and date fields
 
 Arnaud reported that all requested checks passed on his physical iPhone Safari: Day/Week, calendar/arrows, sidebar touch operation, editing the long Interval run's last note with the software keyboard open, reaching Save, rotation, clearance from Safari's bars and the home indicator, saved edit/reopen, and Delete run followed by Keep run. The phone model and iOS version were not supplied. Screen-reader testing is deferred at his request, and the earlier desktop approval and actual zoom evidence remain recorded separately.
