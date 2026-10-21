@@ -115,7 +115,6 @@ function showSaveError(response, data) {
   if (Array.isArray(data?.detail)) {
     showBodyErrors(data.detail);
     showStatus("Could not save this run", data.detail.map(problem => problem.msg).join(" "));
-    form.querySelector('[aria-invalid="true"]')?.focus();
   } else showStatus("Could not save this run", "Review the entered values and try again.");
 }
 
@@ -219,6 +218,7 @@ async function saveRun(event) {
     form.setAttribute("aria-busy", "false");
     updateControls();
     updateSections();
+    form.querySelector('[aria-invalid="true"]')?.focus();
   }
 }
 

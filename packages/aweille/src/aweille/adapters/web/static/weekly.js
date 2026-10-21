@@ -214,6 +214,7 @@ function updatePeriodNavigation() {
   }
 }
 function select(date, nextView = view, push = true) {
+  if (push) pendingFocus = null;
   if (!readableWeek(date)) { showSelectionError(); return; }
   if (selectedDate && dateString(containingMonday(selectedDate)) !== dateString(containingMonday(date))) choices = { day: {}, week: {} };
   selectedDate = date; view = nextView;

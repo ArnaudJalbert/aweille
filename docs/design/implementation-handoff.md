@@ -4,6 +4,8 @@ Arnaud approved the palette, type/geometry, three self-hosted font files, ordere
 
 ## October 18 visual precedence update
 
+Current status on October 21: all three production PRs are merged. [Issue #51](https://github.com/ArnaudJalbert/aweille/issues/51) tracks the remaining focus follow-ups and manual acceptance. See the [updated integration evidence](../verification/redesign-acceptance.md#october-21-focus-follow-ups); earlier PR-preparation instructions below are historical. Keep the issue and milestone open until manual acceptance passes.
+
 Arnaud subsequently requested the prototype's look directly in production. Use the [production visual reference](../../DESIGN.md#production-visual-reference), including paired phone date/target fields, full-width stacked notes, Sans field values and prototype control/state treatments. This supersedes earlier consolidated presentation differences below. Keep the production behavior, required checks, three open PRs and manual acceptance gates from this handoff.
 
 ## Unattended execution
