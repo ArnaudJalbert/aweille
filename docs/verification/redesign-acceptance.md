@@ -1,5 +1,15 @@
 # Running-app redesign acceptance
 
+## October 21 physical-phone HTTP blocker
+
+Arnaud's iPhone Safari check reached the form but showed "JavaScript is required to save a run." The same failure reproduced on the LAN HTTP address in desktop Chromium. All scripts loaded, but form initialization threw `TypeError: crypto.randomUUID is not a function`. The [Web Crypto specification](https://www.w3.org/TR/WebCryptoAPI/#crypto-interface) restricts `randomUUID` to secure contexts; the phone's plain HTTP origin does not qualify.
+
+Run IDs and schedule handoff tokens now share UUID v4 generation using `crypto.getRandomValues`, which is available over HTTP. The regression uses a real non-loopback HTTP origin proxied to the test server, without replacing browser crypto APIs. It verifies enabled creation, Cancel return focus, a real saved UUID v4, edit persistence and saved-run focus in the originating Week view. The test failed before the fix and passed afterward. A fresh Chromium session on the actual LAN address also enabled the form.
+
+All 372 tests passed in 82.72 seconds; the 33 affected browser tests passed separately. Ty, Ruff lint/format and diff checks passed. Independent Standards and Spec reviews against `cf46ec1` each reported zero findings.
+
+Arnaud confirmed that the form works on his physical iPhone Safari after the fix. The phone model and iOS version have not been supplied. Touch navigation, long-form software-keyboard use and hardware safe-area acceptance still need his confirmation. Arnaud explicitly deferred VoiceOver and screen-reader testing on October 21; screen-reader acceptance is outside the current completion gate. His earlier local review approved the desktop application. No additional phone checks are inferred from form startup or desktop results.
+
 ## October 21 focus follow-ups
 
 The three implementation PRs, #53, #54 and #55, are merged. The dated records below describe their earlier branch checks. [Issue #51](https://github.com/ArnaudJalbert/aweille/issues/51) remains open for manual acceptance and identified two remaining focus regressions.
