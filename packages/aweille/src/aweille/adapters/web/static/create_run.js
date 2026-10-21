@@ -8,6 +8,8 @@ const save = document.querySelector("#save-run");
 const params = new URLSearchParams(location.search);
 const id = crypto.randomUUID();
 let saving = false;
+let leaving = false;
+let initialDraft;
 const uncertainWeeks = new Set();
 const { addSection, editSections, updateSections, showValidation, showBodyErrors, readPayload } =
   createRunForm(form, fields, sections, () => saving);
@@ -81,6 +83,7 @@ async function saveRun(event) {
     const data = await response.json().catch(() => null);
     saving = false;
     if ((response.status === 201 || response.status === 200) && data?.id === id && data?.planned_date === payload.planned_date) {
+      leaving = true;
       location.assign(weekUrl(data.planned_date));
       return;
     }
@@ -108,3 +111,26 @@ addSection(false);
 fields.disabled = false;
 save.disabled = false;
 status.hidden = true;
+
+function draft() {
+  return JSON.stringify([...form.querySelectorAll("input, select, textarea")].map(input => input.value));
+}
+function navigate(url) {
+  const message = saving ? "Leave while saving? Leaving does not cancel the request, which may still complete." : "Discard your unsaved changes?";
+  if ((saving || draft() !== initialDraft) && !confirm(message)) return;
+  leaving = true;
+  location.assign(url);
+}
+initialDraft = draft();
+document.querySelector("#cancel").onclick = event => {
+  event.preventDefault();
+  navigate(event.currentTarget.href);
+};
+document.addEventListener("schedule-navigation", () => navigate(document.querySelector("#cancel").href));
+status.addEventListener("click", event => {
+  const link = event.target.closest("a");
+  if (link) { event.preventDefault(); navigate(link.href); }
+});
+window.addEventListener("beforeunload", event => {
+  if (!leaving && (saving || draft() !== initialDraft)) event.preventDefault();
+});

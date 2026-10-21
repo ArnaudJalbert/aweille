@@ -143,6 +143,7 @@ def test_cancel_keeps_originating_week_without_creating_a_run(
     )
     page.get_by_label("Planned date").fill("2026-10-28")
     fill_section(page, 1, "1", "6:30")
+    page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel", exact=True).click()
     expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
@@ -357,6 +358,7 @@ def test_editing_uncertain_save_conflicts_and_links_to_original_submitted_week(
     assert len(stored) == 1
     assert stored[0]["id"] == submitted[0]["id"]
     assert stored[0]["user_note"] is None
+    page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="View submitted week").click()
     expect(page).to_have_url(f"{live_server.url}/?week=2026-10-12")
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
@@ -398,6 +400,7 @@ def test_multiple_uncertain_dates_keep_a_link_to_the_week_that_actually_saved(
     actual_week = "2026-10-12" if first_attempt_committed else "2026-10-26"
     link = page.get_by_role("alert").locator(f'a[href="/?week={actual_week}"]')
     expect(link).to_be_visible()
+    page.once("dialog", lambda dialog: dialog.accept())
     link.click()
     expect(page).to_have_url(f"{live_server.url}/?week={actual_week}")
     expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
@@ -458,7 +461,9 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
     page.set_viewport_size({"width": 320, "height": 640})
     open_form(page, live_server)
     page.keyboard.press("Tab")
-    expect(page.get_by_role("link", name="Aweille")).to_be_focused()
+    expect(page.get_by_role("link", name="Skip to content")).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(page.get_by_role("button", name="Toggle navigation")).to_be_focused()
     page.keyboard.press("Tab")
     expect(page.get_by_label("Planned date")).to_be_focused()
     assert (
@@ -487,8 +492,8 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
     save = page.get_by_role("button", name="Save run", exact=True).bounding_box()
     error = page.get_by_role("alert").bounding_box()
     assert distance and pace and remove and up and cancel and save and error
-    assert distance["y"] == pace["y"]
-    assert distance["x"] < pace["x"]
+    assert distance["y"] < pace["y"]
+    assert distance["x"] == pace["x"]
     assert remove["x"] < up["x"]
     assert cancel["x"] < save["x"]
     assert error["y"] + error["height"] < save["y"]
@@ -496,19 +501,19 @@ def test_phone_layout_keyboard_access_action_order_and_error_placement(
         page.get_by_role("button", name="Save run", exact=True).evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(22, 101, 52)"
+        == "rgb(168, 213, 162)"
     )
     assert (
         page.get_by_role("button", name="Remove section 1").evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(185, 28, 28)"
+        == "rgb(250, 251, 246)"
     )
     assert (
         page.get_by_role("link", name="Cancel", exact=True).evaluate(
             "node => getComputedStyle(node).backgroundColor"
         )
-        == "rgb(255, 255, 255)"
+        == "rgb(250, 251, 246)"
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 

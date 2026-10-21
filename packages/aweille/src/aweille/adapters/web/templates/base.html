@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Aweille{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='weekly.css') }}">
+  <script type="module" src="{{ url_for('static', path='sidebar.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</head>
+<body>
+  <div class="application" id="application">
+    {% include 'sidebar.html' %}
+    <div class="content" id="content">
+      <a class="skip-link" href="#main">Skip to content</a>
+      <main id="main" class="shell {% block screen_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>

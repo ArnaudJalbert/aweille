@@ -275,13 +275,8 @@ def test_untimed_runs_exact_numbers_plain_text_notes_and_phone_layout(
     assert page.locator("body").get_attribute("data-injected") is None
     expect(wednesday.get_by_text("Trainer note", exact=True)).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    brand = page.get_by_role("link", name="Aweille").bounding_box()
-    title = page.get_by_role("heading", level=1).bounding_box()
-    sunday = page.get_by_role("region", name="Sunday Oct 18").bounding_box()
-    navigation = page.get_by_role("navigation", name="Week navigation").bounding_box()
-    assert brand and title and sunday and navigation
-    assert brand["x"] == title["x"]
-    assert navigation["y"] > sunday["y"] + sunday["height"]
+    expect(page.get_by_text("Aweille", exact=True)).not_to_be_visible()
+    expect(page.get_by_role("button", name="Toggle navigation")).to_be_visible()
 
 
 @pytest.mark.parametrize("javascript_enabled", [False, True])
@@ -297,7 +292,12 @@ def test_javascript_disabled_or_missing_explains_why_runs_cannot_load(
             "JavaScript is required to load your runs."
         )
         expect(page.get_by_text("No runs planned", exact=True)).to_have_count(0)
-        expect(page.get_by_role("button")).to_have_count(0)
+        if javascript_enabled:
+            expect(page.get_by_role("button", name="Toggle navigation")).to_be_enabled()
+        else:
+            expect(
+                page.get_by_role("button", name="Toggle navigation")
+            ).to_be_disabled()
 
 
 def test_keyboard_navigation_and_retry_keep_visible_focus(
@@ -307,7 +307,10 @@ def test_keyboard_navigation_and_retry_keep_visible_focus(
     page.goto(f"{live_server.url}/?week=2026-10-12")
     expect(page.get_by_text("No runs planned", exact=True)).to_have_count(7)
     page.keyboard.press("Tab")
-    expect(page.get_by_role("link", name="Aweille")).to_be_focused()
+    expect(page.get_by_role("button", name="Collapse navigation")).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(page.get_by_role("link", name="Schedule", exact=True)).to_be_focused()
+    page.get_by_role("button", name="Toggle navigation").focus()
     page.keyboard.press("Tab")
     expect(page.get_by_role("link", name="Add run for Monday")).to_be_focused()
     for _ in range(7):
