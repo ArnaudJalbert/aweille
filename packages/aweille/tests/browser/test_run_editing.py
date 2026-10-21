@@ -211,8 +211,9 @@ def test_unreadable_success_cannot_enable_form(
     ).to_be_disabled()
 
 
+@pytest.mark.parametrize("changed_field", ["Planned date", "Start time"])
 def test_montreal_gap_validation_retains_draft_for_correction(
-    page: Page, live_server: LiveServer
+    page: Page, live_server: LiveServer, changed_field: str
 ) -> None:
     run_id = "00000000-0000-0000-0000-000000000032"
     assert (
@@ -220,8 +221,12 @@ def test_montreal_gap_validation_retains_draft_for_correction(
             f"{live_server.url}/v1/runs",
             data={
                 "id": run_id,
-                "planned_date": "2026-03-07",
-                "planned_start_time": "02:30",
+                "planned_date": (
+                    "2026-03-07" if changed_field == "Planned date" else "2026-03-08"
+                ),
+                "planned_start_time": (
+                    "02:30" if changed_field == "Planned date" else "03:30"
+                ),
                 "run_type": "easy",
                 "sections": [
                     {"distance_m": "1000", "target_pace_seconds_per_km": "390"}
@@ -231,11 +236,19 @@ def test_montreal_gap_validation_retains_draft_for_correction(
         == 201
     )
     page.goto(f"{live_server.url}/runs/{run_id}/edit?week=2026-03-02")
-    expect(page.get_by_label("Start time")).to_have_value("02:30")
-    page.get_by_label("Planned date").fill("2026-03-08")
-    page.get_by_role("button", name="Save changes").click()
+    expect(page.get_by_label("Start time")).to_have_value(
+        "02:30" if changed_field == "Planned date" else "03:30"
+    )
+    page.get_by_label(changed_field).fill(
+        "2026-03-08" if changed_field == "Planned date" else "02:30"
+    )
+    with page.expect_response("**/v1/runs/*") as result:
+        page.get_by_role("button", name="Save changes").click()
+    assert result.value.status == 422
     expect(page.get_by_label("Start time")).to_have_attribute("aria-invalid", "true")
     expect(page.get_by_label("Planned date")).to_have_value("2026-03-08")
+    expect(page.get_by_label("Start time")).to_have_value("02:30")
+    expect(page.get_by_label("Start time")).to_be_focused()
     page.get_by_label("Start time").fill("")
     page.get_by_role("button", name="Save changes").click()
     expect(page).to_have_url(re.compile(r"/\?week=2026-03-02(?:&.*)?$"))

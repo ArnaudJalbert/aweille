@@ -196,10 +196,13 @@ def test_calendar_keyboard_months_contextual_week_and_escape(
     expect(page.get_by_role("heading", level=1)).to_have_text("Today")
 
 
-def test_confirmed_cross_week_save_selects_run_and_retry_only_reads(
-    page: Page, live_server: LiveServer
+@pytest.mark.parametrize(
+    ("view", "recovery"), [("week", "retry"), ("day", "next"), ("week", "next")]
+)
+def test_confirmed_cross_week_save_restores_focus_unless_navigating_elsewhere(
+    page: Page, live_server: LiveServer, view: str, recovery: str
 ):
-    page.goto(f"{live_server.url}/?view=week&date=2026-10-14")
+    page.goto(f"{live_server.url}/?view={view}&date=2026-10-14")
     page.get_by_role("link", name="Add run for Wednesday").click()
     page.get_by_label("Planned date").fill("2026-10-28")
     page.get_by_label("Run type").select_option("easy")
@@ -218,12 +221,26 @@ def test_confirmed_cross_week_save_selects_run_and_retry_only_reads(
     expect(page.get_by_role("alert")).to_contain_text("Read failed.")
     expect(page.get_by_role("heading", level=3)).to_have_count(0)
     page.unroute("**/v1/runs?*")
-    page.get_by_role("button", name="Retry", exact=True).click()
-    expect(page.get_by_role("link", name="Edit easy run on 2026-10-28")).to_be_focused()
-    expect(page.get_by_text("Show details", exact=True)).to_be_visible()
-    expect(page).to_have_url(
-        f"{live_server.url}/?week=2026-10-26&view=week&date=2026-10-28"
-    )
+    if recovery == "retry":
+        page.get_by_role("button", name="Retry", exact=True).click()
+        expect(
+            page.get_by_role("link", name="Edit easy run on 2026-10-28")
+        ).to_be_focused()
+        expect(page.get_by_text("Show details", exact=True)).to_be_visible()
+        expect(page).to_have_url(
+            f"{live_server.url}/?week=2026-10-26&view=week&date=2026-10-28"
+        )
+    else:
+        next_period = page.get_by_role("button", name=f"Next {view}", exact=True)
+        next_period.focus()
+        page.keyboard.press("Enter")
+        expected_date = "2026-10-29" if view == "day" else "2026-11-04"
+        expected_week = "2026-10-26" if view == "day" else "2026-11-02"
+        expect(page).to_have_url(
+            f"{live_server.url}/?week={expected_week}&view={view}&date={expected_date}"
+        )
+        expect(page.get_by_role("link", name="Add run").first).to_be_visible()
+        expect(next_period).to_be_focused()
     assert len(writes) == 1
 
 

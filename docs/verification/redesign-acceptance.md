@@ -1,5 +1,17 @@
 # Running-app redesign acceptance
 
+## October 21 focus follow-ups
+
+The three implementation PRs, #53, #54 and #55, are merged. The dated records below describe their earlier branch checks. [Issue #51](https://github.com/ArnaudJalbert/aweille/issues/51) remains open for manual acceptance and identified two remaining focus regressions.
+
+The existing confirmed-write/read-failure browser scenario now checks Retry and keyboard navigation in Day and Week. Retry restores focus to the saved run after the read succeeds. Explicit navigation clears deferred return focus and keeps focus on the activated arrow. Each scenario sends only one creation request.
+
+The real Montreal spring-forward edit scenario now checks both moving a run onto March 8 and changing its time from 03:30 to the nonexistent 02:30. Both receive HTTP 422, retain the invalid draft, focus Start time after reenabling the fields, and permit correction and saving. Both focus regressions failed before the fixes and passed afterward.
+
+Verification used macOS 26.4 arm64, Playwright Chromium 156.0.8078.4, Uvicorn and temporary SQLite databases. All 371 tests passed in 84.07 seconds, along with `uv run ty check`, `uv run ruff check .`, `uv run ruff format --check .` and `git diff --check`. The affected schedule and edit files passed separately during implementation. Independent Standards and Spec reviews against starting commit `ee6cfb6` each reported zero findings; the Spec reviewer also passed the five focused regression scenarios.
+
+Physical-phone touch/software keyboard/hardware safe areas, screen-reader names/announcements/focus, and maintainer acceptance remain pending. This follow-up does not repeat the earlier visual or actual desktop zoom review. Keep #51 and milestone 2 open; nothing has been deployed.
+
 ## Navigation and section arrows
 
 Arnaud requested the missing navigation and section arrows on October 18. Code head `ba2c2bd` adds Previous/Next beside the calendar, stepping one day in Day or seven days in Week through the existing selection flow. Invalid selections and incomplete API week ranges disable movement. Names follow the current view, the heading announces selection, and focus stays on the activated arrow. Narrow content places the controls and Add run below the date heading. This explicitly supersedes the earlier calendar-only schedule decision recorded below.
