@@ -1,5 +1,35 @@
 # Running-app redesign acceptance
 
+## October 21 iOS date/time overflow
+
+After loading the stacked layout, Arnaud's physical iPhone Safari screenshot showed date/time inputs extending beyond the form's right edge while Run type and section fields stayed within it. This matches [WebKit bug 301648](https://bugs.webkit.org/show_bug.cgi?id=301648), whose iOS native date/time sizing can override border-box sizing when padding is applied. The upstream report explicitly distinguishes iOS from macOS; desktop WebKit emulation did not reproduce this overflow.
+
+Only date/time input appearance is reset so the existing border-box sizing applies. The inputs retain their date/time types, optional time, labels, validation, values and pickers. Arnaud checked the updated form at the uncached LAN test instance and confirmed both fields align with Run type and both native pickers still open. This is physical-phone confirmation of the final stacked arrangement and overflow correction. The model and iOS version remain unspecified.
+
+The existing create/edit long-form scenario now checks each date/time input against the form's horizontal bounds at every tested width. Its font-family assertion accepts equivalent browser serialization, and the script-unavailable navigation scenario opens the drawer before selecting Schedule when needed. These changes allow the same public-page checks to run in Chromium and macOS WebKit, including the iPhone 13 preset, without claiming that preset reproduces native iOS rendering.
+
+All 373 Chromium-suite tests passed in 84.62 seconds. The four form-presentation checks also passed separately in Chromium, macOS WebKit 27.2 at the default desktop viewport, and WebKit with the iPhone 13 preset. Ty, Ruff lint/format and diff checks passed. Independent Standards and Spec reviews against `be678f9` each reported zero findings. The trial server now sends `Cache-Control: no-store` on its separate LAN address to avoid reusing old styling during phone checks; this is a local test-server option, not a production caching change.
+
+## October 21 phone acceptance and date fields
+
+Arnaud reported that all requested checks passed on his physical iPhone Safari: Day/Week, calendar/arrows, sidebar touch operation, editing the long Interval run's last note with the software keyboard open, reaching Save, rotation, clearance from Safari's bars and the home indicator, saved edit/reopen, and Delete run followed by Keep run. The phone model and iOS version were not supplied. Screen-reader testing is deferred at his request, and the earlier desktop approval and actual zoom evidence remain recorded separately.
+
+He also requested Planned date above optional Start time in phone mode because the paired fields were too close. Create and edit now stack that group in the existing drawer mode below 900px of available application width. Desktop date/time and all section distance/pace fields remain paired. This supersedes the earlier phone date/time specimen, without changing field order, validation, values or save behavior.
+
+The updated long-form browser scenario failed before the CSS change and passed afterward for both create and edit. It checks 320/390/591/592/899/900/1280px widths, footer clearance, enlarged footer actions, short viewports and overflow. The reported physical-phone pass predates this final date/time arrangement; the new arrangement is a subsequent layout request, not an additional physical-device pass. Earlier pending-phone statements below describe their dated verification stages.
+
+All 373 tests passed in 83.90 seconds, along with ty, Ruff lint/format and diff checks. Standards review reported no findings. Spec review found an outdated pending-manual-check sentence in the form decision; that paragraph now links the current acceptance record and distinguishes the later layout change.
+
+## October 21 physical-phone HTTP blocker
+
+Arnaud's iPhone Safari check reached the form but showed "JavaScript is required to save a run." The same failure reproduced on the LAN HTTP address in desktop Chromium. All scripts loaded, but form initialization threw `TypeError: crypto.randomUUID is not a function`. The [Web Crypto specification](https://www.w3.org/TR/WebCryptoAPI/#crypto-interface) restricts `randomUUID` to secure contexts; the phone's plain HTTP origin does not qualify.
+
+Run IDs and schedule handoff tokens now share UUID v4 generation using `crypto.getRandomValues`, which is available over HTTP. The regression uses a real non-loopback HTTP origin proxied to the test server, without replacing browser crypto APIs. It verifies enabled creation, Cancel return focus, a real saved UUID v4, edit persistence and saved-run focus in the originating Week view. The test failed before the fix and passed afterward. A fresh Chromium session on the actual LAN address also enabled the form.
+
+All 372 tests passed in 82.72 seconds; the 33 affected browser tests passed separately. Ty, Ruff lint/format and diff checks passed. Independent Standards and Spec reviews against `cf46ec1` each reported zero findings.
+
+Arnaud confirmed that the form works on his physical iPhone Safari after the fix, then reported all requested phone checks passed as recorded above. The phone model and iOS version have not been supplied. Arnaud explicitly deferred VoiceOver and screen-reader testing on October 21; screen-reader acceptance is outside the current completion gate. His earlier local review approved the desktop application.
+
 ## October 21 focus follow-ups
 
 The three implementation PRs, #53, #54 and #55, are merged. The dated records below describe their earlier branch checks. [Issue #51](https://github.com/ArnaudJalbert/aweille/issues/51) remains open for manual acceptance and identified two remaining focus regressions.

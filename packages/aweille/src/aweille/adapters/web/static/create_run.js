@@ -1,5 +1,6 @@
 import { weekUrl, scheduleUrl, takeFormContext, returnToSchedule } from "./schedule_navigation.js";
 import { createRunForm } from "./run_form.js";
+import { randomUUID } from "./random_uuid.js";
 
 const form = document.querySelector("#run-form");
 const fields = document.querySelector("#form-fields");
@@ -7,7 +8,7 @@ const sections = document.querySelector("#section-list");
 const status = document.querySelector("#save-status");
 const save = document.querySelector("#save-run");
 const params = new URLSearchParams(location.search);
-const id = crypto.randomUUID();
+const id = randomUUID();
 const origin = takeFormContext();
 let saving = false;
 let leaving = false;

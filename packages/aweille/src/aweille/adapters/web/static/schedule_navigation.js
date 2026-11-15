@@ -1,3 +1,5 @@
+import { randomUUID } from "./random_uuid.js";
+
 // Calendar arithmetic uses UTC; actual runs keep Montreal local dates and times.
 export function calendarDate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -57,7 +59,7 @@ function validContext(value) {
 // A single-use tab handoff transports presentation only, never drafts or revisions.
 export function prepareFormLink(link, context) {
   link.addEventListener("click", () => {
-    const token = crypto.randomUUID();
+    const token = randomUUID();
     const target = new URL(link.href);
     target.searchParams.delete("context");
     if (put(formKey, { ...context, token, target: target.pathname + target.search })) {
@@ -88,7 +90,7 @@ export function returnToSchedule(context, { outcome = "cancel", date, id, fallba
     view, date: selectedDate,
     choices: sameWeek ? context.choices : { day: {}, week: {} },
     focus: outcome === "save" ? `run-${id}` : outcome === "delete" ? "week-heading" : context.focus,
-    token: crypto.randomUUID(),
+    token: randomUUID(),
   };
   if (validContext(value) && put(returnKey, value)) url.searchParams.set("return", value.token);
   else url.hash = "week-heading";

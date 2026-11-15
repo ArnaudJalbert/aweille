@@ -91,6 +91,8 @@ label.field { display: flex; flex-wrap: wrap; align-items: baseline; justify-con
 .paired-fields label.field, .section-inputs label.field { margin-top: 0; }
 .optional { font-size: 12px; font-weight: 400; color: var(--muted-ink); }
 input, select, textarea { font: inherit; font-size: 16px; width: 100%; min-width: 0; min-height: var(--field-min); padding: 10px; border: 1px solid var(--strong-line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); }
+/* Prevent iOS native date/time sizing from overriding border-box. */
+input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; }
 textarea { min-height: 112px; resize: vertical; }
 .form-section { margin-top: 28px; }
 .form-section h2 { margin-bottom: 8px; }
@@ -211,6 +213,7 @@ dialog::backdrop { background: #202b2877; }
 /* Form geometry follows content width after navigation and page padding. */
 .form-shell { container-type: inline-size; }
 .paired-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.drawer-mode .paired-fields { grid-template-columns: minmax(0, 1fr); }
 #form-guidance { margin: 0 0 20px; }
 #form-fields { padding-bottom: 24px; }
 .form-footer { position: sticky; bottom: 0; z-index: 5; align-items: center; flex-wrap: wrap; background: var(--paper); margin-top: 24px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }

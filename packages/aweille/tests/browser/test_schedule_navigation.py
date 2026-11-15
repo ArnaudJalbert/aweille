@@ -1,11 +1,62 @@
 """Schedule selection, calendar and real form returns through public pages."""
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, Route, expect
 from tests.fixtures.live_server import LiveServer
 from tests.fixtures.schedule import choose_date
+
+
+def test_local_http_creation_and_editing_preserve_schedule_returns(
+    page: Page, live_server: LiveServer
+):
+    # A non-loopback HTTP origin reproduces physical-phone browser restrictions.
+    origin = "http://aweille.test"
+
+    def forward_to_server(route: Route):
+        route.fulfill(
+            response=route.fetch(
+                url=route.request.url.replace(origin, live_server.url, 1),
+                headers={**route.request.headers, "host": "aweille.test"},
+            )
+        )
+
+    page.route(f"{origin}/**", forward_to_server)
+    page.goto(f"{origin}/?view=week&date=2026-10-21")
+    assert page.evaluate("isSecureContext") is False
+    add_run = page.get_by_role("link", name="Add run for Wednesday")
+    add_run.click()
+    save = page.get_by_role("button", name="Save run", exact=True)
+    expect(save).to_be_enabled()
+    page.get_by_role("link", name="Cancel", exact=True).click()
+    expect(add_run).to_be_focused()
+    add_run.click()
+    page.get_by_label("Run type").select_option("easy")
+    page.get_by_label("Distance km").fill("1")
+    page.get_by_label("Pace m:ss/km").fill("6:30")
+    with page.expect_response(f"{origin}/v1/runs") as created:
+        save.click()
+    assert created.value.status == 201
+    submitted = created.value.request.post_data_json
+    assert submitted is not None
+    run_id = submitted["id"]
+    assert UUID(run_id).version == 4
+    edit = page.get_by_role("link", name="Edit easy run on 2026-10-21")
+    expect(edit).to_be_focused()
+    expect(page.get_by_role("button", name="Week", exact=True)).to_have_attribute(
+        "aria-pressed", "true"
+    )
+    edit.click()
+    page.get_by_label("Personal note").fill("Saved from a local HTTP page.")
+    with page.expect_response(f"{origin}/v1/runs/{run_id}") as updated:
+        page.get_by_role("button", name="Save changes", exact=True).click()
+    assert updated.value.status == 200
+    expect(edit).to_be_focused()
+    stored = page.request.get(f"{live_server.url}/v1/runs/{run_id}").json()
+    assert stored["user_note"] == "Saved from a local HTTP page."
+    assert stored["revision"] == "2"
 
 
 @pytest.mark.parametrize("width", [320, 1280])
