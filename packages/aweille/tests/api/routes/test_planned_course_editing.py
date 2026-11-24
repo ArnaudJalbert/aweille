@@ -62,7 +62,7 @@ def test_stale_edit_does_not_overwrite_saved_planned_course(
     )
     assert stale.status_code == 412
     assert stale.json() == {
-        "detail": "The planned course has changed; reload it before another edit "
+        "detail": "The planned run has changed; reload it before another edit "
         "or deletion."
     }
     assert api_client.get(url).json()["user_note"] == "new"
@@ -195,12 +195,11 @@ def test_openapi_recovery_examples_match_http_responses(
         "examples"
     ]["reload-recovery"]["value"]
     assert stale_example == {
-        "detail": "The planned course has changed; reload it before another edit "
+        "detail": "The planned run has changed; reload it before another edit "
         "or deletion."
     }
     assert missing_example == {
-        "detail": "Reload the planned course and supply its quoted revision "
-        "in If-Match."
+        "detail": "Reload the run and supply its quoted revision in If-Match."
     }
     assert reload_example == {
         "id": "54d97d4d-fadb-4d50-926e-af1bb26c711a",

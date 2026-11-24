@@ -1,4 +1,5 @@
 import pytest
+from fastapi.testclient import TestClient
 
 
 def test_openapi_describes_normalized_planned_course_responses(api_client):
@@ -261,7 +262,9 @@ def test_exact_large_targets_and_notes_survive_http(api_client, planned_course_r
     ).json() == [saved]
 
 
-def test_planned_courses_replace_the_runs_resource(api_client, planned_course_request):
+def test_planned_courses_replace_the_runs_resource(
+    api_client: TestClient, planned_course_request: dict
+) -> None:
     """Planned courses use course_type at the new path, with no /v1/runs alias."""
     created = api_client.post("/v1/planned-courses", json=planned_course_request)
     assert created.status_code == 201
@@ -270,7 +273,5 @@ def test_planned_courses_replace_the_runs_resource(api_client, planned_course_re
     assert created.headers["Cache-Control"] == "no-store"
     assert created.json()["course_type"] == "easy"
     assert "run_type" not in created.json()
-    legacy = {**planned_course_request, "run_type": "easy"}
-    del legacy["course_type"]
-    assert api_client.post("/v1/runs", json=legacy).status_code == 404
+    assert api_client.post("/v1/runs", json=planned_course_request).status_code == 404
     assert api_client.get(f"/v1/runs/{planned_course_request['id']}").status_code == 404

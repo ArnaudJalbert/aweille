@@ -73,15 +73,15 @@ def _validate_tables(connection: sqlite3.Connection) -> None:
     }
     if names != {"planned_courses", "deleted_planned_course_ids"}:
         raise StorageFailure(_INCOMPATIBLE)
-    if _table_columns(connection, "deleted_planned_course_ids") != [
+    if _read_table_columns(connection, "deleted_planned_course_ids") != [
         ("id", "TEXT", 1, 1)
     ]:
         raise StorageFailure(_INCOMPATIBLE)
-    if _table_columns(connection, "planned_courses") != _COLUMNS:
+    if _read_table_columns(connection, "planned_courses") != _COLUMNS:
         raise StorageFailure(_INCOMPATIBLE)
 
 
-def _table_columns(
+def _read_table_columns(
     connection: sqlite3.Connection, table: str
 ) -> list[tuple[str, str, int, int]]:
     return [

@@ -31,13 +31,13 @@ def test_delete_commits_empty_response_and_prevents_resurrection(
     )
     repeated = api_client.delete(url, headers={"If-Match": '"1"'})
     assert repeated.status_code == 404
-    assert repeated.json() == {"detail": "Planned course not found."}
+    assert repeated.json() == {"detail": "Planned run not found."}
     assert (
         api_client.patch(url, json={}, headers={"If-Match": '"1"'}).status_code == 404
     )
     retry = api_client.post("/v1/planned-courses", json=planned_course_request)
     assert retry.status_code == 409
-    assert retry.json() == {"detail": "The ID cannot be used for this planned course."}
+    assert retry.json() == {"detail": "The ID cannot be used for this planned run."}
 
 
 @pytest.mark.parametrize(

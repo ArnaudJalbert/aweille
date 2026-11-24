@@ -1,4 +1,5 @@
 import sqlite3
+from pathlib import Path
 from runpy import run_module
 
 import pytest
@@ -85,7 +86,9 @@ def test_unprepared_file_is_not_repaired_at_startup_or_during_requests(
 
 
 @pytest.mark.parametrize("version", [1, 2])
-def test_pre_rename_database_is_rejected_at_startup(tmp_path, monkeypatch, version):
+def test_pre_rename_database_is_rejected_at_startup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version: int
+) -> None:
     """Startup names the fix for a version 1 or 2 file and leaves it unchanged."""
     path = tmp_path / "runs.sqlite"
     with sqlite3.connect(path) as connection:
