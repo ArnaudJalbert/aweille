@@ -1,3 +1,5 @@
+"""Translate domain validation errors raised inside a use case."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 

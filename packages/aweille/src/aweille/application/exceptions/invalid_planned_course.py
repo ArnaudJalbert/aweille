@@ -1,3 +1,5 @@
+"""Application exception for planned-course input that breaks domain rules."""
+
 from aweille.domain import ValidationProblem
 
 from .application_error import ApplicationError
