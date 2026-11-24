@@ -3,7 +3,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from aweille.core import CourseType, Distance, Pace, Section
+from aweille.domain import CourseType, Distance, Pace, Section
 
 
 @pytest.fixture

@@ -283,17 +283,18 @@ def test_missing_planned_course_and_unknown_query_have_safe_locations(
 def test_storage_failure_response_remains_no_store(
     database_path, planned_course_request: dict[str, Any]
 ) -> None:
-    from aweille.adapters import SQLitePlannedCourseStorage
     from aweille.api.create_app import create_app
-    from aweille.core import StorageFailure
+    from aweille.application import StorageFailure
+    from aweille.interface_adapters import SQLitePlannedCourseRepository
     from fastapi.testclient import TestClient
 
-    class BrokenStorage(SQLitePlannedCourseStorage):
+    class BrokenStorage(SQLitePlannedCourseRepository):
         def load(self, id):
             raise StorageFailure("PRIVATE SQL path")
 
     with TestClient(
-        create_app(storage=BrokenStorage(database_path)), raise_server_exceptions=False
+        create_app(repository=BrokenStorage(database_path)),
+        raise_server_exceptions=False,
     ) as client:
         response = client.get(f"/v1/planned-courses/{planned_course_request['id']}")
     assert response.status_code == 500

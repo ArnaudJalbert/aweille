@@ -5,9 +5,13 @@ from unittest.mock import Mock
 
 import httpx2 as httpx
 import pytest
-from aweille.adapters import SQLitePlannedCourseStorage
 from aweille.api.create_app import create_app
-from aweille.core import PlannedCourseStorage, StorageFailure, StorageUnavailable
+from aweille.application import (
+    PlannedCourseRepository,
+    StorageFailure,
+    StorageUnavailable,
+)
+from aweille.interface_adapters import SQLitePlannedCourseRepository
 from fastapi.testclient import TestClient
 
 
@@ -52,8 +56,8 @@ def test_delete_commits_empty_response_and_prevents_resurrection(
 def test_delete_precondition_failures_never_reach_storage(
     headers, planned_course_request
 ) -> None:
-    storage = Mock(spec=PlannedCourseStorage)
-    with TestClient(create_app(storage=storage)) as client:
+    storage = Mock(spec=PlannedCourseRepository)
+    with TestClient(create_app(repository=storage)) as client:
         response = client.delete(
             f"/v1/planned-courses/{planned_course_request['id']}", headers=headers
         )
@@ -79,8 +83,8 @@ def test_delete_precondition_failures_never_reach_storage(
 def test_delete_transport_and_schema_precede_missing_header(
     path, body, location
 ) -> None:
-    storage = Mock(spec=PlannedCourseStorage)
-    with TestClient(create_app(storage=storage)) as client:
+    storage = Mock(spec=PlannedCourseRepository)
+    with TestClient(create_app(repository=storage)) as client:
         response = client.request("DELETE", f"/v1/planned-courses/{path}", content=body)
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == location
@@ -115,7 +119,7 @@ def test_delete_stops_reading_nonempty_stream(
 def test_delete_rechecks_competing_writes_at_atomic_boundary(
     database_path, planned_course_request, competing
 ) -> None:
-    class CompetingStorage(SQLitePlannedCourseStorage):
+    class CompetingStorage(SQLitePlannedCourseRepository):
         def delete(self, id, *, expected_revision):
             if competing == "edit":
                 current = self.load(id)
@@ -125,7 +129,7 @@ def test_delete_rechecks_competing_writes_at_atomic_boundary(
                 super().delete(id, expected_revision=1)
             super().delete(id, expected_revision=expected_revision)
 
-    with TestClient(create_app(storage=CompetingStorage(database_path))) as client:
+    with TestClient(create_app(repository=CompetingStorage(database_path))) as client:
         client.post("/v1/planned-courses", json=planned_course_request)
         url = f"/v1/planned-courses/{planned_course_request['id']}"
         response = client.delete(url, headers={"If-Match": ' "1"\t'})
@@ -141,14 +145,15 @@ def test_delete_rechecks_competing_writes_at_atomic_boundary(
 def test_delete_storage_errors_are_safe_and_do_not_claim_rollback(
     database_path, planned_course_request, error, committed
 ) -> None:
-    class FailingStorage(SQLitePlannedCourseStorage):
+    class FailingStorage(SQLitePlannedCourseRepository):
         def delete(self, id, *, expected_revision):
             if committed:
                 super().delete(id, expected_revision=expected_revision)
             raise error("PRIVATE SQL path")
 
     with TestClient(
-        create_app(storage=FailingStorage(database_path)), raise_server_exceptions=False
+        create_app(repository=FailingStorage(database_path)),
+        raise_server_exceptions=False,
     ) as client:
         client.post("/v1/planned-courses", json=planned_course_request)
         url = f"/v1/planned-courses/{planned_course_request['id']}"

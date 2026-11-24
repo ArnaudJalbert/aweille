@@ -4,9 +4,9 @@ import os
 import sqlite3
 from pathlib import Path
 
-from aweille.adapters import SQLitePlannedCourseStorage
-from aweille.adapters.validate_database import validate_database
-from aweille.core import StorageFailure
+from aweille.application import StorageFailure
+from aweille.interface_adapters import SQLitePlannedCourseRepository
+from aweille.interface_adapters.validate_database import validate_database
 
 from .create_app import create_app
 
@@ -44,4 +44,4 @@ def _validate_database_file(path: Path) -> None:
         ) from error
 
 
-app = create_app(storage=SQLitePlannedCourseStorage(_database_path()))
+app = create_app(repository=SQLitePlannedCourseRepository(_database_path()))

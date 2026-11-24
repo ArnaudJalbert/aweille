@@ -4,7 +4,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from aweille.core import StorageUnavailable, ValidationError
+from aweille.application import InvalidPlannedCourse, StorageUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +36,13 @@ async def failure_response(request: Request, error: Exception) -> JSONResponse:
 
 
 async def validation_response(request: Request, error: Exception) -> JSONResponse:
-    """Translate request and domain validation problems to HTTP locations.
+    """Translate request and planned-course validation problems to HTTP locations.
 
     Args:
-        request: Request supplying the body or query location prefix for core errors.
-        error: FastAPI or core validation error without response input values.
+        request: Request supplying the body or query location prefix for
+            application errors.
+        error: FastAPI or application validation error without response input
+            values.
 
     Returns:
         A 422 response with field problems and no raw input or internal context.
@@ -57,7 +59,7 @@ async def validation_response(request: Request, error: Exception) -> JSONRespons
             for problem in error.errors()
         ]
     else:
-        assert isinstance(error, ValidationError)
+        assert isinstance(error, InvalidPlannedCourse)
         prefix = "body" if request.method in ("POST", "PATCH") else "query"
         problems = [
             {
