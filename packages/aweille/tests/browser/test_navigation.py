@@ -50,9 +50,9 @@ def test_drawer_schedule_keeps_invalid_create_draft_when_discard_declined(
     page: Page, live_server: LiveServer
 ):
     page.set_viewport_size({"width": 320, "height": 640})
-    page.goto(f"{live_server.url}/runs/new?date=2026-10-14&week=2026-10-12")
+    page.goto(f"{live_server.url}/planned-courses/new?date=2026-10-14&week=2026-10-12")
     page.get_by_label("Distance km").fill("partial")
-    page.get_by_role("button", name="Save run", exact=True).click()
+    page.get_by_role("button", name="Save course", exact=True).click()
     expect(page.get_by_label("Distance km")).to_have_attribute("aria-invalid", "true")
     menu = page.get_by_role("button", name="Toggle navigation")
     menu.click()
@@ -67,20 +67,20 @@ def test_drawer_schedule_keeps_invalid_create_draft_when_discard_declined(
     expect(page.get_by_label("Distance km")).to_have_attribute("aria-invalid", "true")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("link", name="Cancel", exact=True).click()
-    expect(page.get_by_role("heading", level=1)).not_to_have_text("Add run")
+    expect(page.get_by_role("heading", level=1)).not_to_have_text("Add course")
 
 
 def test_pending_create_navigation_warns_without_cancelling_write(
     page: Page, live_server: LiveServer
 ):
-    page.goto(f"{live_server.url}/runs/new?date=2026-10-14&week=2026-10-12")
-    page.get_by_label("Run type").select_option("easy")
+    page.goto(f"{live_server.url}/planned-courses/new?date=2026-10-14&week=2026-10-12")
+    page.get_by_label("Course type").select_option("easy")
     page.get_by_label("Distance km").fill("1")
     page.get_by_label("Pace m:ss/km").fill("6:30")
     held = []
-    page.route("**/v1/runs", lambda route: held.append(route))
-    page.get_by_role("button", name="Save run", exact=True).click()
-    expect(page.get_by_role("button", name="Save run", exact=True)).to_be_disabled()
+    page.route("**/v1/planned-courses", lambda route: held.append(route))
+    page.get_by_role("button", name="Save course", exact=True).click()
+    expect(page.get_by_role("button", name="Save course", exact=True)).to_be_disabled()
     messages = []
 
     def decline(dialog):
@@ -93,30 +93,37 @@ def test_pending_create_navigation_warns_without_cancelling_write(
     expect(page.get_by_label("Distance km")).to_have_value("1")
     assert len(held) == 1
     held[0].fulfill(response=held[0].fetch())
-    expect(page.get_by_role("heading", level=3)).to_have_text("Easy run")
+    expect(page.get_by_role("heading", level=3)).to_have_text("Easy course")
 
 
 @pytest.mark.parametrize("width", [320, 390, 899, 900, 1280])
 @pytest.mark.parametrize("screen", ["schedule", "create", "edit"])
 def test_shared_layout_fonts_and_fallback(
-    page: Page, live_server: LiveServer, run_request, width: int, screen: str
+    page: Page, live_server: LiveServer, planned_course_request, width: int, screen: str
 ):
-    run = {
-        **run_request,
+    planned_course = {
+        **planned_course_request,
         "user_note": "Élève à Montréal, cœur, Œuvre, Noël, façade, où",
     }
-    assert page.request.post(f"{live_server.url}/v1/runs", data=run).status == 201
+    assert (
+        page.request.post(
+            f"{live_server.url}/v1/planned-courses", data=planned_course
+        ).status
+        == 201
+    )
     paths = {
         "schedule": "/?view=day&date=2026-10-14",
-        "create": "/runs/new?date=2026-10-14",
-        "edit": f"/runs/{run['id']}/edit",
+        "create": "/planned-courses/new?date=2026-10-14",
+        "edit": f"/planned-courses/{planned_course['id']}/edit",
     }
     page.set_viewport_size({"width": width, "height": 800})
     page.goto(live_server.url + paths[screen])
     if screen == "edit":
-        expect(page.get_by_label("Personal note")).to_have_value(run["user_note"])
+        expect(page.get_by_label("Personal note")).to_have_value(
+            planned_course["user_note"]
+        )
     elif screen == "create":
-        page.get_by_label("Personal note").fill(run["user_note"])
+        page.get_by_label("Personal note").fill(planned_course["user_note"])
     else:
         expect(page.get_by_role("heading", level=3)).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

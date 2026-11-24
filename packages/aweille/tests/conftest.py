@@ -3,6 +3,6 @@ pytest_plugins = (
     "tests.fixtures.database_path",
     "tests.fixtures.live_server",
     "tests.fixtures.storage",
-    "tests.fixtures.run_input",
-    "tests.fixtures.run_request",
+    "tests.fixtures.planned_course_input",
+    "tests.fixtures.planned_course_request",
 )

@@ -1,6 +1,6 @@
 import { randomUUID } from "./random_uuid.js";
 
-// Calendar arithmetic uses UTC; actual runs keep Montreal local dates and times.
+// Calendar arithmetic uses UTC; actual courses keep Montreal local dates and times.
 export function calendarDate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00Z`);
@@ -50,7 +50,7 @@ function put(key, value) {
 }
 function validContext(value) {
   return value && ["day", "week"].includes(value.view) && readableWeek(calendarDate(value.date)) &&
-    typeof value.focus === "string" && /^(?:add-\d{4}-\d{2}-\d{2}|run-[0-9a-f-]{36}|week-heading)$/.test(value.focus) &&
+    typeof value.focus === "string" && /^(?:add-\d{4}-\d{2}-\d{2}|course-[0-9a-f-]{36}|week-heading)$/.test(value.focus) &&
     value.choices && ["day", "week"].every(view => value.choices[view] &&
       typeof value.choices[view] === "object" && !Array.isArray(value.choices[view]) &&
       Object.entries(value.choices[view]).every(([id, open]) => /^[0-9a-f-]{36}$/.test(id) && typeof open === "boolean"));
@@ -89,7 +89,7 @@ export function returnToSchedule(context, { outcome = "cancel", date, id, fallba
   const value = {
     view, date: selectedDate,
     choices: sameWeek ? context.choices : { day: {}, week: {} },
-    focus: outcome === "save" ? `run-${id}` : outcome === "delete" ? "week-heading" : context.focus,
+    focus: outcome === "save" ? `course-${id}` : outcome === "delete" ? "week-heading" : context.focus,
     token: randomUUID(),
   };
   if (validContext(value) && put(returnKey, value)) url.searchParams.set("return", value.token);

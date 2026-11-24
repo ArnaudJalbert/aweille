@@ -71,7 +71,7 @@ document.addEventListener("keydown", event => {
 document.querySelector("#schedule-link").onclick = event => {
   event.preventDefault();
   if (drawerOpen) dismiss();
-  if (document.querySelector("#run-form")) {
+  if (document.querySelector("#course-form")) {
     const handled = !document.dispatchEvent(new CustomEvent("schedule-navigation", { cancelable: true }));
     if (!handled) location.assign(event.currentTarget.href);
   } else {

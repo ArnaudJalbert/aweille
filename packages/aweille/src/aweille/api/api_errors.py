@@ -19,7 +19,7 @@ async def failure_response(request: Request, error: Exception) -> JSONResponse:
     Returns:
         Safe 503 response for unavailability or 500 for other failures.
     """
-    logger.error("Run operation failed.", exc_info=error)
+    logger.error("Planned course operation failed.", exc_info=error)
     if isinstance(error, StorageUnavailable):
         advice = (
             "Reload and review the saved run before writing again."
@@ -82,10 +82,10 @@ async def conflict_response(request: Request, error: Exception) -> JSONResponse:
 
     Args:
         request: Conflicting creation request.
-        error: RunConflict raised by the initialized create use case.
+        error: PlannedCourseConflict raised by the initialized create use case.
 
     Returns:
-        A 409 response explaining that the ID belongs to different run data.
+        A 409 response explaining that the ID belongs to different planned course data.
     """
     return JSONResponse(
         {"detail": "The ID cannot be used for this planned run."},

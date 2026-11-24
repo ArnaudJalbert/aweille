@@ -6,7 +6,7 @@ const exact = document.querySelector("#exact-date");
 const days = document.querySelector("#days");
 const status = document.querySelector("#status");
 const dayAdd = document.querySelector("#day-add");
-const runTypes = { easy: "Easy run", hard: "Hard run", interval: "Interval run", long: "Long run" };
+const courseTypes = { easy: "Easy course", hard: "Hard course", interval: "Interval course", long: "Long course" };
 let selectedDate;
 let view = "day";
 let choices = { day: {}, week: {} };
@@ -56,44 +56,44 @@ function pace(seconds) {
 function linkContext(link, focus) {
   prepareFormLink(link, { view, date: dateString(selectedDate), focus, choices });
 }
-function addRun(date) {
+function addCourse(date) {
   const key = dateString(date);
-  const add = element("a", undefined, "add-run");
-  add.append(element("span", "Add run"));
+  const add = element("a", undefined, "add-course");
+  add.append(element("span", "Add course"));
   add.id = `add-${key}`;
-  add.href = `/runs/new?${new URLSearchParams({ date: key, week: dateString(containingMonday(selectedDate)) })}`;
-  add.setAttribute("aria-label", `Add run for ${date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}`);
+  add.href = `/planned-courses/new?${new URLSearchParams({ date: key, week: dateString(containingMonday(selectedDate)) })}`;
+  add.setAttribute("aria-label", `Add course for ${date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" })}`);
   linkContext(add, add.id);
   return add;
 }
-function renderRun(run) {
-  const article = element("article", undefined, "run");
-  article.append(element("div", run.planned_start_time ?? "Untimed", "run-time measurement"));
-  const body = element("div", undefined, "run-content");
+function renderCourse(course) {
+  const article = element("article", undefined, "course");
+  article.append(element("div", course.planned_start_time ?? "Untimed", "course-time measurement"));
+  const body = element("div", undefined, "course-content");
   body.append(element("span", "Running", "activity-kind"));
-  const edit = element("a", undefined, "run-summary");
-  edit.id = `run-${run.id}`;
-  edit.href = `/runs/${encodeURIComponent(run.id)}/edit?week=${dateString(containingMonday(selectedDate))}`;
-  const title = runTypes[run.run_type];
-  if (!title) throw new Error("Unreadable run type");
+  const edit = element("a", undefined, "course-summary");
+  edit.id = `course-${course.id}`;
+  edit.href = `/planned-courses/${encodeURIComponent(course.id)}/edit?week=${dateString(containingMonday(selectedDate))}`;
+  const title = courseTypes[course.course_type];
+  if (!title) throw new Error("Unreadable course type");
   edit.append(element("h3", title));
-  const total = run.sections.reduce((sum, section) => sum + BigInt(section.distance_m), 0n);
-  const commonPace = run.sections.every(section => section.target_pace_seconds_per_km === run.sections[0].target_pace_seconds_per_km);
-  const summary = `${kilometres(String(total))} · ${run.sections.length} section${run.sections.length === 1 ? "" : "s"} · ${commonPace ? pace(run.sections[0].target_pace_seconds_per_km) : "Varied pace"}`;
-  edit.append(element("span", summary, "measurement run-measurements"));
-  edit.setAttribute("aria-label", `Edit ${run.run_type} run on ${run.planned_date}${run.planned_start_time ? ` at ${run.planned_start_time}` : ""}. ${summary}`);
+  const total = course.sections.reduce((sum, section) => sum + BigInt(section.distance_m), 0n);
+  const commonPace = course.sections.every(section => section.target_pace_seconds_per_km === course.sections[0].target_pace_seconds_per_km);
+  const summary = `${kilometres(String(total))} · ${course.sections.length} section${course.sections.length === 1 ? "" : "s"} · ${commonPace ? pace(course.sections[0].target_pace_seconds_per_km) : "Varied pace"}`;
+  edit.append(element("span", summary, "measurement course-measurements"));
+  edit.setAttribute("aria-label", `Edit ${course.course_type} course on ${course.planned_date}${course.planned_start_time ? ` at ${course.planned_start_time}` : ""}. ${summary}`);
   linkContext(edit, edit.id);
   body.append(edit);
-  const details = element("details", undefined, "run-details");
-  details.open = choices[view][run.id] ?? view === "day";
+  const details = element("details", undefined, "course-details");
+  details.open = choices[view][course.id] ?? view === "day";
   const disclosure = element("summary");
   disclosure.append(element("span", "Show details", "show-details"), element("span", "Hide details", "hide-details"));
-  const nameDisclosure = () => disclosure.setAttribute("aria-label", `${details.open ? "Hide" : "Show"} details for ${run.run_type} run on ${run.planned_date}${run.planned_start_time ? ` at ${run.planned_start_time}` : ""}`);
+  const nameDisclosure = () => disclosure.setAttribute("aria-label", `${details.open ? "Hide" : "Show"} details for ${course.course_type} course on ${course.planned_date}${course.planned_start_time ? ` at ${course.planned_start_time}` : ""}`);
   nameDisclosure();
   details.append(disclosure);
-  const layout = element("div", undefined, "run-layout");
+  const layout = element("div", undefined, "course-layout");
   const sections = element("ol", undefined, "sections");
-  for (const section of run.sections) {
+  for (const section of course.sections) {
     const row = element("li");
     row.append(element("span", kilometres(section.distance_m)), element("span", pace(section.target_pace_seconds_per_km), "pace"));
     sections.append(row);
@@ -101,10 +101,10 @@ function renderRun(run) {
   layout.append(sections);
   const notes = element("div", undefined, "notes");
   for (const [field, label] of [["user_note", "Personal note"], ["trainer_note", "Trainer note"]]) {
-    if (run[field] === null) continue;
-    if (typeof run[field] !== "string") throw new Error("Unreadable note");
+    if (course[field] === null) continue;
+    if (typeof course[field] !== "string") throw new Error("Unreadable note");
     const note = element("div");
-    note.append(element("span", label, "note-label"), element("p", run[field]));
+    note.append(element("span", label, "note-label"), element("p", course[field]));
     notes.append(note);
   }
   if (notes.childElementCount) layout.append(notes);
@@ -114,7 +114,7 @@ function renderRun(run) {
   let initial = true;
   details.addEventListener("toggle", () => {
     nameDisclosure();
-    if (!initial) viewChoices[run.id] = details.open;
+    if (!initial) viewChoices[course.id] = details.open;
     initial = false;
   });
   // Closed defaults do not emit toggle. User input marks the first change as manual.
@@ -122,12 +122,12 @@ function renderRun(run) {
   body.append(details); article.append(body);
   return article;
 }
-function renderDays(runs) {
+function renderDays(courses) {
   const monday = containingMonday(selectedDate);
   const cards = [];
   const visible = view === "day" ? [selectedDate] : Array.from({ length: 7 }, (_, offset) => offsetDate(monday, offset));
   dayAdd.replaceChildren();
-  if (view === "day") dayAdd.append(addRun(selectedDate));
+  if (view === "day") dayAdd.append(addCourse(selectedDate));
   for (const date of visible) {
     const key = dateString(date);
     const day = element("section", undefined, "day");
@@ -137,30 +137,30 @@ function renderDays(runs) {
     title.id = `day-${key}`;
     title.append(element("span", `${monthName(date, "short")} ${date.getUTCDate()}`, "measurement"));
     header.append(title);
-    if (view === "week") header.append(addRun(date));
+    if (view === "week") header.append(addCourse(date));
     const body = element("div", undefined, "day-body");
-    const planned = runs.filter(run => run.planned_date === key);
-    if (planned.length > 1) title.lastElementChild.append(element("span", ` · ${planned.length} runs`, "day-count"));
-    body.append(...planned.map(renderRun));
-    if (!planned.length) body.append(element("p", "No runs planned", "muted"));
+    const planned = courses.filter(course => course.planned_date === key);
+    if (planned.length > 1) title.lastElementChild.append(element("span", ` · ${planned.length} courses`, "day-count"));
+    body.append(...planned.map(renderCourse));
+    if (!planned.length) body.append(element("p", "No courses planned", "muted"));
     day.classList.toggle("empty-day", !planned.length);
     if (view === "week") day.append(header);
     day.append(body); cards.push(day);
   }
   days.replaceChildren(...cards);
 }
-async function fetchRuns(monday) {
+async function fetchCourses(monday) {
   const query = new URLSearchParams({ start: dateString(monday), end: dateString(offsetDate(monday, 7)) });
   let response;
-  try { response = await fetch(`/v1/runs?${query}`, { cache: "no-store" }); }
-  catch { return { error: "A network error prevented loading runs. Check your connection and try again." }; }
+  try { response = await fetch(`/v1/planned-courses?${query}`, { cache: "no-store" }); }
+  catch { return { error: "A network error prevented loading courses. Check your connection and try again." }; }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     const explanation = typeof data?.detail === "string" ? ` ${data.detail}` : "";
-    return { error: (response.status === 503 ? "The server is temporarily unavailable. Try again in a moment." : "The server could not load these runs. Try again.") + explanation };
+    return { error: (response.status === 503 ? "The server is temporarily unavailable. Try again in a moment." : "The server could not load these courses. Try again.") + explanation };
   }
   if (!Array.isArray(data)) return { error: "The server returned an unreadable response. Try again." };
-  return { runs: data };
+  return { courses: data };
 }
 function showReadError(message) {
   days.replaceChildren(); dayAdd.replaceChildren();
@@ -168,7 +168,7 @@ function showReadError(message) {
   status.setAttribute("role", "alert"); status.setAttribute("aria-live", "assertive");
   const retry = element("button", "Retry"); retry.type = "button";
   retry.onclick = () => loadSelection();
-  status.replaceChildren(element("strong", "Could not load runs for this week"), element("p", message), retry);
+  status.replaceChildren(element("strong", "Could not load courses for this week"), element("p", message), retry);
 }
 async function loadSelection() {
   const version = ++readVersion;
@@ -178,13 +178,13 @@ async function loadSelection() {
   if (status.contains(document.activeElement)) heading.focus();
   status.hidden = false; status.className = "loading";
   status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
-  status.textContent = "Loading runs...";
-  const result = await fetchRuns(containingMonday(selectedDate));
+  status.textContent = "Loading courses...";
+  const result = await fetchCourses(containingMonday(selectedDate));
   if (version !== readVersion) return;
   if (result.error) showReadError(result.error);
   else {
     try {
-      renderDays(result.runs); status.hidden = true;
+      renderDays(result.courses); status.hidden = true;
       if (pendingFocus) {
         (document.getElementById(pendingFocus) ?? heading).focus();
         pendingFocus = null;

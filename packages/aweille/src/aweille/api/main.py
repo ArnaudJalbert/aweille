@@ -4,7 +4,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from aweille.adapters import SQLiteRunStorage
+from aweille.adapters import SQLitePlannedCourseStorage
 from aweille.adapters.validate_database import validate_database
 from aweille.core import StorageFailure
 
@@ -28,14 +28,20 @@ def _database_path() -> Path:
         raise ValueError(
             "AWEILLE_DB_PATH could not be resolved to a database file."
         ) from error
-    try:
-        with sqlite3.connect(path.as_uri() + "?mode=rw", uri=True) as connection:
-            validate_database(connection, version=2)
-    except (sqlite3.Error, StorageFailure) as error:
-        raise ValueError(
-            "Database is incompatible; run aweille-upgrade-db <path> if version 1."
-        ) from error
+    _validate_database_file(path)
     return path
 
 
-app = create_app(storage=SQLiteRunStorage(_database_path()))
+def _validate_database_file(path: Path) -> None:
+    try:
+        with sqlite3.connect(path.as_uri() + "?mode=rw", uri=True) as connection:
+            validate_database(connection)
+    except StorageFailure as error:
+        raise ValueError(str(error)) from error
+    except sqlite3.Error as error:
+        raise ValueError(
+            "Database is incompatible; create a new database with aweille-init-db."
+        ) from error
+
+
+app = create_app(storage=SQLitePlannedCourseStorage(_database_path()))

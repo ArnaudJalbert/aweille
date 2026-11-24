@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% set editing = true %}
+{% block title %}Edit course | Aweille{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='edit_course.js') }}"></script>{% endblock %}
+{% block screen_class %}form-shell{% endblock %}
+{% block content %}
+  <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Edit course</h1></header>
+  <form id="course-form" class="form-card" aria-describedby="form-guidance" novalidate>
+    <p id="form-guidance" class="muted">Fields are required unless marked optional.</p>
+    <div class="form-message">
+      <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a course.</div>
+      <div id="recovery" hidden><button type="button" id="reload-course">Reload saved course</button><button type="button" id="retry-load">Retry</button></div>
+    </div>
+    {% include 'course_fields.html' %}
+    <div class="delete-area">
+      <section id="delete-confirmation" class="notice" aria-labelledby="delete-heading" hidden>
+        <h2 id="delete-heading">Permanently delete this course?</h2>
+        <p id="delete-target"></p>
+        <p>This permanently removes the whole planned course and cannot be undone.</p>
+        <p id="delete-draft-warning" hidden>Your unsaved edits will be discarded.</p>
+        <div class="confirmation-actions">
+          <button id="keep-course" type="button">Keep course</button>
+          <button id="confirm-delete" type="button">Delete permanently</button>
+        </div>
+      </section>
+    </div>
+    <footer class="form-footer">
+      <div class="form-footer-left">
+        <a id="cancel" class="button" href="/">Cancel</a>
+        <button id="delete-course" class="negative" type="button" disabled hidden>Delete course</button>
+      </div>
+      <button id="save-course" class="positive" type="submit" disabled>Save changes</button>
+    </footer>
+  </form>
+{% endblock %}

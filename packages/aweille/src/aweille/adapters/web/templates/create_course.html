@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% set editing = false %}
+{% block title %}Add course | Aweille{% endblock %}
+{% block scripts %}<script type="module" src="{{ url_for('static', path='create_course.js') }}"></script>{% endblock %}
+{% block screen_class %}form-shell{% endblock %}
+{% block content %}
+  <header class="page-heading">{% include 'menu.html' %}<h1 tabindex="-1">Add course</h1></header>
+  <form id="course-form" class="form-card" aria-describedby="form-guidance" novalidate>
+    <p id="form-guidance" class="muted">Fields are required unless marked optional.</p>
+    <div class="form-message">
+      <div id="save-status" class="notice" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">JavaScript is required to save a course.</div>
+    </div>
+    {% include 'course_fields.html' %}
+    <footer class="form-footer">
+      <div class="form-footer-left">
+        <a id="cancel" class="button" href="/">Cancel</a>
+      </div>
+      <button id="save-course" class="positive" type="submit" disabled>Save course</button>
+    </footer>
+  </form>
+{% endblock %}

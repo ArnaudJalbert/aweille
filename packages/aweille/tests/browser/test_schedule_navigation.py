@@ -26,35 +26,39 @@ def test_local_http_creation_and_editing_preserve_schedule_returns(
     page.route(f"{origin}/**", forward_to_server)
     page.goto(f"{origin}/?view=week&date=2026-10-21")
     assert page.evaluate("isSecureContext") is False
-    add_run = page.get_by_role("link", name="Add run for Wednesday")
-    add_run.click()
-    save = page.get_by_role("button", name="Save run", exact=True)
+    add_planned_course = page.get_by_role("link", name="Add course for Wednesday")
+    add_planned_course.click()
+    save = page.get_by_role("button", name="Save course", exact=True)
     expect(save).to_be_enabled()
     page.get_by_role("link", name="Cancel", exact=True).click()
-    expect(add_run).to_be_focused()
-    add_run.click()
-    page.get_by_label("Run type").select_option("easy")
+    expect(add_planned_course).to_be_focused()
+    add_planned_course.click()
+    page.get_by_label("Course type").select_option("easy")
     page.get_by_label("Distance km").fill("1")
     page.get_by_label("Pace m:ss/km").fill("6:30")
-    with page.expect_response(f"{origin}/v1/runs") as created:
+    with page.expect_response(f"{origin}/v1/planned-courses") as created:
         save.click()
     assert created.value.status == 201
     submitted = created.value.request.post_data_json
     assert submitted is not None
-    run_id = submitted["id"]
-    assert UUID(run_id).version == 4
-    edit = page.get_by_role("link", name="Edit easy run on 2026-10-21")
+    planned_course_id = submitted["id"]
+    assert UUID(planned_course_id).version == 4
+    edit = page.get_by_role("link", name="Edit easy course on 2026-10-21")
     expect(edit).to_be_focused()
     expect(page.get_by_role("button", name="Week", exact=True)).to_have_attribute(
         "aria-pressed", "true"
     )
     edit.click()
     page.get_by_label("Personal note").fill("Saved from a local HTTP page.")
-    with page.expect_response(f"{origin}/v1/runs/{run_id}") as updated:
+    with page.expect_response(
+        f"{origin}/v1/planned-courses/{planned_course_id}"
+    ) as updated:
         page.get_by_role("button", name="Save changes", exact=True).click()
     assert updated.value.status == 200
     expect(edit).to_be_focused()
-    stored = page.request.get(f"{live_server.url}/v1/runs/{run_id}").json()
+    stored = page.request.get(
+        f"{live_server.url}/v1/planned-courses/{planned_course_id}"
+    ).json()
     assert stored["user_note"] == "Saved from a local HTTP page."
     assert stored["revision"] == "2"
 
@@ -101,7 +105,7 @@ def test_day_default_and_week_switch_preserve_date(page: Page, live_server: Live
     expect(page.get_by_text("Training schedule", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", level=2)).to_have_count(0)
     expect(page.get_by_role("region")).to_have_count(1)
-    expect(page.get_by_role("link", name="Add run")).to_have_count(1)
+    expect(page.get_by_role("link", name="Add course")).to_have_count(1)
     page.get_by_role("button", name="Week", exact=True).click()
     expect(page.get_by_role("region")).to_have_count(7)
     expect(page.get_by_role("heading", level=1)).to_have_text("This Week")
@@ -121,68 +125,73 @@ def test_day_default_and_week_switch_preserve_date(page: Page, live_server: Live
 
 
 def test_disclosures_and_cancel_restore_each_view_and_initiating_focus(
-    page: Page, live_server: LiveServer, run_request
+    page: Page, live_server: LiveServer, planned_course_request
 ):
-    run = {
-        **run_request,
+    planned_course = {
+        **planned_course_request,
         "planned_start_time": "07:30",
         "sections": [
             {"distance_m": "1000", "target_pace_seconds_per_km": "390"},
             {"distance_m": "9007199254740993123", "target_pace_seconds_per_km": "390"},
         ],
     }
-    assert page.request.post(f"{live_server.url}/v1/runs", data=run).status == 201
+    assert (
+        page.request.post(
+            f"{live_server.url}/v1/planned-courses", data=planned_course
+        ).status
+        == 201
+    )
     page.goto(f"{live_server.url}/?view=day&date=2026-10-14")
     expect(page.get_by_text("Running", exact=True)).to_be_visible()
     assert (
-        page.locator(".run-content").evaluate(
+        page.locator(".course-content").evaluate(
             "node => getComputedStyle(node).borderLeftWidth"
         )
         == "1px"
     )
     assert (
-        page.locator(".run-content").evaluate(
+        page.locator(".course-content").evaluate(
             "node => getComputedStyle(node, '::before').width"
         )
         == "7px"
     )
-    expect(page.get_by_role("link", name="Edit easy run")).to_contain_text(
+    expect(page.get_by_role("link", name="Edit easy course")).to_contain_text(
         "9007199254740994.123 km · 2 sections · 6:30/km"
     )
     details = page.get_by_text("Hide details", exact=True)
     expect(details).to_be_visible()
     disclosure = page.locator("summary")
     expect(disclosure).to_have_accessible_name(
-        "Hide details for easy run on 2026-10-14 at 07:30"
+        "Hide details for easy course on 2026-10-14 at 07:30"
     )
     disclosure.focus()
     page.keyboard.press("Space")
     expect(page.get_by_text("Show details", exact=True)).to_be_visible()
     expect(disclosure).to_have_accessible_name(
-        "Show details for easy run on 2026-10-14 at 07:30"
+        "Show details for easy course on 2026-10-14 at 07:30"
     )
     page.get_by_role("button", name="Week", exact=True).click()
     expect(disclosure).to_have_accessible_name(
-        "Show details for easy run on 2026-10-14 at 07:30"
+        "Show details for easy course on 2026-10-14 at 07:30"
     )
     disclosure.focus()
     page.keyboard.press("Enter")
     expect(page.get_by_text("Hide details", exact=True)).to_be_visible()
     expect(disclosure).to_have_accessible_name(
-        "Hide details for easy run on 2026-10-14 at 07:30"
+        "Hide details for easy course on 2026-10-14 at 07:30"
     )
-    page.get_by_role("link", name="Edit easy run").click()
+    page.get_by_role("link", name="Edit easy course").click()
     page.get_by_role("link", name="Cancel", exact=True).click()
     expect(page.get_by_role("button", name="Week", exact=True)).to_have_attribute(
         "aria-pressed", "true"
     )
     expect(page.get_by_text("Hide details", exact=True)).to_be_visible()
-    expect(page.get_by_role("link", name="Edit easy run")).to_be_focused()
+    expect(page.get_by_role("link", name="Edit easy course")).to_be_focused()
     page.get_by_role("button", name="Day", exact=True).click()
     expect(page.get_by_text("Show details", exact=True)).to_be_visible()
-    page.get_by_role("link", name="Add run").click()
+    page.get_by_role("link", name="Add course").click()
     page.get_by_role("link", name="Cancel", exact=True).click()
-    expect(page.get_by_role("link", name="Add run")).to_be_focused()
+    expect(page.get_by_role("link", name="Add course")).to_be_focused()
     expect(page.get_by_text("Show details", exact=True)).to_be_visible()
     choose_date(page, "2026-10-15")
     choose_date(page, "2026-10-14")
@@ -254,9 +263,9 @@ def test_confirmed_cross_week_save_restores_focus_unless_navigating_elsewhere(
     page: Page, live_server: LiveServer, view: str, recovery: str
 ):
     page.goto(f"{live_server.url}/?view={view}&date=2026-10-14")
-    page.get_by_role("link", name="Add run for Wednesday").click()
+    page.get_by_role("link", name="Add course for Wednesday").click()
     page.get_by_label("Planned date").fill("2026-10-28")
-    page.get_by_label("Run type").select_option("easy")
+    page.get_by_label("Course type").select_option("easy")
     page.get_by_label("Distance km").fill("1")
     page.get_by_label("Pace m:ss/km").fill("6:30")
     writes = []
@@ -265,17 +274,17 @@ def test_confirmed_cross_week_save_restores_focus_unless_navigating_elsewhere(
         lambda request: writes.append(request) if request.method == "POST" else None,
     )
     page.route(
-        "**/v1/runs?*",
+        "**/v1/planned-courses?*",
         lambda route: route.fulfill(status=503, json={"detail": "Read failed."}),
     )
-    page.get_by_role("button", name="Save run", exact=True).click()
+    page.get_by_role("button", name="Save course", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Read failed.")
     expect(page.get_by_role("heading", level=3)).to_have_count(0)
-    page.unroute("**/v1/runs?*")
+    page.unroute("**/v1/planned-courses?*")
     if recovery == "retry":
         page.get_by_role("button", name="Retry", exact=True).click()
         expect(
-            page.get_by_role("link", name="Edit easy run on 2026-10-28")
+            page.get_by_role("link", name="Edit easy course on 2026-10-28")
         ).to_be_focused()
         expect(page.get_by_text("Show details", exact=True)).to_be_visible()
         expect(page).to_have_url(
@@ -290,16 +299,19 @@ def test_confirmed_cross_week_save_restores_focus_unless_navigating_elsewhere(
         expect(page).to_have_url(
             f"{live_server.url}/?week={expected_week}&view={view}&date={expected_date}"
         )
-        expect(page.get_by_role("link", name="Add run").first).to_be_visible()
+        expect(page.get_by_role("link", name="Add course").first).to_be_visible()
         expect(next_period).to_be_focused()
     assert len(writes) == 1
 
 
 def test_content_width_controls_week_layout_and_add_targets(
-    page: Page, live_server: LiveServer, run_request
+    page: Page, live_server: LiveServer, planned_course_request
 ):
     assert (
-        page.request.post(f"{live_server.url}/v1/runs", data=run_request).status == 201
+        page.request.post(
+            f"{live_server.url}/v1/planned-courses", data=planned_course_request
+        ).status
+        == 201
     )
     page.goto(f"{live_server.url}/?view=week&date=2026-10-14")
     for content_width in (559, 560):
@@ -310,7 +322,7 @@ def test_content_width_controls_week_layout_and_add_targets(
         day = page.get_by_role("region", name="Wednesday Oct 14")
         header = day.locator(".day-heading").bounding_box()
         body = day.locator(".day-body").bounding_box()
-        add = day.get_by_role("link", name="Add run").bounding_box()
+        add = day.get_by_role("link", name="Add course").bounding_box()
         assert header and body and add and add["height"] >= 44
         if content_width == 559:
             assert body["y"] >= header["y"] + header["height"]
@@ -323,8 +335,8 @@ def test_form_reload_falls_back_to_heading_focus_without_reusing_context(
     page: Page, live_server: LiveServer
 ):
     page.goto(f"{live_server.url}/?view=week&date=2026-10-14")
-    page.get_by_role("link", name="Add run for Wednesday").click()
-    expect(page.get_by_role("button", name="Save run", exact=True)).to_be_enabled()
+    page.get_by_role("link", name="Add course for Wednesday").click()
+    expect(page.get_by_role("button", name="Save course", exact=True)).to_be_enabled()
     page.reload()
     expect(page.get_by_label("Planned date")).to_have_value("2026-10-14")
     page.get_by_role("link", name="Cancel", exact=True).click()

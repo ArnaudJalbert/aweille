@@ -5,6 +5,8 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from .validate_database import SCHEMA_VERSION
+
 
 def create_database(path: str | Path) -> None:
     """Create the initial schema in a new file without touching existing storage.
@@ -24,18 +26,21 @@ def create_database(path: str | Path) -> None:
         with closing(sqlite3.connect(path)) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute(
-                "CREATE TABLE runs ("
+                "CREATE TABLE planned_courses ("
                 "id TEXT NOT NULL PRIMARY KEY, planned_date TEXT NOT NULL, "
-                "planned_start_time TEXT, run_type TEXT NOT NULL, "
+                "planned_start_time TEXT, course_type TEXT NOT NULL, "
                 "sections TEXT NOT NULL, user_note TEXT, trainer_note TEXT, "
                 "revision TEXT NOT NULL)"
             )
-            connection.execute("CREATE INDEX runs_planned_date ON runs(planned_date)")
             connection.execute(
-                "CREATE TABLE deleted_run_ids (id TEXT NOT NULL PRIMARY KEY)"
+                "CREATE INDEX planned_courses_planned_date "
+                "ON planned_courses(planned_date)"
+            )
+            connection.execute(
+                "CREATE TABLE deleted_planned_course_ids (id TEXT NOT NULL PRIMARY KEY)"
             )
             connection.execute("PRAGMA application_id = 0x41574549")
-            connection.execute("PRAGMA user_version = 2")
+            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     except BaseException:
         path.unlink()
         raise

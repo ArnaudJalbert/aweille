@@ -1,1 +1,1 @@
-"""Public planned-run value tests."""
+"""Public planned-course value tests."""

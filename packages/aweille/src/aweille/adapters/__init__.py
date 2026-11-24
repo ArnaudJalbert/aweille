@@ -1,6 +1,5 @@
 """Concrete adapters for the core-owned ports."""
 
-from .sqlite_run_storage import SQLiteRunStorage
-from .upgrade_database import upgrade_database
+from .sqlite_planned_course_storage import SQLitePlannedCourseStorage
 
-__all__ = ["SQLiteRunStorage", "upgrade_database"]
+__all__ = ["SQLitePlannedCourseStorage"]

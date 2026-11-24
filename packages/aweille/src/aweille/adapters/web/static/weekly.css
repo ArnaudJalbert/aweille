@@ -64,8 +64,8 @@ body.drawer-open { overflow: hidden; }
 .day-body { min-width: 0; }
 .muted { color: var(--muted-ink); font-size: 14px; }
 .day-body > .muted { margin: 0; }
-.run + .run { border: 0; margin-top: 0; }
-.run-layout { display: grid; gap: 14px; }
+.course + .course { border: 0; margin-top: 0; }
+.course-layout { display: grid; gap: 14px; }
 .sections { list-style: none; padding: 0; margin: 0; counter-reset: section; }
 .sections li { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; border-top: 1px solid var(--line); padding: 9px 0; }
 .sections li::before { counter-increment: section; content: counter(section); color: var(--muted-ink); font-size: 14px; }
@@ -142,30 +142,30 @@ button[aria-pressed="true"]:hover { background: var(--ink); }
 #exact-date { margin: 8px 0 0; color: var(--muted-ink); }
 #day-add { margin-left: auto; }
 #day-add:empty { display: none; }
-.add-run { display: inline-flex; min-height: 44px; align-items: center; padding: 8px 0; font: 500 13px/20px var(--font-sans); text-decoration: none; flex-shrink: 0; background: transparent; }
-.add-run span { display: block; border-radius: 3px; padding: 4px 8px; background: var(--primary); white-space: nowrap; }
-.add-run:is(:hover, :active) { background: transparent; }
-.add-run:is(:hover, :active) span { background: var(--primary-hover); }
-.run { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; padding-bottom: 20px; }
-.run:last-child { padding-bottom: 0; }
-.run-time { padding-top: 3px; color: var(--muted-ink); }
-.run-content { min-width: 0; border-left: 1px solid var(--strong-line); padding-left: 16px; position: relative; }
-.run-content::before { content: ""; position: absolute; left: -4px; top: 8px; width: 7px; height: 7px; border: 1px solid var(--strong-line); background: var(--paper); border-radius: 50%; }
+.add-course { display: inline-flex; min-height: 44px; align-items: center; padding: 8px 0; font: 500 13px/20px var(--font-sans); text-decoration: none; flex-shrink: 0; background: transparent; }
+.add-course span { display: block; border-radius: 3px; padding: 4px 8px; background: var(--primary); white-space: nowrap; }
+.add-course:is(:hover, :active) { background: transparent; }
+.add-course:is(:hover, :active) span { background: var(--primary-hover); }
+.course { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; padding-bottom: 20px; }
+.course:last-child { padding-bottom: 0; }
+.course-time { padding-top: 3px; color: var(--muted-ink); }
+.course-content { min-width: 0; border-left: 1px solid var(--strong-line); padding-left: 16px; position: relative; }
+.course-content::before { content: ""; position: absolute; left: -4px; top: 8px; width: 7px; height: 7px; border: 1px solid var(--strong-line); background: var(--paper); border-radius: 50%; }
 .activity-kind { color: var(--muted-ink); font-size: 12px; }
 .day-heading h2 .day-count { font: 400 12px/1.5 var(--font-sans); display: inline; }
-.run-summary { display: block; padding: 4px 0 8px; text-decoration: none; min-height: 44px; }
-.run-summary h3 { margin: 0 0 4px; }
-.run-summary:hover { background: var(--panel); }
-.run-summary:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
-.run-measurements { display: block; }
-.run-details > summary { display: flex; align-items: center; list-style: none; font: 400 14px/1.5 var(--font-sans); cursor: pointer; min-height: 44px; width: fit-content; }
-.run-details > summary::-webkit-details-marker { display: none; }
-.run-details > summary::before { content: "+"; margin-right: 6px; }
-.run-details[open] > summary::before { content: "−"; }
-.run-details > summary span { text-decoration: underline; text-underline-offset: 3px; }
-.run-details .hide-details, .run-details[open] .show-details { display: none; }
-.run-details[open] .hide-details { display: inline; }
-.run-details .run-layout { padding: 12px 0 4px; }
+.course-summary { display: block; padding: 4px 0 8px; text-decoration: none; min-height: 44px; }
+.course-summary h3 { margin: 0 0 4px; }
+.course-summary:hover { background: var(--panel); }
+.course-summary:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
+.course-measurements { display: block; }
+.course-details > summary { display: flex; align-items: center; list-style: none; font: 400 14px/1.5 var(--font-sans); cursor: pointer; min-height: 44px; width: fit-content; }
+.course-details > summary::-webkit-details-marker { display: none; }
+.course-details > summary::before { content: "+"; margin-right: 6px; }
+.course-details[open] > summary::before { content: "−"; }
+.course-details > summary span { text-decoration: underline; text-underline-offset: 3px; }
+.course-details .hide-details, .course-details[open] .show-details { display: none; }
+.course-details[open] .hide-details { display: inline; }
+.course-details .course-layout { padding: 12px 0 4px; }
 .week-view .day { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 24px; }
 .week-view .day-heading { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; }
 .week-view .day-heading h2 { display: block; }
@@ -192,8 +192,8 @@ dialog::backdrop { background: #202b2877; }
   .week-view .day { display: block; }
   .week-view .day-heading { flex-direction: row; align-items: center; justify-content: space-between; }
   .week-view .day-heading h2 { display: block; }
-  .run { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
-  .run-content { padding-left: 12px; }
+  .course { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
+  .course-content { padding-left: 12px; }
   .week-view .day-body { margin-top: 12px; }
 }
 @media (forced-colors: active) {
@@ -204,11 +204,11 @@ dialog::backdrop { background: #202b2877; }
 #day-add { justify-self: end; }
 .week-view .empty-day .day-heading { display: contents; }
 .week-view .empty-day .day-heading h2 { padding: 0; }
-.week-view .empty-day .add-run { justify-self: start; align-self: start; margin-top: 4px; }
+.week-view .empty-day .add-course { justify-self: start; align-self: start; margin-top: 4px; }
 @container (max-width: 559px) {
   .week-view .empty-day .day-heading { display: flex; }
   .week-view .empty-day .day-heading h2 { padding: 0; }
-  .week-view .empty-day .add-run { margin: 0; align-self: auto; }
+  .week-view .empty-day .add-course { margin: 0; align-self: auto; }
 }
 /* Form geometry follows content width after navigation and page padding. */
 .form-shell { container-type: inline-size; }
@@ -218,7 +218,7 @@ dialog::backdrop { background: #202b2877; }
 #form-fields { padding-bottom: 24px; }
 .form-footer { position: sticky; bottom: 0; z-index: 5; align-items: center; flex-wrap: wrap; background: var(--paper); margin-top: 24px; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }
 .form-footer-left { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.form-footer > #save-run { margin-left: auto; }
+.form-footer > #save-course { margin-left: auto; }
 .form-footer button, .form-footer .button { padding: 8px; }
 .form-card input, .form-card select, .form-card textarea { scroll-margin-block: 24px 112px; }
 #recovery, .confirmation-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }

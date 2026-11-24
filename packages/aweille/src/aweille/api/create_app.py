@@ -6,18 +6,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 
 from aweille.core import (
-    RunConflict,
-    RunNotFound,
-    RunRevisionConflict,
-    RunStorage,
+    PlannedCourseConflict,
+    PlannedCourseNotFound,
+    PlannedCourseRevisionConflict,
+    PlannedCourseStorage,
     StorageFailure,
     StorageUnavailable,
     ValidationError,
-    create_run,
-    delete_run,
-    read_run,
-    read_runs,
-    update_run,
+    create_planned_course,
+    delete_planned_course,
+    read_planned_course,
+    read_planned_courses,
+    update_planned_course,
 )
 
 from .api_errors import (
@@ -27,19 +27,20 @@ from .api_errors import (
     stale_response,
     validation_response,
 )
-from .routes.runs_api import router
+from .routes.planned_courses_api import router
 from .routes.weekly_page import WEB_DIRECTORY
 from .routes.weekly_page import router as weekly_router
 
 
-def create_app(*, storage: RunStorage) -> FastAPI:
+def create_app(*, storage: PlannedCourseStorage) -> FastAPI:
     """Construct the HTTP application with an explicitly supplied storage port.
 
     Args:
-        storage: Initialized storage port for planned-run creation, reads, and edits.
+        storage: Initialized storage port for planned-course creation, reads, and edits.
 
     Returns:
-        HTTP and browser application with run use cases bound to the storage port.
+        HTTP and browser application with planned-course use cases bound to the
+        storage port.
     """
     app = FastAPI()
     _register_error_handlers(app)
@@ -51,28 +52,28 @@ def create_app(*, storage: RunStorage) -> FastAPI:
 
 
 def _register_error_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(RunConflict, conflict_response)
-    app.add_exception_handler(RunNotFound, missing_response)
-    app.add_exception_handler(RunRevisionConflict, stale_response)
+    app.add_exception_handler(PlannedCourseConflict, conflict_response)
+    app.add_exception_handler(PlannedCourseNotFound, missing_response)
+    app.add_exception_handler(PlannedCourseRevisionConflict, stale_response)
     app.add_exception_handler(ValidationError, validation_response)
     app.add_exception_handler(RequestValidationError, validation_response)
     for error in (StorageUnavailable, StorageFailure, Exception):
         app.add_exception_handler(error, failure_response)
 
 
-def _bind_use_cases(app: FastAPI, storage: RunStorage) -> None:
-    app.state.create_run = partial(create_run, storage)
-    app.state.read_runs = partial(read_runs, storage)
-    app.state.read_run = partial(read_run, storage)
-    app.state.update_run = partial(update_run, storage)
-    app.state.delete_run = partial(delete_run, storage)
+def _bind_use_cases(app: FastAPI, storage: PlannedCourseStorage) -> None:
+    app.state.create_planned_course = partial(create_planned_course, storage)
+    app.state.read_planned_courses = partial(read_planned_courses, storage)
+    app.state.read_planned_course = partial(read_planned_course, storage)
+    app.state.update_planned_course = partial(update_planned_course, storage)
+    app.state.delete_planned_course = partial(delete_planned_course, storage)
 
 
 def _configure_cache_policy(app: FastAPI) -> None:
     @app.middleware("http")
-    async def prevent_run_caching(request, call_next):
+    async def prevent_planned_course_caching(request, call_next):
         result = await call_next(request)
-        if request.url.path.startswith("/v1/runs"):
+        if request.url.path.startswith("/v1/planned-courses"):
             result.headers["Cache-Control"] = "no-store"
         return result
 
@@ -89,9 +90,9 @@ def _configure_openapi(app: FastAPI) -> None:
     def openapi_with_clear_example():
         # FastAPI drops explicit nulls when serializing route-level examples.
         document = original_openapi()
-        document["paths"]["/v1/runs/{id}"]["patch"]["requestBody"]["content"][
-            "application/json"
-        ]["examples"]["clear"]["value"] = {
+        document["paths"]["/v1/planned-courses/{id}"]["patch"]["requestBody"][
+            "content"
+        ]["application/json"]["examples"]["clear"]["value"] = {
             "planned_start_time": None,
             "trainer_note": None,
         }
