@@ -5,17 +5,17 @@ from typing import cast
 from uuid import UUID
 
 import pytest
-from aweille.core import (
-    PlannedCourse,
+from aweille.application import (
     PlannedCourseConflict,
     PlannedCourseNotFound,
+    PlannedCourseRepository,
     PlannedCourseRevisionConflict,
-    PlannedCourseStorage,
 )
+from aweille.domain import PlannedCourse
 
 
 @pytest.fixture
-def storage() -> PlannedCourseStorage:
+def storage() -> PlannedCourseRepository:
     planned_courses: dict[UUID, PlannedCourse] = {}
     deleted: set[UUID] = set()
 
@@ -62,7 +62,7 @@ def storage() -> PlannedCourseStorage:
         deleted.add(id)
 
     return cast(
-        PlannedCourseStorage,
+        PlannedCourseRepository,
         SimpleNamespace(
             save=save, get=get, load=load, replace=replace_planned_course, delete=delete
         ),

@@ -5,14 +5,14 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 
-from aweille.core import (
+from aweille.application import (
+    InvalidPlannedCourse,
     PlannedCourseConflict,
     PlannedCourseNotFound,
+    PlannedCourseRepository,
     PlannedCourseRevisionConflict,
-    PlannedCourseStorage,
     StorageFailure,
     StorageUnavailable,
-    ValidationError,
     create_planned_course,
     delete_planned_course,
     read_planned_course,
@@ -32,19 +32,20 @@ from .routes.weekly_page import WEB_DIRECTORY
 from .routes.weekly_page import router as weekly_router
 
 
-def create_app(*, storage: PlannedCourseStorage) -> FastAPI:
-    """Construct the HTTP application with an explicitly supplied storage port.
+def create_app(*, repository: PlannedCourseRepository) -> FastAPI:
+    """Construct the HTTP application with an explicitly supplied repository.
 
     Args:
-        storage: Initialized storage port for planned-course creation, reads, and edits.
+        repository: Initialized repository for planned-course creation, reads,
+            and edits.
 
     Returns:
         HTTP and browser application with planned-course use cases bound to the
-        storage port.
+        repository.
     """
     app = FastAPI()
     _register_error_handlers(app)
-    _bind_use_cases(app, storage)
+    _bind_use_cases(app, repository)
     _configure_cache_policy(app)
     _configure_routes(app)
     _configure_openapi(app)
@@ -55,18 +56,18 @@ def _register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(PlannedCourseConflict, conflict_response)
     app.add_exception_handler(PlannedCourseNotFound, missing_response)
     app.add_exception_handler(PlannedCourseRevisionConflict, stale_response)
-    app.add_exception_handler(ValidationError, validation_response)
+    app.add_exception_handler(InvalidPlannedCourse, validation_response)
     app.add_exception_handler(RequestValidationError, validation_response)
     for error in (StorageUnavailable, StorageFailure, Exception):
         app.add_exception_handler(error, failure_response)
 
 
-def _bind_use_cases(app: FastAPI, storage: PlannedCourseStorage) -> None:
-    app.state.create_planned_course = partial(create_planned_course, storage)
-    app.state.read_planned_courses = partial(read_planned_courses, storage)
-    app.state.read_planned_course = partial(read_planned_course, storage)
-    app.state.update_planned_course = partial(update_planned_course, storage)
-    app.state.delete_planned_course = partial(delete_planned_course, storage)
+def _bind_use_cases(app: FastAPI, repository: PlannedCourseRepository) -> None:
+    app.state.create_planned_course = partial(create_planned_course, repository)
+    app.state.read_planned_courses = partial(read_planned_courses, repository)
+    app.state.read_planned_course = partial(read_planned_course, repository)
+    app.state.update_planned_course = partial(update_planned_course, repository)
+    app.state.delete_planned_course = partial(delete_planned_course, repository)
 
 
 def _configure_cache_policy(app: FastAPI) -> None:

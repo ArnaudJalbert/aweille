@@ -114,7 +114,7 @@ def post_planned_course(
 
     Raises:
         HTTPException: Unsupported media, oversized body, or malformed JSON.
-        ValidationError: Request or domain fields are invalid.
+        InvalidPlannedCourse: Request or domain fields are invalid.
         PlannedCourseConflict: The ID belongs to different normalized data.
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
@@ -142,10 +142,10 @@ def get_planned_courses(
         request: Request supplying the application's bound use case.
 
     Returns:
-        A 200 array of normalized planned courses in core ordering.
+        A 200 array of normalized planned courses in use case ordering.
 
     Raises:
-        ValidationError: Query fields or the date range are invalid.
+        InvalidPlannedCourse: Query fields or the date range are invalid.
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
@@ -293,7 +293,7 @@ def patch_planned_course(
     Raises:
         RequestValidationError: Path, query, or patch body is invalid (HTTP 422).
         HTTPException: If-Match is missing (HTTP 428) or malformed (HTTP 422).
-        ValidationError: The complete edited planned course is invalid (HTTP 422).
+        InvalidPlannedCourse: The complete edited planned course is invalid (HTTP 422).
         PlannedCourseNotFound: The planned course is absent (HTTP 404).
         PlannedCourseRevisionConflict: The revision is stale (HTTP 412).
         StorageUnavailable: Storage cannot currently read or write (HTTP 503).

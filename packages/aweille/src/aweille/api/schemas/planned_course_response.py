@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from aweille.core import CourseType
+from aweille.domain import CourseType
 
 from .section_response import SectionResponse
 

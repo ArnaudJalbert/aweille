@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 from aweille.api.create_app import create_app
-from aweille.core import PlannedCourseStorage
+from aweille.application import PlannedCourseRepository
 from fastapi.testclient import TestClient
 
 
@@ -72,10 +72,10 @@ def test_injected_storage_failure_is_safe_without_database(
 ):
     database_path = tmp_path / "unused.sqlite"
     monkeypatch.setenv("AWEILLE_DB_PATH", str(database_path))
-    storage = Mock(spec=PlannedCourseStorage)
+    storage = Mock(spec=PlannedCourseRepository)
     getattr(storage, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
     with TestClient(
-        create_app(storage=storage), raise_server_exceptions=False
+        create_app(repository=storage), raise_server_exceptions=False
     ) as client:
         response = (
             client.post("/v1/planned-courses", json=planned_course_request)

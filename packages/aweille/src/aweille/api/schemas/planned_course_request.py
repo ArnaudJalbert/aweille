@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidateAs
 
-from aweille.core import CourseType, Distance, Pace, Section
+from aweille.domain import CourseType, Distance, Pace, Section
 
 from .request_date import RequestDate
 
@@ -34,7 +34,7 @@ class _SectionRequest(BaseModel):
 
 
 class PlannedCourseRequest(BaseModel):
-    """Strict creation shape, with encoded scalars parsed into core input types."""
+    """Strict creation shape, with encoded scalars parsed into domain input types."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 

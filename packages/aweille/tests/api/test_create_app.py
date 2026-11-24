@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from aweille.adapters import SQLitePlannedCourseStorage
 from aweille.api.create_app import create_app
+from aweille.interface_adapters import SQLitePlannedCourseRepository
 from fastapi.testclient import TestClient
 
 
@@ -34,7 +34,7 @@ def test_create_normalize_and_read_after_restart(database_path: Path):
         "revision": "1",
     }
     with TestClient(
-        create_app(storage=SQLitePlannedCourseStorage(database_path))
+        create_app(repository=SQLitePlannedCourseRepository(database_path))
     ) as client:
         response = client.post("/v1/planned-courses", json=payload)
         assert response.status_code == 201
@@ -43,7 +43,7 @@ def test_create_normalize_and_read_after_restart(database_path: Path):
         assert response.status_code == 200
         assert response.json() == [expected]
     with TestClient(
-        create_app(storage=SQLitePlannedCourseStorage(database_path))
+        create_app(repository=SQLitePlannedCourseRepository(database_path))
     ) as client:
         assert client.get(
             "/v1/planned-courses?start=2026-10-12&end=2026-10-19"

@@ -4,7 +4,7 @@
 
 Read the issue or task and agree on scope before coding. Use `gh` for GitHub issues and pull requests.
 
-Before changing core, API, or adapters, read the README's [Architecture](README.md#architecture) and [Public core interface](README.md#public-core-interface). For domain changes, also read [CONTEXT.md](CONTEXT.md) and relevant ADRs if present.
+Before changing the domain, application, interface adapters, or API, read the README's [Architecture](README.md#architecture) and [Public core interface](README.md#public-core-interface). For domain changes, also read [CONTEXT.md](CONTEXT.md) and relevant ADRs if present.
 
 Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the relevant notes in `docs/design/`. Preserve the implemented planned-course behavior while distinguishing selected design decisions, provisional specimen values, and future training kinds. See [redesign acceptance](docs/verification/redesign-acceptance.md) for the implementation evidence and pending manual checks.
 
@@ -42,7 +42,7 @@ Every test case must protect a named use case, edge case, or regression. Before 
 
 Write `pytest` tests as functions, using fixtures and parametrization when helpful. Test through agreed public interfaces; agree new test seams with the maintainer before adding tests there. Use test-first development for new behavior. Assert returned values, errors, and saved behavior through those interfaces.
 
-For core tests, use a small in-memory storage fake for normal stateful behavior and mocks at the storage port for failures. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
+For domain and application tests, use a small in-memory repository fake for normal stateful behavior and mocks of the repository for failures. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
 
 Prefer representative cases for each rule over exhaustive input lists. Combine parameter dimensions only when their interaction changes behavior. Avoid tests that merely repeat the implementation or check library internals.
 
@@ -59,10 +59,10 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Use `uv run ruff format .` to format changes. To inspect core coverage:
+Use `uv run ruff format .` to format changes. To inspect domain and application coverage:
 
 ```sh
-uv run pytest --cov=aweille.core --cov-branch --cov-report=term-missing
+uv run pytest --cov=aweille.domain --cov=aweille.application --cov-branch --cov-report=term-missing
 ```
 
 For documentation changes, check the diff with `git diff --check` and verify links and examples.

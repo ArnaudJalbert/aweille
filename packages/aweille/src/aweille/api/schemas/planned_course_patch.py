@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from aweille.core import CourseType, Distance, Pace, Section
+from aweille.domain import CourseType, Distance, Pace, Section
 
 from .planned_course_request import _SectionRequest, _StartTime
 from .request_date import RequestDate
