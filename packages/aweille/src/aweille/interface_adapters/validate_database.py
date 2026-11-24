@@ -1,11 +1,11 @@
 """Validate the Aweille SQLite schema and persisted data."""
 
-import json
 import sqlite3
 from uuid import UUID
 
 from aweille.application import StorageFailure
-from aweille.domain import PlannedCourse, ValidationError
+
+from .planned_course_row import decode_planned_course_row
 
 SCHEMA_VERSION = 3
 _INCOMPATIBLE = (
@@ -47,7 +47,7 @@ def validate_database(
     try:
         _validate_reserved_ids(connection)
         _validate_saved_planned_courses(connection)
-    except (ValueError, TypeError, ValidationError, UnicodeError, RecursionError):
+    except (ValueError, TypeError, UnicodeError, RecursionError):
         raise StorageFailure("Saved planned course data is invalid.") from None
 
 
@@ -124,6 +124,4 @@ def _validate_saved_planned_courses(connection: sqlite3.Connection) -> None:
     cursor = connection.execute("SELECT * FROM planned_courses")
     columns = [column[0] for column in cursor.description]
     for row in cursor:
-        data = dict(zip(columns, row, strict=True))
-        data["sections"] = json.loads(data["sections"])
-        PlannedCourse.from_dict(data)
+        decode_planned_course_row(dict(zip(columns, row, strict=True)))

@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from datetime import date
 from uuid import UUID
 
 from aweille.domain import PlannedCourse
 
 
 class PlannedCourseRepository(ABC):
-    """Repositories implement synchronous planned-course reads and writes.
+    """Repositories load and write fully hydrated planned courses for commands.
 
     Translate temporary contention or unavailability to StorageUnavailable,
     and unexpected failures to StorageFailure, with safe explanatory messages.
@@ -60,25 +59,5 @@ class PlannedCourseRepository(ABC):
                 one.
             StorageUnavailable: Storage is temporarily unavailable.
             StorageFailure: Storage failed; a possible commit remains uncertain.
-        """
-        ...
-
-    @abstractmethod
-    def get(self, start: date, end: date) -> list[PlannedCourse]:
-        """Return planned courses in [start, end) from one snapshot, in any order.
-
-        Args:
-            start: First included Montreal calendar date.
-            end: First excluded Montreal calendar date, later than start.
-
-        Returns:
-            All matching normalized planned courses from one committed snapshot, or an
-            empty list. Storage order is unspecified; the read use case applies
-            ordering. There is no pagination or silent result cap.
-
-        Raises:
-            StorageUnavailable: Temporary contention or unavailability prevents
-                the read. The caller may retry.
-            StorageFailure: An unexpected storage failure prevents the read.
         """
         ...

@@ -285,15 +285,21 @@ def test_storage_failure_response_remains_no_store(
 ) -> None:
     from aweille.api.create_app import create_app
     from aweille.application import StorageFailure
-    from aweille.interface_adapters import SQLitePlannedCourseRepository
+    from aweille.interface_adapters import (
+        SQLitePlannedCourseReader,
+        SQLitePlannedCourseRepository,
+    )
     from fastapi.testclient import TestClient
 
-    class BrokenStorage(SQLitePlannedCourseRepository):
-        def load(self, id):
+    class BrokenReader(SQLitePlannedCourseReader):
+        def read(self, id):
             raise StorageFailure("PRIVATE SQL path")
 
     with TestClient(
-        create_app(repository=BrokenStorage(database_path)),
+        create_app(
+            repository=SQLitePlannedCourseRepository(database_path),
+            reader=BrokenReader(database_path),
+        ),
         raise_server_exceptions=False,
     ) as client:
         response = client.get(f"/v1/planned-courses/{planned_course_request['id']}")

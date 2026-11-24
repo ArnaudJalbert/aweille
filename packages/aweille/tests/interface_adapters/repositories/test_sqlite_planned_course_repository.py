@@ -26,9 +26,7 @@ def test_saved_planned_course_survives_reopening_with_exact_sections_and_notes(
     storage = SQLitePlannedCourseRepository(path)
 
     assert storage.save(planned_course) == (planned_course, True)
-    assert SQLitePlannedCourseRepository(path).get(
-        date(2026, 10, 14), date(2026, 10, 15)
-    ) == [planned_course]
+    assert SQLitePlannedCourseRepository(path).load(planned_course.id) == planned_course
 
 
 def test_existing_id_returns_original_without_overwriting_changed_data(
@@ -43,7 +41,7 @@ def test_existing_id_returns_original_without_overwriting_changed_data(
         planned_course,
         False,
     )
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [planned_course]
+    assert storage.load(planned_course.id) == planned_course
 
 
 def test_huge_integer_targets_and_absent_optional_fields_round_trip(
@@ -61,9 +59,7 @@ def test_huge_integer_targets_and_absent_optional_fields_round_trip(
         planned_course,
         True,
     )
-    assert SQLitePlannedCourseRepository(path).get(
-        date(2026, 10, 14), date(2026, 10, 15)
-    ) == [planned_course]
+    assert SQLitePlannedCourseRepository(path).load(planned_course.id) == planned_course
 
 
 @pytest.mark.parametrize("invalid_file", [False, True])
@@ -81,7 +77,7 @@ def test_unreadable_storage_fails_when_used_without_changing_the_file(
     storage = SQLitePlannedCourseRepository(path)
 
     with pytest.raises(StorageFailure) as failure:
-        storage.get(date(2026, 10, 14), date(2026, 10, 15))
+        storage.load(_planned_course().id)
 
     assert path.read_bytes() == before
     assert str(path) not in str(failure.value)
@@ -112,9 +108,9 @@ def test_malformed_saved_planned_courses_fail_reads_and_existing_id_retrieval(
         )
 
     reopened = SQLitePlannedCourseRepository(path)
-    assert reopened.get(date(2027, 1, 1), date(2027, 1, 2)) == []
+    assert reopened.load(UUID(int=1)) == replace(planned_course, id=UUID(int=1))
     for operation in (
-        lambda: reopened.get(date(2026, 1, 1), date(2027, 1, 1)),
+        lambda: reopened.load(planned_course.id),
         lambda: reopened.save(planned_course),
     ):
         with pytest.raises(StorageFailure) as failure:
@@ -123,7 +119,7 @@ def test_malformed_saved_planned_courses_fail_reads_and_existing_id_retrieval(
         assert str(path) not in str(failure.value)
 
 
-@pytest.mark.parametrize("operation", ["save", "get"])
+@pytest.mark.parametrize("operation", ["save", "load"])
 def test_lock_contention_is_retryable_and_leaves_saved_data_unchanged(
     database_path: Path, operation: str
 ) -> None:
@@ -138,10 +134,10 @@ def test_lock_contention_is_retryable_and_leaves_saved_data_unchanged(
             if operation == "save":
                 storage.save(other)
             else:
-                storage.get(date(2026, 10, 14), date(2026, 10, 15))
+                storage.load(planned_course.id)
         assert str(path) not in str(failure.value)
 
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [planned_course]
+    assert storage.load(planned_course.id) == planned_course
     assert storage.save(other) == (other, True)
 
 
@@ -160,7 +156,7 @@ def test_failed_write_rolls_back_and_storage_can_be_used_again(
     with pytest.raises(StorageFailure) as failure:
         storage.save(planned_course)
     assert "PRIVATE" not in str(failure.value)
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == []
+    assert storage.load(planned_course.id) is None
 
     with closing(sqlite3.connect(path)) as connection, connection:
         connection.execute("DROP TRIGGER reject_run")
@@ -168,40 +164,6 @@ def test_failed_write_rolls_back_and_storage_can_be_used_again(
         planned_course,
         True,
     )
-
-
-def test_range_reads_are_half_open_and_see_committed_data_only(
-    database_path: Path,
-) -> None:
-    path = database_path
-    storage = SQLitePlannedCourseRepository(path)
-    planned_courses = [
-        replace(_planned_course(), id=UUID(int=index), planned_date=day)
-        for index, day in enumerate(
-            [
-                date(2026, 10, 11),
-                date(2026, 10, 12),
-                date(2026, 10, 18),
-                date(2026, 10, 19),
-            ]
-        )
-    ]
-    for planned_course in planned_courses:
-        storage.save(planned_course)
-    start, end = date(2026, 10, 12), date(2026, 10, 19)
-    expected = planned_courses[1:3]
-    with closing(sqlite3.connect(path)) as writer:
-        writer.execute(
-            "UPDATE planned_courses SET user_note = ? WHERE id = ?",
-            ("Changed", str(expected[0].id)),
-        )
-        assert set(storage.get(start, end)) == set(expected)
-        writer.commit()
-        assert set(storage.get(start, end)) == {
-            replace(expected[0], user_note="Changed"),
-            expected[1],
-        }
-    assert storage.get(date(2027, 1, 1), date(2027, 1, 2)) == []
 
 
 @pytest.mark.parametrize("committed_before_failure", [False, True])
@@ -235,9 +197,9 @@ def test_commit_failure_preserves_atomic_data_and_can_be_resolved_by_retry(
             storage.save(planned_course)
         assert "PRIVATE" not in str(failure.value)
 
-    assert SQLitePlannedCourseRepository(path).get(
-        date(2026, 10, 14), date(2026, 10, 15)
-    ) == ([planned_course] if committed_before_failure else [])
+    assert SQLitePlannedCourseRepository(path).load(planned_course.id) == (
+        planned_course if committed_before_failure else None
+    )
     assert storage.save(planned_course) == (
         planned_course,
         not committed_before_failure,
@@ -278,9 +240,7 @@ def test_independent_processes_insert_one_id_without_overwriting(
         )
         assert winner in planned_courses
         assert all(stored == winner for stored, _ in outcomes)
-        assert SQLitePlannedCourseRepository(path).get(
-            date(2026, 10, 14), date(2026, 10, 15)
-        ) == [winner]
+        assert SQLitePlannedCourseRepository(path).load(winner.id) == winner
     finally:
         for worker in workers:
             if worker.is_alive():
@@ -299,7 +259,7 @@ def test_construction_does_not_open_create_or_initialize_storage(
     storage = SQLitePlannedCourseRepository(path)
     assert not path.parent.exists()
     with pytest.raises(StorageUnavailable) as failure:
-        storage.get(date(2026, 10, 14), date(2026, 10, 15))
+        storage.load(_planned_course().id)
     assert not path.parent.exists()
     assert str(path) not in str(failure.value)
 
@@ -318,12 +278,13 @@ def test_relative_path_keeps_the_original_file_after_working_directory_changes(
     monkeypatch.chdir(other_directory)
 
     assert storage.save(_planned_course()) == (_planned_course(), True)
-    assert SQLitePlannedCourseRepository(database_path).get(
-        date(2026, 10, 14), date(2026, 10, 15)
-    ) == [_planned_course()]
+    assert (
+        SQLitePlannedCourseRepository(database_path).load(_planned_course().id)
+        == _planned_course()
+    )
 
 
-@pytest.mark.parametrize("operation", ["save", "get"])
+@pytest.mark.parametrize("operation", ["save", "load"])
 def test_missing_database_is_not_recreated_by_an_operation(
     database_path: Path, operation: str
 ) -> None:
@@ -337,11 +298,11 @@ def test_missing_database_is_not_recreated_by_an_operation(
         if operation == "save":
             storage.save(_planned_course())
         else:
-            storage.get(date(2026, 10, 14), date(2026, 10, 15))
+            storage.load(_planned_course().id)
     assert not path.exists()
 
     moved.rename(path)
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [_planned_course()]
+    assert storage.load(_planned_course().id) == _planned_course()
 
 
 def test_text_encoding_failure_is_safe_and_leaves_storage_unchanged(
@@ -358,7 +319,8 @@ def test_text_encoding_failure_is_safe_and_leaves_storage_unchanged(
         storage.save(unsupported)
 
     assert "PRIVATE" not in str(failure.value)
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [original]
+    assert storage.load(original.id) == original
+    assert storage.load(unsupported.id) is None
     assert storage.save(replace(unsupported, user_note="Supported text"))[1] is True
 
 

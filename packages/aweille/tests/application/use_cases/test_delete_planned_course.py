@@ -1,81 +1,90 @@
-from datetime import date
+from dataclasses import replace
 from typing import Any
-from unittest.mock import Mock
-from uuid import uuid4
+from unittest.mock import create_autospec
+from uuid import UUID
 
 import pytest
 from aweille.application import (
+    DeletePlannedCourseCommand,
     InvalidPlannedCourse,
-    PlannedCourseConflict,
     PlannedCourseNotFound,
     PlannedCourseRepository,
     PlannedCourseRevisionConflict,
     StorageFailure,
     StorageUnavailable,
-    create_planned_course,
-    delete_planned_course,
-    read_planned_course,
-    read_planned_courses,
-    update_planned_course,
 )
 
 
-def test_deletion_removes_planned_course_and_reserves_identity(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    saved, _ = create_planned_course(storage, **planned_course_input)
-    assert delete_planned_course(storage, id=saved.id, expected_revision=1) is None
-    assert (
-        read_planned_courses(storage, start=date(2026, 1, 1), end=date(2027, 1, 1))
-        == []
-    )
-    for operation in (
-        lambda: read_planned_course(storage, id=saved.id),
-        lambda: delete_planned_course(storage, id=saved.id, expected_revision=1),
-        lambda: update_planned_course(storage, id=saved.id, expected_revision=1),
-        lambda: delete_planned_course(storage, id=uuid4(), expected_revision=1),
-    ):
-        with pytest.raises(PlannedCourseNotFound):
-            operation()
-    with pytest.raises(PlannedCourseConflict):
-        create_planned_course(storage, **planned_course_input)
+@pytest.fixture
+def repository() -> Any:
+    return create_autospec(PlannedCourseRepository, instance=True)
 
 
-def test_stale_deletion_keeps_current_workout(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    saved, _ = create_planned_course(storage, **planned_course_input)
-    current = update_planned_course(
-        storage, id=saved.id, expected_revision=1, trainer_note="new"
+@pytest.fixture
+def command(repository: Any) -> DeletePlannedCourseCommand:
+    return DeletePlannedCourseCommand(repository)
+
+
+@pytest.fixture
+def input_data() -> DeletePlannedCourseCommand.InputData:
+    return DeletePlannedCourseCommand.InputData(
+        id=UUID("54d97d4d-fadb-4d50-926e-af1bb26c711a"), expected_revision=2
     )
-    with pytest.raises(PlannedCourseRevisionConflict):
-        delete_planned_course(storage, id=saved.id, expected_revision=1)
-    assert read_planned_course(storage, id=saved.id) == current
+
+
+def test_deletion_removes_the_planned_course_at_its_revision(
+    command: DeletePlannedCourseCommand,
+    repository: Any,
+    input_data: DeletePlannedCourseCommand.InputData,
+) -> None:
+    """Deletion asks the repository to remove the ID at the expected revision."""
+    assert command.execute(input_data) == DeletePlannedCourseCommand.OutputData()
+
+    repository.delete.assert_called_once_with(input_data.id, expected_revision=2)
 
 
 @pytest.mark.parametrize(
-    "changes,location",
+    ("changes", "field_path"),
     [
-        ({"id": "private"}, ("id",)),
-        *[
-            ({"expected_revision": value}, ("expected_revision",))
-            for value in (False, 0, -1, "1", 1.0)
-        ],
+        ({"id": "54d97d4d-fadb-4d50-926e-af1bb26c711a"}, ("id",)),
+        ({"expected_revision": 0}, ("expected_revision",)),
+        ({"expected_revision": True}, ("expected_revision",)),
     ],
 )
-def test_invalid_deletion_is_rejected_before_storage(changes, location) -> None:
-    storage = Mock(spec=PlannedCourseRepository)
+def test_invalid_deletion_is_rejected_before_deleting(
+    command: DeletePlannedCourseCommand,
+    repository: Any,
+    input_data: DeletePlannedCourseCommand.InputData,
+    changes: dict[str, Any],
+    field_path: tuple[str, ...],
+) -> None:
+    """An invalid ID or revision reports its field and deletes nothing."""
     with pytest.raises(InvalidPlannedCourse) as failure:
-        delete_planned_course(
-            storage, **({"id": uuid4(), "expected_revision": 1} | changes)
-        )
-    assert failure.value.problems[0].loc == location
-    assert storage.mock_calls == []
+        command.execute(replace(input_data, **changes))
+
+    assert failure.value.problems[0].loc == field_path
+    repository.delete.assert_not_called()
 
 
-@pytest.mark.parametrize("error", [StorageFailure, StorageUnavailable])
-def test_deletion_preserves_storage_failure_category(error) -> None:
-    storage = Mock(spec=PlannedCourseRepository)
-    storage.delete.side_effect = error("Safe failure")
-    with pytest.raises(error, match="Safe failure"):
-        delete_planned_course(storage, id=uuid4(), expected_revision=1)
+@pytest.mark.parametrize(
+    "error",
+    [
+        PlannedCourseNotFound(),
+        PlannedCourseRevisionConflict(),
+        StorageUnavailable("Storage unavailable."),
+        StorageFailure("Storage failed."),
+    ],
+)
+def test_repository_failures_reach_the_caller(
+    command: DeletePlannedCourseCommand,
+    repository: Any,
+    input_data: DeletePlannedCourseCommand.InputData,
+    error: Exception,
+) -> None:
+    """Missing, stale and storage failures keep their category."""
+    repository.delete.side_effect = error
+
+    with pytest.raises(type(error)) as reported:
+        command.execute(input_data)
+
+    assert reported.value is error

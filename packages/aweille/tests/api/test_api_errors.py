@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 from aweille.api.create_app import create_app
-from aweille.application import PlannedCourseRepository
+from aweille.application import PlannedCourseReader, PlannedCourseRepository
 from fastapi.testclient import TestClient
 
 
@@ -66,16 +66,18 @@ def test_failed_write_has_safe_error_and_no_partial_save(
     )
 
 
-@pytest.mark.parametrize("operation", ["save", "get"])
+@pytest.mark.parametrize("operation", ["save", "read_range"])
 def test_injected_storage_failure_is_safe_without_database(
     tmp_path, monkeypatch, planned_course_request, caplog, operation
 ):
     database_path = tmp_path / "unused.sqlite"
     monkeypatch.setenv("AWEILLE_DB_PATH", str(database_path))
     storage = Mock(spec=PlannedCourseRepository)
-    getattr(storage, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
+    reader = Mock(spec=PlannedCourseReader)
+    failing = storage if operation == "save" else reader
+    getattr(failing, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
     with TestClient(
-        create_app(repository=storage), raise_server_exceptions=False
+        create_app(repository=storage, reader=reader), raise_server_exceptions=False
     ) as client:
         response = (
             client.post("/v1/planned-courses", json=planned_course_request)

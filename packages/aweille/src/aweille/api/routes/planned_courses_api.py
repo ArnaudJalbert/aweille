@@ -6,6 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict
 
+from aweille.application import (
+    DeletePlannedCourseCommand,
+    ReadPlannedCourseQuery,
+    ReadPlannedCoursesQuery,
+)
+
 from ..schemas.planned_course_error import MessageResponse, ProblemResponse
 from ..schemas.planned_course_patch import PlannedCoursePatch
 from ..schemas.planned_course_request import PlannedCourseRequest
@@ -119,13 +125,11 @@ def post_planned_course(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_course, inserted = request.app.state.create_planned_course(
-        **data.core_inputs()
-    )
-    response.status_code = 201 if inserted else 200
-    if inserted:
+    planned_course = request.app.state.create_planned_course.execute(data.input_data())
+    response.status_code = 201 if planned_course.created else 200
+    if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    return PlannedCourseResponse.from_output(planned_course)
 
 
 @router.get(
@@ -149,12 +153,12 @@ def get_planned_courses(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_courses = request.app.state.read_planned_courses(
-        start=query.start, end=query.end
+    output = request.app.state.read_planned_courses.execute(
+        ReadPlannedCoursesQuery.InputData(start=query.start, end=query.end)
     )
     return [
-        PlannedCourseResponse.model_validate(planned_course.to_dict())
-        for planned_course in planned_courses
+        PlannedCourseResponse.from_output(planned_course)
+        for planned_course in output.planned_courses
     ]
 
 
@@ -240,9 +244,13 @@ def get_planned_course(
         StorageUnavailable: Storage cannot currently read (HTTP 503).
         StorageFailure: Storage cannot read or decode the planned course (HTTP 500).
     """
-    planned_course = request.app.state.read_planned_course(id=id)
-    response.headers["ETag"] = f'"{planned_course.to_dict()["revision"]}"'
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    planned_course = PlannedCourseResponse.from_output(
+        request.app.state.read_planned_course.execute(
+            ReadPlannedCourseQuery.InputData(id=id)
+        )
+    )
+    response.headers["ETag"] = f'"{planned_course.revision}"'
+    return planned_course
 
 
 @router.patch(
@@ -299,11 +307,13 @@ def patch_planned_course(
         StorageUnavailable: Storage cannot currently read or write (HTTP 503).
         StorageFailure: Storage cannot read or write the planned course (HTTP 500).
     """
-    planned_course = request.app.state.update_planned_course(
-        id=id, expected_revision=_revision(request), **data.core_inputs()
+    planned_course = PlannedCourseResponse.from_output(
+        request.app.state.update_planned_course.execute(
+            data.input_data(id, _revision(request))
+        )
     )
-    response.headers["ETag"] = f'"{planned_course.to_dict()["revision"]}"'
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    response.headers["ETag"] = f'"{planned_course.revision}"'
+    return planned_course
 
 
 @router.delete(
@@ -341,5 +351,9 @@ def delete_planned_course(
         StorageUnavailable: Storage is unavailable; reload and review (HTTP 503).
         StorageFailure: The outcome may be uncertain; reload and review (HTTP 500).
     """
-    request.app.state.delete_planned_course(id=id, expected_revision=_revision(request))
+    request.app.state.delete_planned_course.execute(
+        DeletePlannedCourseCommand.InputData(
+            id=id, expected_revision=_revision(request)
+        )
+    )
     return Response(status_code=204)

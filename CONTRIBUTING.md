@@ -42,7 +42,7 @@ Every test case must protect a named use case, edge case, or regression. Before 
 
 Write `pytest` tests as functions, using fixtures and parametrization when helpful. Test through agreed public interfaces; agree new test seams with the maintainer before adding tests there. Use test-first development for new behavior. Assert returned values, errors, and saved behavior through those interfaces.
 
-For domain and application tests, use a small in-memory repository fake for normal stateful behavior and mocks of the repository for failures. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
+Test the domain and application only by calling `execute` on command and query classes. Replace the repository and reader with `create_autospec` mocks of their ABCs; never use real SQL or an in-memory fake. Delete a domain branch that `execute` cannot reach. Keep private collaborators and call sequences out of assertions. Verify real adapters at their agreed integration seams.
 
 Prefer representative cases for each rule over exhaustive input lists. Combine parameter dimensions only when their interaction changes behavior. Avoid tests that merely repeat the implementation or check library internals.
 
@@ -59,11 +59,13 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Use `uv run ruff format .` to format changes. To inspect domain and application coverage:
+The domain and application must keep 100% branch coverage from the application tests alone:
 
 ```sh
-uv run pytest --cov=aweille.domain --cov=aweille.application --cov-branch --cov-report=term-missing
+uv run pytest packages/aweille/tests/application --cov=aweille.application --cov=aweille.domain --cov-branch --cov-report=term-missing --cov-fail-under=100
 ```
+
+Use `uv run ruff format .` to format changes.
 
 For documentation changes, check the diff with `git diff --check` and verify links and examples.
 

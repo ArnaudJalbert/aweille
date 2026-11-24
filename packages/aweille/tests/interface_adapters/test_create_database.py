@@ -1,20 +1,19 @@
 import shutil
 import sqlite3
 import subprocess
-from datetime import date
 from functools import partial
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Literal
+from typing import Literal
 
 import pytest
-from aweille.application import create_planned_course
+from aweille.domain import PlannedCourse
 from aweille.interface_adapters import SQLitePlannedCourseRepository
 from aweille.interface_adapters.create_database import create_database
 
 
 def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     executable = shutil.which("aweille-init-db")
@@ -25,7 +24,7 @@ def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(
     )
     assert created.returncode == 0, created.stderr
     storage = SQLitePlannedCourseRepository(path)
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
+    planned_course, _ = storage.save(planned_course)
     before = path.read_bytes()
 
     repeated = subprocess.run(
@@ -35,13 +34,13 @@ def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(
     assert repeated.returncode != 0
     assert "already exists" in repeated.stderr
     assert path.read_bytes() == before
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [planned_course]
+    assert storage.load(planned_course.id) == planned_course
 
 
 def test_failed_creation_removes_its_new_file_and_can_be_retried(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    planned_course_input: dict[str, Any],
+    planned_course: PlannedCourse,
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
 
@@ -66,5 +65,5 @@ def test_failed_creation_removes_its_new_file_and_can_be_retried(
     assert not path.exists()
     create_database(path)
     storage = SQLitePlannedCourseRepository(path)
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-    assert storage.get(date(2026, 10, 14), date(2026, 10, 15)) == [planned_course]
+    planned_course, _ = storage.save(planned_course)
+    assert storage.load(planned_course.id) == planned_course

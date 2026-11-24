@@ -1,11 +1,7 @@
-import json
 import sqlite3
-from collections.abc import Generator
-from contextlib import closing, contextmanager
+from contextlib import AbstractContextManager
 from dataclasses import replace
-from datetime import date
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
 from aweille.application import (
@@ -14,15 +10,15 @@ from aweille.application import (
     PlannedCourseRepository,
     PlannedCourseRevisionConflict,
     StorageFailure,
-    StorageUnavailable,
 )
 from aweille.domain import PlannedCourse
 
-from ..validate_database import validate_database
+from ..planned_course_row import decode_planned_course_row, encode_planned_course_row
+from ..sqlite_connection import open_connection
 
 
 class SQLitePlannedCourseRepository(PlannedCourseRepository):
-    """Read and write planned courses in an existing SQLite database."""
+    """Load and write planned courses in an existing SQLite database."""
 
     def __init__(self, path: str | Path, *, timeout: float = 1.0) -> None:
         """Remember connection settings without opening or initializing storage.
@@ -70,7 +66,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
                     ":id, :planned_date, :planned_start_time, :course_type, "
                     ":sections, :user_note, :trainer_note, :revision) "
                     "ON CONFLICT(id) DO NOTHING",
-                    self._encode_planned_course(replace(planned_course, revision=1)),
+                    encode_planned_course_row(replace(planned_course, revision=1)),
                 ).rowcount
                 == 1
             )
@@ -127,9 +123,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             current = self._load_matching_revision(
                 connection, planned_course.id, expected_revision=expected_revision
             )
-            if current.to_dict() | {"revision": "1"} == planned_course.to_dict() | {
-                "revision": "1"
-            }:
+            if replace(planned_course, revision=current.revision) == current:
                 return current
             updated = replace(planned_course, revision=current.revision + 1)
             connection.execute(
@@ -137,7 +131,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
                 "planned_start_time=:planned_start_time, "
                 "course_type=:course_type, sections=:sections, user_note=:user_note, "
                 "trainer_note=:trainer_note, revision=:revision WHERE id=:id",
-                self._encode_planned_course(updated),
+                encode_planned_course_row(updated),
             )
         return updated
 
@@ -166,30 +160,6 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
                 "INSERT INTO deleted_planned_course_ids (id) VALUES (?)", (str(id),)
             )
 
-    def get(self, start: date, end: date) -> list[PlannedCourse]:
-        """Read planned courses in a half-open local-date range.
-
-        Args:
-            start: First included Montreal date.
-            end: First excluded Montreal date.
-
-        Returns:
-            All matching planned courses from one committed snapshot, in unspecified
-            order.
-
-        Raises:
-            StorageUnavailable: Contention or unavailability prevents reading.
-            StorageFailure: Saved data is invalid or the read fails. No partial
-                results are returned.
-        """
-        with self._connection() as connection:
-            rows = connection.execute(
-                "SELECT * FROM planned_courses "
-                "WHERE planned_date >= ? AND planned_date < ?",
-                (start.isoformat(), end.isoformat()),
-            ).fetchall()
-        return [self._decode_planned_course(row) for row in rows]
-
     def _load_matching_revision(
         self, connection: sqlite3.Connection, id: UUID, *, expected_revision: int
     ) -> PlannedCourse:
@@ -203,47 +173,12 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             raise PlannedCourseRevisionConflict
         return current
 
-    @contextmanager
-    def _connection(self) -> Generator[sqlite3.Connection]:
-        try:
-            with closing(
-                sqlite3.connect(
-                    self._path.as_uri() + "?mode=rw", timeout=self._timeout, uri=True
-                )
-            ) as connection:
-                connection.row_factory = sqlite3.Row
-                validate_database(connection, check_data=False)
-                yield connection
-        except (sqlite3.Error, UnicodeError) as error:
-            code = getattr(error, "sqlite_errorcode", 0) & 0xFF
-            if code in {
-                sqlite3.SQLITE_BUSY,
-                sqlite3.SQLITE_LOCKED,
-                sqlite3.SQLITE_CANTOPEN,
-                sqlite3.SQLITE_IOERR,
-            }:
-                raise StorageUnavailable(
-                    "SQLite storage is temporarily unavailable."
-                ) from None
-            raise StorageFailure("SQLite storage failed.") from None
-
-    @staticmethod
-    def _encode_planned_course(planned_course: PlannedCourse) -> dict[str, Any]:
-        data = planned_course.to_dict()
-        data["sections"] = json.dumps(data["sections"])
-        return data
+    def _connection(self) -> AbstractContextManager[sqlite3.Connection]:
+        return open_connection(self._path, self._timeout)
 
     @staticmethod
     def _decode_planned_course(row: sqlite3.Row) -> PlannedCourse:
         try:
-            data = dict(row)
-            data["sections"] = json.loads(data["sections"])
-            return PlannedCourse.from_dict(data)
-        except (
-            ValueError,
-            TypeError,
-            KeyError,
-            AttributeError,
-            RecursionError,
-        ):
+            return decode_planned_course_row(dict(row))
+        except ValueError:
             raise StorageFailure("Saved planned course data is invalid.") from None

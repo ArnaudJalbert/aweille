@@ -10,9 +10,6 @@ from aweille.application import (
     PlannedCourseConflict,
     PlannedCourseRevisionConflict,
     StorageFailure,
-    create_planned_course,
-    read_planned_course,
-    update_planned_course,
 )
 from aweille.domain import PlannedCourse
 from aweille.interface_adapters import SQLitePlannedCourseRepository
@@ -20,23 +17,19 @@ from aweille.interface_adapters.create_database import create_database
 
 
 def test_atomic_edit_persists_and_rejects_stale_writer(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     create_database(path)
     writer = SQLitePlannedCourseRepository(path)
-    saved, _ = create_planned_course(writer, **planned_course_input)
-    revised = update_planned_course(
-        writer, id=saved.id, expected_revision=1, trainer_note="new"
-    )
+    saved, _ = writer.save(planned_course)
+    revised = writer.replace(replace(saved, trainer_note="new"), expected_revision=1)
     assert revised.revision == 2
     reader = SQLitePlannedCourseRepository(path)
-    assert read_planned_course(reader, id=saved.id) == revised
+    assert reader.load(saved.id) == revised
     with pytest.raises(PlannedCourseRevisionConflict):
-        update_planned_course(
-            reader, id=saved.id, expected_revision=1, user_note="lost"
-        )
-    assert read_planned_course(writer, id=saved.id) == revised
+        reader.replace(replace(saved, user_note="lost"), expected_revision=1)
+    assert writer.load(saved.id) == revised
 
 
 def test_new_database_schema_is_version_three(tmp_path: Path) -> None:
@@ -60,7 +53,7 @@ def test_new_database_schema_is_version_three(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("version", [1, 2])
 def test_pre_rename_database_fails_safely_without_changes(
-    tmp_path: Path, planned_course_input: dict[str, Any], version: int
+    tmp_path: Path, planned_course: PlannedCourse, version: int
 ) -> None:
     """A version 1 or 2 file from before the rename is rejected unchanged."""
     path = tmp_path / "runs.sqlite"
@@ -77,64 +70,42 @@ def test_pre_rename_database_fails_safely_without_changes(
         )
     before = path.read_bytes()
     with pytest.raises(StorageFailure, match="aweille-init-db"):
-        create_planned_course(
-            SQLitePlannedCourseRepository(path), **planned_course_input
-        )
+        SQLitePlannedCourseRepository(path).save(planned_course)
     assert path.read_bytes() == before
 
 
 def test_incompatible_schema_fails_safely(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     sqlite3.connect(path).close()
     with pytest.raises(StorageFailure):
-        create_planned_course(
-            SQLitePlannedCourseRepository(path), **planned_course_input
-        )
+        SQLitePlannedCourseRepository(path).save(planned_course)
 
 
 def test_save_rejects_reserved_identity_without_resurrection(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     create_database(path)
     with sqlite3.connect(path) as connection:
         connection.execute(
             "INSERT INTO deleted_planned_course_ids (id) VALUES (?)",
-            (str(planned_course_input["id"]),),
+            (str(planned_course.id),),
         )
     storage = SQLitePlannedCourseRepository(path)
     with pytest.raises(PlannedCourseConflict):
-        storage.save(
-            PlannedCourse(
-                id=planned_course_input["id"],
-                planned_date=planned_course_input["planned_date"],
-                planned_start_time=None,
-                course_type=planned_course_input["course_type"],
-                sections=tuple(planned_course_input["sections"]),
-                user_note=None,
-                trainer_note=None,
-            )
-        )
-    assert storage.load(planned_course_input["id"]) is None
+        storage.save(planned_course)
+    assert storage.load(planned_course.id) is None
 
 
 def test_save_assigns_initial_revision_instead_of_candidate_revision(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     create_database(path)
     candidate = replace(
-        PlannedCourse(
-            id=planned_course_input["id"],
-            planned_date=planned_course_input["planned_date"],
-            planned_start_time=None,
-            course_type=planned_course_input["course_type"],
-            sections=tuple(planned_course_input["sections"]),
-            user_note=None,
-            trainer_note=None,
-        ),
+        planned_course,
         revision=7,
     )
     storage = SQLitePlannedCourseRepository(path)
@@ -147,25 +118,21 @@ def test_save_assigns_initial_revision_instead_of_candidate_revision(
 def _competing_edit(path: str, id: str, note: str, start: Any, outcome: Any) -> None:
     start.wait()
     try:
-        update_planned_course(
-            SQLitePlannedCourseRepository(path),
-            id=UUID(id),
-            expected_revision=1,
-            user_note=note,
-        )
+        storage = SQLitePlannedCourseRepository(path)
+        current = storage.load(UUID(id))
+        assert current is not None
+        storage.replace(replace(current, user_note=note), expected_revision=1)
         outcome.put("saved")
     except PlannedCourseRevisionConflict:
         outcome.put("stale")
 
 
 def test_independent_processes_allow_only_one_edit_at_a_revision(
-    tmp_path: Path, planned_course_input: dict[str, Any]
+    tmp_path: Path, planned_course: PlannedCourse
 ) -> None:
     path = tmp_path / "planned-courses.sqlite"
     create_database(path)
-    original, _ = create_planned_course(
-        SQLitePlannedCourseRepository(path), **planned_course_input
-    )
+    original, _ = SQLitePlannedCourseRepository(path).save(planned_course)
     context = multiprocessing.get_context("spawn")
     start = context.Event()
     outcome = context.Queue()
@@ -183,6 +150,7 @@ def test_independent_processes_allow_only_one_edit_at_a_revision(
         worker.join(timeout=5)
         assert worker.exitcode == 0
     assert sorted([outcome.get(timeout=1) for _ in workers]) == ["saved", "stale"]
-    saved = read_planned_course(SQLitePlannedCourseRepository(path), id=original.id)
+    saved = SQLitePlannedCourseRepository(path).load(original.id)
+    assert saved is not None
     assert saved.revision == 2
     assert saved.user_note in ("first", "second")

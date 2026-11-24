@@ -1,1 +1,1 @@
-"""Public planned-course use cases."""
+"""Planned-course commands."""
