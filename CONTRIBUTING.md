@@ -6,7 +6,7 @@ Read the issue or task and agree on scope before coding. Use `gh` for GitHub iss
 
 Before changing core, API, or adapters, read the README's [Architecture](README.md#architecture) and [Public core interface](README.md#public-core-interface). For domain changes, also read [CONTEXT.md](CONTEXT.md) and relevant ADRs if present.
 
-Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the relevant notes in `docs/design/`. Preserve the implemented run behavior while distinguishing selected design decisions, provisional specimen values, and future training kinds. See [redesign acceptance](docs/verification/redesign-acceptance.md) for the implementation evidence and pending manual checks.
+Before UI design, implementation, or review, read [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the relevant notes in `docs/design/`. Preserve the implemented planned-course behavior while distinguishing selected design decisions, provisional specimen values, and future training kinds. See [redesign acceptance](docs/verification/redesign-acceptance.md) for the implementation evidence and pending manual checks.
 
 Work on feature branches and open pull requests targeting `main`. Never push directly to `main`.
 
@@ -30,7 +30,7 @@ The browser download is separate from `uv.lock`. Browser tests start Uvicorn aga
 
 Keep changes focused on current requirements. Reuse existing code and the standard library before adding dependencies or abstractions. Refactors preserve public interfaces and observable behavior unless the task asks to change them.
 
-Use small files named for one component and directories for collections, such as `use_cases/create_run.py` and `use_cases/read_runs.py`.
+Use small files named for one component and directories for collections, such as `use_cases/create_planned_course.py` and `use_cases/read_planned_courses.py`.
 
 Keep private helpers and closely related supporting types with their component. Shared helpers get their own named modules. `__init__.py` and `conftest.py` may expose or register multiple components, with definitions kept in their own files. Test files mirror the component they check.
 
@@ -69,7 +69,7 @@ For documentation changes, check the diff with `git diff --check` and verify lin
 
 ## Name branches and commits
 
-Use `<type>/<short-kebab-case-description>` for branches, such as `feat/planned-run-core` or `docs/contributing-guide`. Branch prefixes use the same types as commits.
+Use `<type>/<short-kebab-case-description>` for branches, such as `feat/planned-course-core` or `docs/contributing-guide`. Branch prefixes use the same types as commits.
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages and PR titles:
 
@@ -97,7 +97,7 @@ Common types:
 For example:
 
 ```text
-feat(core): add planned-run creation
+feat(core): add planned-course creation
 docs: add contribution guide
 ```
 

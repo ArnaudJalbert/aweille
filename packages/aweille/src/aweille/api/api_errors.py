@@ -19,10 +19,10 @@ async def failure_response(request: Request, error: Exception) -> JSONResponse:
     Returns:
         Safe 503 response for unavailability or 500 for other failures.
     """
-    logger.error("Run operation failed.", exc_info=error)
+    logger.error("Planned course operation failed.", exc_info=error)
     if isinstance(error, StorageUnavailable):
         advice = (
-            "Reload and review the saved run before writing again."
+            "Reload and review the saved planned course before writing again."
             if request.method in ("PATCH", "DELETE")
             else "Reads can retry; creation can retry with the same ID and payload."
         )
@@ -82,27 +82,27 @@ async def conflict_response(request: Request, error: Exception) -> JSONResponse:
 
     Args:
         request: Conflicting creation request.
-        error: RunConflict raised by the initialized create use case.
+        error: PlannedCourseConflict raised by the initialized create use case.
 
     Returns:
-        A 409 response explaining that the ID belongs to different run data.
+        A 409 response explaining that the ID belongs to different planned course data.
     """
     return JSONResponse(
-        {"detail": "The ID cannot be used for this planned run."},
+        {"detail": "The ID cannot be used for this planned course."},
         status_code=409,
     )
 
 
 async def missing_response(request: Request, error: Exception) -> JSONResponse:
     """Hide whether a missing identity was previously used."""
-    return JSONResponse({"detail": "Planned run not found."}, status_code=404)
+    return JSONResponse({"detail": "Planned course not found."}, status_code=404)
 
 
 async def stale_response(request: Request, error: Exception) -> JSONResponse:
     """Report a stale write without exposing saved content or revision."""
     return JSONResponse(
         {
-            "detail": "The planned run has changed; reload it before another edit "
+            "detail": "The planned course has changed; reload it before another edit "
             "or deletion."
         },
         status_code=412,

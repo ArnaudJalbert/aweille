@@ -6,19 +6,22 @@ from tests.fixtures.live_server import LiveServer
 
 
 def test_initial_editor_hides_fields_and_loaded_footer_stays_usable(
-    page: Page, live_server: LiveServer, run_request
+    page: Page, live_server: LiveServer, planned_course_request
 ):
     assert (
-        page.request.post(f"{live_server.url}/v1/runs", data=run_request).status == 201
+        page.request.post(
+            f"{live_server.url}/v1/planned-courses", data=planned_course_request
+        ).status
+        == 201
     )
     page.set_viewport_size({"width": 320, "height": 640})
     held = []
-    page.route("**/v1/runs/*", lambda route: held.append(route))
-    page.goto(f"{live_server.url}/runs/{run_request['id']}/edit")
-    expect(page.get_by_role("status")).to_contain_text("Loading run")
+    page.route("**/v1/planned-courses/*", lambda route: held.append(route))
+    page.goto(f"{live_server.url}/planned-courses/{planned_course_request['id']}/edit")
+    expect(page.get_by_role("status")).to_contain_text("Loading course")
     expect(page.get_by_label("Planned date")).to_be_hidden()
-    expect(page.get_by_role("button", name="Delete run", exact=True)).to_be_hidden()
-    expect(page.locator("#run-form")).to_have_attribute("aria-busy", "true")
+    expect(page.get_by_role("button", name="Delete course", exact=True)).to_be_hidden()
+    expect(page.locator("#course-form")).to_have_attribute("aria-busy", "true")
     held[0].fulfill(response=held[0].fetch())
     expect(page.get_by_label("Planned date")).to_be_visible()
     remove = page.get_by_role("button", name="Remove section 1", exact=True)
@@ -27,7 +30,7 @@ def test_initial_editor_hides_fields_and_loaded_footer_stays_usable(
     expect(move.locator("svg")).to_be_visible()
     assert move.inner_text() == ""
     cancel = page.get_by_role("link", name="Cancel", exact=True).bounding_box()
-    delete = page.get_by_role("button", name="Delete run", exact=True).bounding_box()
+    delete = page.get_by_role("button", name="Delete course", exact=True).bounding_box()
     save = page.get_by_role("button", name="Save changes", exact=True).bounding_box()
     assert cancel and delete and save
     assert cancel["y"] == delete["y"] == save["y"]
@@ -39,15 +42,17 @@ def test_initial_editor_hides_fields_and_loaded_footer_stays_usable(
 
 @pytest.mark.parametrize("editing", [False, True])
 def test_long_form_footer_clearance_thresholds_and_enlarged_text(
-    page: Page, live_server: LiveServer, run_request, editing: bool
+    page: Page, live_server: LiveServer, planned_course_request, editing: bool
 ):
-    url = f"{live_server.url}/runs/new?date=2026-10-14"
+    url = f"{live_server.url}/planned-courses/new?date=2026-10-14"
     if editing:
         assert (
-            page.request.post(f"{live_server.url}/v1/runs", data=run_request).status
+            page.request.post(
+                f"{live_server.url}/v1/planned-courses", data=planned_course_request
+            ).status
             == 201
         )
-        url = f"{live_server.url}/runs/{run_request['id']}/edit"
+        url = f"{live_server.url}/planned-courses/{planned_course_request['id']}/edit"
     page.goto(url)
     for _ in range(5):
         page.get_by_role("button", name="Add section", exact=True).click()
@@ -114,9 +119,9 @@ def test_long_form_footer_clearance_thresholds_and_enlarged_text(
 def test_unavailable_form_script_keeps_schedule_navigation_operable(
     page: Page, live_server: LiveServer
 ):
-    page.route("**/static/create_run.js", lambda route: route.abort())
-    page.goto(f"{live_server.url}/runs/new")
-    expect(page.get_by_role("button", name="Save run", exact=True)).to_be_disabled()
+    page.route("**/static/create_course.js", lambda route: route.abort())
+    page.goto(f"{live_server.url}/planned-courses/new")
+    expect(page.get_by_role("button", name="Save course", exact=True)).to_be_disabled()
     navigation = page.get_by_role("button", name="Toggle navigation")
     if navigation.get_attribute("aria-expanded") == "false":
         navigation.click()

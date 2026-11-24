@@ -1,3 +1,4 @@
+import sqlite3
 from runpy import run_module
 
 import pytest
@@ -28,7 +29,7 @@ def test_missing_or_directory_database_fails_without_creating(
 
 @pytest.mark.parametrize("configured", [None, "~/.local/share/aweille/aweille.sqlite3"])
 def test_default_and_tilde_database_paths_persist(
-    tmp_path, monkeypatch, run_request, configured
+    tmp_path, monkeypatch, planned_course_request, configured
 ):
     monkeypatch.setenv("HOME", str(tmp_path))
     path = tmp_path / ".local/share/aweille/aweille.sqlite3"
@@ -39,16 +40,16 @@ def test_default_and_tilde_database_paths_persist(
     else:
         monkeypatch.setenv("AWEILLE_DB_PATH", configured)
     with TestClient(_load_local_app()) as client:
-        saved = client.post("/v1/runs", json=run_request)
+        saved = client.post("/v1/planned-courses", json=planned_course_request)
         assert saved.status_code == 201
     with TestClient(_load_local_app()) as client:
-        assert client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json() == [
-            saved.json()
-        ]
+        assert client.get(
+            "/v1/planned-courses?start=2026-10-14&end=2026-10-15"
+        ).json() == [saved.json()]
 
 
 def test_relative_path_is_resolved_once_at_startup(
-    database_path, monkeypatch, run_request
+    database_path, monkeypatch, planned_course_request
 ):
     monkeypatch.chdir(database_path.parent)
     monkeypatch.setenv("AWEILLE_DB_PATH", database_path.name)
@@ -58,21 +59,43 @@ def test_relative_path_is_resolved_once_at_startup(
     monkeypatch.chdir(elsewhere)
     monkeypatch.setenv("AWEILLE_DB_PATH", "missing.sqlite")
     with TestClient(app) as client:
-        assert client.post("/v1/runs", json=run_request).status_code == 201
-        assert len(client.get("/v1/runs?start=2026-10-14&end=2026-10-15").json()) == 1
+        assert (
+            client.post("/v1/planned-courses", json=planned_course_request).status_code
+            == 201
+        )
+        assert (
+            len(
+                client.get("/v1/planned-courses?start=2026-10-14&end=2026-10-15").json()
+            )
+            == 1
+        )
     assert not (elsewhere / database_path.name).exists()
 
 
 @pytest.mark.parametrize("contents", [b"", b"PRIVATE not SQLite"])
 def test_unprepared_file_is_not_repaired_at_startup_or_during_requests(
-    tmp_path, monkeypatch, run_request, contents
+    tmp_path, monkeypatch, planned_course_request, contents
 ):
     path = tmp_path / "unprepared.sqlite"
     path.write_bytes(contents)
     monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
-    with pytest.raises(ValueError, match="aweille-upgrade-db"):
+    with pytest.raises(ValueError, match="aweille-init-db"):
         _load_local_app()
     assert path.read_bytes() == contents
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_pre_rename_database_is_rejected_at_startup(tmp_path, monkeypatch, version):
+    """Startup names the fix for a version 1 or 2 file and leaves it unchanged."""
+    path = tmp_path / "runs.sqlite"
+    with sqlite3.connect(path) as connection:
+        connection.execute("PRAGMA application_id = 0x41574549")
+        connection.execute(f"PRAGMA user_version = {version}")
+    before = path.read_bytes()
+    monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
+    with pytest.raises(ValueError, match=f"version {version}.*aweille-init-db"):
+        _load_local_app()
+    assert path.read_bytes() == before
 
 
 def _load_local_app() -> FastAPI:
