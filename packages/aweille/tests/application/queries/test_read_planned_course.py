@@ -33,6 +33,7 @@ def read_model() -> PlannedCourseReadModel:
 
 @pytest.fixture
 def reader(read_model: PlannedCourseReadModel) -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
     reader = create_autospec(PlannedCourseReader, instance=True)
     reader.read.return_value = read_model
     return reader

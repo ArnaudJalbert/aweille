@@ -1,7 +1,6 @@
 import json
 import sqlite3
 from datetime import date, time
-from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
 
@@ -13,6 +12,7 @@ from aweille.application import (
 )
 from aweille.domain import CourseType
 
+from ..planned_course_row import decode_integer, decode_positive_integer
 from ..sqlite_connection import open_connection
 
 
@@ -81,7 +81,6 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
             TypeError,
             KeyError,
             AttributeError,
-            ArithmeticError,
             RecursionError,
         ):
             raise StorageFailure("Saved planned course data is invalid.") from None
@@ -100,13 +99,12 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
             ),
             user_note=row["user_note"],
             trainer_note=row["trainer_note"],
-            revision=int(Decimal(row["revision"])),
+            revision=decode_positive_integer(row["revision"]),
         )
 
     @staticmethod
     def _section(section: dict[str, str]) -> SectionReadModel:
-        # Decimal conversion is exact and avoids Python's int/str digit threshold.
         return SectionReadModel(
-            metres=int(Decimal(section["distance_m"])),
-            seconds_per_km=int(Decimal(section["target_pace_seconds_per_km"])),
+            metres=decode_integer(section["distance_m"]),
+            seconds_per_km=decode_integer(section["target_pace_seconds_per_km"]),
         )

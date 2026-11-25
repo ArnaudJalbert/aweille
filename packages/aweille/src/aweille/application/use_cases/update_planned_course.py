@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date, time
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 from aweille.domain import CourseType, Distance, Pace, PlannedCourse, Section
@@ -73,6 +74,15 @@ class UpdatePlannedCourseCommand:
         trainer_note: str | None
         revision: int
 
+    _EDITABLE_FIELDS = (
+        "planned_date",
+        "planned_start_time",
+        "course_type",
+        "sections",
+        "user_note",
+        "trainer_note",
+    )
+
     def __init__(self, repository: PlannedCourseRepository) -> None:
         self._repository = repository
 
@@ -115,29 +125,26 @@ class UpdatePlannedCourseCommand:
 
     @classmethod
     def _changes(cls, input_data: InputData) -> dict[str, object]:
-        changes: dict[str, object] = {
-            "planned_date": input_data.planned_date,
-            "planned_start_time": cls._normalized(
-                input_data.planned_start_time, normalize_start_time
-            ),
-            "course_type": cls._normalized(input_data.course_type, CourseType.parse),
-            "sections": cls._normalized(input_data.sections, cls._sections),
-            "user_note": cls._normalized(input_data.user_note, normalize_note),
-            "trainer_note": cls._normalized(input_data.trainer_note, normalize_note),
+        changes = {
+            field: getattr(input_data, field)
+            for field in cls._EDITABLE_FIELDS
+            if getattr(input_data, field) is not Unchanged.UNCHANGED
         }
-        return {
-            field: value
-            for field, value in changes.items()
-            if value is not Unchanged.UNCHANGED
-        }
+        for field, normalize in cls._normalizers().items():
+            if field in changes:
+                changes[field] = normalize(changes[field])
+        return changes
 
-    @staticmethod
-    def _normalized[ValueT, NormalizedT](
-        value: ValueT | Unchanged, normalize: Callable[[ValueT], NormalizedT]
-    ) -> NormalizedT | Unchanged:
-        if value is Unchanged.UNCHANGED:
-            return value
-        return normalize(value)
+    @classmethod
+    def _normalizers(cls) -> dict[str, Callable[[Any], object]]:
+        # Any: each normalizer takes the value type of its own field.
+        return {
+            "planned_start_time": normalize_start_time,
+            "course_type": CourseType.parse,
+            "sections": cls._sections,
+            "user_note": normalize_note,
+            "trainer_note": normalize_note,
+        }
 
     @staticmethod
     def _sections(sections: tuple[InputData.SectionInput, ...]) -> tuple[Section, ...]:

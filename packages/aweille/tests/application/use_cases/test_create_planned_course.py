@@ -21,6 +21,7 @@ SectionInput = CreatePlannedCourseCommand.InputData.SectionInput
 
 @pytest.fixture
 def repository() -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
     repository = create_autospec(PlannedCourseRepository, instance=True)
     repository.save.side_effect = lambda planned_course: (planned_course, True)
     return repository
@@ -214,6 +215,7 @@ def test_invalid_fields_report_safe_problems_before_saving(
     code: str,
 ) -> None:
     """An invalid field reports its path, code and message, and nothing is saved."""
+    # Any: invalid inputs deliberately break the declared field types.
     with pytest.raises(InvalidPlannedCourse) as failure:
         command.execute(replace(input_data, **changes))
 
@@ -256,6 +258,7 @@ def test_changed_retry_conflicts(
     changes: dict[str, Any],
 ) -> None:
     """A saved planned course with different values under the ID is a conflict."""
+    # Any: invalid inputs deliberately break the declared field types.
     repository.save.side_effect = lambda planned_course: (
         replace(planned_course, **changes),
         False,

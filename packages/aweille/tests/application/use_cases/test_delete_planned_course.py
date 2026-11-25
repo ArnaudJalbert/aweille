@@ -17,6 +17,7 @@ from aweille.application import (
 
 @pytest.fixture
 def repository() -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
     return create_autospec(PlannedCourseRepository, instance=True)
 
 
@@ -59,6 +60,7 @@ def test_invalid_deletion_is_rejected_before_deleting(
     field_path: tuple[str, ...],
 ) -> None:
     """An invalid ID or revision reports its field and deletes nothing."""
+    # Any: invalid inputs deliberately break the declared field types.
     with pytest.raises(InvalidPlannedCourse) as failure:
         command.execute(replace(input_data, **changes))
 

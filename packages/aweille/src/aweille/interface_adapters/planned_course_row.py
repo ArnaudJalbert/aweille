@@ -94,7 +94,7 @@ def _planned_course(data: dict[str, Any]) -> PlannedCourse:
         sections=_sections(json.loads(data["sections"])),
         user_note=data["user_note"],
         trainer_note=data["trainer_note"],
-        revision=_positive_integer(data["revision"]),
+        revision=decode_positive_integer(data["revision"]),
     )
 
 
@@ -111,18 +111,28 @@ def _section(value: object) -> Section:
     }:
         raise ValueError
     return Section(
-        Distance(_integer(value["distance_m"])),
-        Pace(_integer(value["target_pace_seconds_per_km"])),
+        Distance(decode_integer(value["distance_m"])),
+        Pace(decode_integer(value["target_pace_seconds_per_km"])),
     )
 
 
-def _positive_integer(value: object) -> int:
+def decode_positive_integer(value: object) -> int:
+    """Decode a canonical positive decimal-digit string, such as a revision.
+
+    Raises:
+        ValueError: The value is not a canonical positive decimal-digit string.
+    """
     if not isinstance(value, str) or re.fullmatch(r"[1-9][0-9]*", value) is None:
         raise ValueError
     return int(Decimal(value))
 
 
-def _integer(value: object) -> int:
+def decode_integer(value: object) -> int:
+    """Decode a canonical whole-number decimal-digit string, such as a target.
+
+    Raises:
+        ValueError: The value is not a canonical decimal-digit string.
+    """
     if not isinstance(value, str) or re.fullmatch(r"0|[1-9][0-9]*", value) is None:
         raise ValueError
     # Decimal conversion is exact and avoids Python's int/str digit threshold.

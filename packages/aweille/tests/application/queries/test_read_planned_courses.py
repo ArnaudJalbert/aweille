@@ -21,6 +21,7 @@ WEEK = ReadPlannedCoursesQuery.InputData(
 
 @pytest.fixture
 def reader() -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
     reader = create_autospec(PlannedCourseReader, instance=True)
     reader.read_range.return_value = []
     return reader
@@ -75,6 +76,7 @@ def test_invalid_range_reports_field_problems_before_reading(
     code: str,
 ) -> None:
     """An invalid boundary or an empty range reports its field and reads nothing."""
+    # Any: invalid inputs deliberately break the declared field types.
     with pytest.raises(InvalidPlannedCourse) as failure:
         query.execute(ReadPlannedCoursesQuery.InputData(start=start, end=end))
 

@@ -35,6 +35,7 @@ def current() -> PlannedCourse:
 
 @pytest.fixture
 def repository(current: PlannedCourse) -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
     repository = create_autospec(PlannedCourseRepository, instance=True)
     repository.load.return_value = current
     repository.replace.side_effect = lambda planned_course, *, expected_revision: (
@@ -154,6 +155,7 @@ def test_invalid_input_or_resulting_planned_course_is_rejected_before_replacing(
     code: str,
 ) -> None:
     """Invalid input or an invalid complete result writes nothing."""
+    # Any: invalid inputs deliberately break the declared field types.
     input_data = UpdatePlannedCourseCommand.InputData(
         id=current.id, expected_revision=1
     )
