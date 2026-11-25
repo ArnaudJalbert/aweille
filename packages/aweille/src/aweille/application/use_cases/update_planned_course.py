@@ -125,15 +125,19 @@ class UpdatePlannedCourseCommand:
 
     @classmethod
     def _changes(cls, input_data: InputData) -> dict[str, object]:
-        changes = {
-            field: getattr(input_data, field)
-            for field in cls._EDITABLE_FIELDS
-            if getattr(input_data, field) is not Unchanged.UNCHANGED
-        }
+        changes = cls._supplied_fields(input_data)
         for field, normalize in cls._normalizers().items():
             if field in changes:
                 changes[field] = normalize(changes[field])
         return changes
+
+    @classmethod
+    def _supplied_fields(cls, input_data: InputData) -> dict[str, object]:
+        return {
+            field: getattr(input_data, field)
+            for field in cls._EDITABLE_FIELDS
+            if getattr(input_data, field) is not Unchanged.UNCHANGED
+        }
 
     @classmethod
     def _normalizers(cls) -> dict[str, Callable[[Any], object]]:
