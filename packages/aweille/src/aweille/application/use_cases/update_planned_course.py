@@ -99,11 +99,11 @@ class UpdatePlannedCourseCommand:
         validate_id(input_data.id)
         validate_expected_revision(input_data.expected_revision)
         current = self._load_current(input_data.id, input_data.expected_revision)
-        candidate = self._candidate(current, input_data)
+        candidate = self._build_candidate(current, input_data)
         saved = self._repository.replace(
             candidate, expected_revision=input_data.expected_revision
         )
-        return self._output(saved)
+        return self._to_output_data(saved)
 
     def _load_current(self, id: UUID, expected_revision: int) -> PlannedCourse:
         current = self._repository.load(id)
@@ -114,38 +114,53 @@ class UpdatePlannedCourseCommand:
         return current
 
     @classmethod
-    def _candidate(cls, current: PlannedCourse, input_data: InputData) -> PlannedCourse:
+    def _build_candidate(
+        cls, current: PlannedCourse, input_data: InputData
+    ) -> PlannedCourse:
         return replace(
             current,
-            planned_date=_supplied_or(
-                input_data.planned_date, current.planned_date, _same
-            ),
-            planned_start_time=_supplied_or(
+            planned_date=current.planned_date
+            if isinstance(input_data.planned_date, Unchanged)
+            else input_data.planned_date,
+            planned_start_time=cls._apply_change(
                 input_data.planned_start_time,
                 current.planned_start_time,
                 normalize_start_time,
             ),
-            course_type=_supplied_or(
+            course_type=cls._apply_change(
                 input_data.course_type, current.course_type, CourseType.parse
             ),
-            sections=_supplied_or(input_data.sections, current.sections, cls._sections),
-            user_note=_supplied_or(
+            sections=cls._apply_change(
+                input_data.sections, current.sections, cls._to_sections
+            ),
+            user_note=cls._apply_change(
                 input_data.user_note, current.user_note, normalize_note
             ),
-            trainer_note=_supplied_or(
+            trainer_note=cls._apply_change(
                 input_data.trainer_note, current.trainer_note, normalize_note
             ),
         )
 
     @staticmethod
-    def _sections(sections: tuple[InputData.SectionInput, ...]) -> tuple[Section, ...]:
+    def _apply_change[Supplied, Saved](
+        value: Supplied | Unchanged,
+        saved: Saved,
+        convert: Callable[[Supplied], Saved],
+    ) -> Saved:
+        """Return the converted supplied value, or the saved one when unchanged."""
+        return saved if isinstance(value, Unchanged) else convert(value)
+
+    @staticmethod
+    def _to_sections(
+        sections: tuple[InputData.SectionInput, ...],
+    ) -> tuple[Section, ...]:
         return tuple(
             Section(Distance(section.metres), Pace(section.seconds_per_km))
             for section in sections
         )
 
     @classmethod
-    def _output(cls, planned_course: PlannedCourse) -> OutputData:
+    def _to_output_data(cls, planned_course: PlannedCourse) -> OutputData:
         return cls.OutputData(
             id=planned_course.id,
             planned_date=planned_course.planned_date,
@@ -162,14 +177,3 @@ class UpdatePlannedCourseCommand:
             trainer_note=planned_course.trainer_note,
             revision=planned_course.revision,
         )
-
-
-def _supplied_or[Supplied, Saved](
-    value: Supplied | Unchanged, saved: Saved, convert: Callable[[Supplied], Saved]
-) -> Saved:
-    """Return the converted supplied value, or the saved one when unchanged."""
-    return saved if isinstance(value, Unchanged) else convert(value)
-
-
-def _same[Value](value: Value) -> Value:
-    return value

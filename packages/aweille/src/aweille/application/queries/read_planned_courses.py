@@ -58,7 +58,7 @@ class ReadPlannedCoursesQuery:
         self._validate_range(input_data.start, input_data.end)
         planned_courses = self._reader.read_range(input_data.start, input_data.end)
         return self.OutputData(
-            planned_courses=tuple(sorted(planned_courses, key=self._schedule_order))
+            planned_courses=tuple(sorted(planned_courses, key=self._to_schedule_key))
         )
 
     @staticmethod
@@ -71,7 +71,7 @@ class ReadPlannedCoursesQuery:
             )
 
     @staticmethod
-    def _schedule_order(
+    def _to_schedule_key(
         planned_course: PlannedCourseReadModel,
     ) -> tuple[date, bool, time, str]:
         return (

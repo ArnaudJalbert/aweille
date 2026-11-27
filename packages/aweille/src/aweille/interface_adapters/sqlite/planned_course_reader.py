@@ -46,7 +46,7 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
             row = connection.execute(
                 "SELECT * FROM planned_courses WHERE id = ?", (str(id),)
             ).fetchone()
-        return self._read_model(row) if row is not None else None
+        return self._decode_row(row) if row is not None else None
 
     def read_range(self, start: date, end: date) -> list[PlannedCourseReadModel]:
         """Read planned courses in a half-open local-date range.
@@ -70,10 +70,10 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
                 "WHERE planned_date >= ? AND planned_date < ?",
                 (start.isoformat(), end.isoformat()),
             ).fetchall()
-        return [self._read_model(row) for row in rows]
+        return [self._decode_row(row) for row in rows]
 
     @classmethod
-    def _read_model(cls, row: sqlite3.Row) -> PlannedCourseReadModel:
+    def _decode_row(cls, row: sqlite3.Row) -> PlannedCourseReadModel:
         try:
             return cls._map_row(row)
         except (
@@ -94,20 +94,20 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
             if row["planned_start_time"] is not None
             else None,
             course_type=CourseType(row["course_type"]).value,
-            sections=cls._sections(json.loads(row["sections"])),
+            sections=cls._decode_sections(json.loads(row["sections"])),
             user_note=row["user_note"],
             trainer_note=row["trainer_note"],
             revision=decode_positive_integer(row["revision"]),
         )
 
     @classmethod
-    def _sections(cls, sections: object) -> tuple[SectionReadModel, ...]:
+    def _decode_sections(cls, sections: object) -> tuple[SectionReadModel, ...]:
         if not isinstance(sections, list):
             raise ValueError
-        return tuple(cls._section(section) for section in sections)
+        return tuple(cls._decode_section(section) for section in sections)
 
     @staticmethod
-    def _section(section: dict[str, str]) -> SectionReadModel:
+    def _decode_section(section: dict[str, str]) -> SectionReadModel:
         return SectionReadModel(
             metres=decode_integer(section["distance_m"]),
             seconds_per_km=decode_integer(section["target_pace_seconds_per_km"]),

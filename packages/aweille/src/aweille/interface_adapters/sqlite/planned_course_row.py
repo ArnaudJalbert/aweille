@@ -67,7 +67,7 @@ def decode_planned_course_row(row: Mapping[str, Any]) -> PlannedCourse:
     data = dict(row)
     try:
         _ensure_columns(data)
-        planned_course = _planned_course(data)
+        planned_course = _decode_planned_course(data)
     except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
         raise ValueError("Encoded planned-course data is invalid.") from None
     if encode_planned_course_row(planned_course) != data:
@@ -83,7 +83,7 @@ def _ensure_columns(data: dict[str, Any]) -> None:
             raise ValueError
 
 
-def _planned_course(data: dict[str, Any]) -> PlannedCourse:
+def _decode_planned_course(data: dict[str, Any]) -> PlannedCourse:
     return PlannedCourse(
         id=UUID(data["id"]),
         planned_date=date.fromisoformat(data["planned_date"]),
@@ -91,20 +91,20 @@ def _planned_course(data: dict[str, Any]) -> PlannedCourse:
         if data["planned_start_time"] is not None
         else None,
         course_type=CourseType(data["course_type"]),
-        sections=_sections(json.loads(data["sections"])),
+        sections=_decode_sections(json.loads(data["sections"])),
         user_note=data["user_note"],
         trainer_note=data["trainer_note"],
         revision=decode_positive_integer(data["revision"]),
     )
 
 
-def _sections(values: object) -> tuple[Section, ...]:
+def _decode_sections(values: object) -> tuple[Section, ...]:
     if not isinstance(values, list):
         raise ValueError
-    return tuple(_section(value) for value in values)
+    return tuple(_decode_section(value) for value in values)
 
 
-def _section(value: object) -> Section:
+def _decode_section(value: object) -> Section:
     if not isinstance(value, dict) or value.keys() != {
         "distance_m",
         "target_pace_seconds_per_km",

@@ -93,17 +93,19 @@ class CreatePlannedCourseCommand:
             planned_date=input_data.planned_date,
             planned_start_time=normalize_start_time(input_data.planned_start_time),
             course_type=CourseType.parse(input_data.course_type),
-            sections=self._sections(input_data.sections),
+            sections=self._to_sections(input_data.sections),
             user_note=normalize_note(input_data.user_note),
             trainer_note=normalize_note(input_data.trainer_note),
         )
         saved, created = self._repository.save(planned_course)
         if not created:
             self._ensure_retry_matches(planned_course, saved)
-        return self._output(saved, created)
+        return self._to_output_data(saved, created)
 
     @staticmethod
-    def _sections(sections: tuple[InputData.SectionInput, ...]) -> tuple[Section, ...]:
+    def _to_sections(
+        sections: tuple[InputData.SectionInput, ...],
+    ) -> tuple[Section, ...]:
         return tuple(
             Section(Distance(section.metres), Pace(section.seconds_per_km))
             for section in sections
@@ -117,7 +119,9 @@ class CreatePlannedCourseCommand:
             )
 
     @classmethod
-    def _output(cls, planned_course: PlannedCourse, created: bool) -> OutputData:
+    def _to_output_data(
+        cls, planned_course: PlannedCourse, created: bool
+    ) -> OutputData:
         return cls.OutputData(
             id=planned_course.id,
             planned_date=planned_course.planned_date,

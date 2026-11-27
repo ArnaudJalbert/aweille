@@ -133,7 +133,7 @@ def post_planned_course(
     response.status_code = 201 if planned_course.created else 200
     if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
-    return PlannedCourseResponse.from_output(planned_course)
+    return PlannedCourseResponse.from_output_data(planned_course)
 
 
 @router.get(
@@ -161,7 +161,7 @@ def get_planned_courses(
         ReadPlannedCoursesQuery.InputData(start=query.start, end=query.end)
     )
     return [
-        PlannedCourseResponse.from_output(planned_course)
+        PlannedCourseResponse.from_output_data(planned_course)
         for planned_course in output.planned_courses
     ]
 
@@ -248,7 +248,7 @@ def get_planned_course(
         StorageUnavailable: Storage cannot currently read (HTTP 503).
         StorageFailure: Storage cannot read or decode the planned course (HTTP 500).
     """
-    planned_course = PlannedCourseResponse.from_output(
+    planned_course = PlannedCourseResponse.from_output_data(
         request.app.state.read_planned_course.execute(
             ReadPlannedCourseQuery.InputData(id=id)
         )
@@ -311,7 +311,7 @@ def patch_planned_course(
         StorageUnavailable: Storage cannot currently read or write (HTTP 503).
         StorageFailure: Storage cannot read or write the planned course (HTTP 500).
     """
-    planned_course = PlannedCourseResponse.from_output(
+    planned_course = PlannedCourseResponse.from_output_data(
         request.app.state.update_planned_course.execute(
             data.to_input_data(id, _revision(request))
         )

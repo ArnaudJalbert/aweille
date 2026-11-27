@@ -46,7 +46,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             StorageFailure: Saved data is invalid or the write fails. Retry the
                 same ID to resolve an uncertain commit outcome.
         """
-        with self._connection() as connection, connection:
+        with self._open_connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             if (
                 connection.execute(
@@ -91,7 +91,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             StorageUnavailable: Contention or unavailability prevents reading.
             StorageFailure: Saved data is invalid or the read fails.
         """
-        with self._connection() as connection:
+        with self._open_connection() as connection:
             row = connection.execute(
                 "SELECT * FROM planned_courses WHERE id = ?", (str(id),)
             ).fetchone()
@@ -118,7 +118,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             StorageFailure: Saved data is invalid or the write fails; a failed
                 response does not establish whether a commit occurred.
         """
-        with self._connection() as connection, connection:
+        with self._open_connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             current = self._load_matching_revision(
                 connection, planned_course.id, expected_revision=expected_revision
@@ -150,7 +150,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             StorageFailure: Saved data is invalid or deletion fails; a failed
                 response does not establish whether a commit occurred.
         """
-        with self._connection() as connection, connection:
+        with self._open_connection() as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             self._load_matching_revision(
                 connection, id, expected_revision=expected_revision
@@ -173,7 +173,7 @@ class SQLitePlannedCourseRepository(PlannedCourseRepository):
             raise PlannedCourseRevisionConflict
         return current
 
-    def _connection(self) -> AbstractContextManager[sqlite3.Connection]:
+    def _open_connection(self) -> AbstractContextManager[sqlite3.Connection]:
         return open_connection(self._path, self._timeout)
 
     @staticmethod

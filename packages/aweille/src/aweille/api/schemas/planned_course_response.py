@@ -31,7 +31,7 @@ class PlannedCourseResponse(BaseModel):
     revision: Annotated[str, Field(pattern=r"^[1-9][0-9]*$")]
 
     @classmethod
-    def from_output(
+    def from_output_data(
         cls,
         planned_course: CreatePlannedCourseCommand.OutputData
         | UpdatePlannedCourseCommand.OutputData

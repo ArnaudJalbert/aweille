@@ -60,10 +60,10 @@ class ReadPlannedCourseQuery:
         planned_course = self._reader.read(input_data.id)
         if planned_course is None:
             raise PlannedCourseNotFound
-        return self._output(planned_course)
+        return self._to_output_data(planned_course)
 
     @classmethod
-    def _output(cls, planned_course: PlannedCourseReadModel) -> OutputData:
+    def _to_output_data(cls, planned_course: PlannedCourseReadModel) -> OutputData:
         return cls.OutputData(
             id=planned_course.id,
             planned_date=planned_course.planned_date,
