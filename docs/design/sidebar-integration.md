@@ -13,7 +13,7 @@ The October 18 request to reproduce the final prototype also restores its tinted
 | Phone drawer | Initially closed; up to 280px wide, leaving at least 44px of backdrop |
 | Content spacing | 24px desktop padding, 16px in drawer mode; schedule capped at 960px |
 | Menu control | Beside Week/Day in the schedule toolbar and beside create/edit headings |
-| Branding | Aweille text in Plex Sans, only inside the sidebar, without a slogan |
+| Branding | Aweille logo, only inside the sidebar, without a slogan |
 | Navigation entries | Schedule active; Run history and Trainer are disabled placeholders |
 
 At exactly 900px of available width, the expanded sidebar leaves 628px for content after padding. Use the available application width rather than browser identity to select drawer behavior. Collapsing the desktop sidebar frees its full column while retaining a reopen control.
