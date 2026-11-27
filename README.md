@@ -81,7 +81,7 @@ Within `aweille`:
 
 - `aweille/domain` contains the entity, value objects, and validation rules.
 - `aweille/application` contains the use cases, the repository ABC, and application exceptions.
-- `aweille/interface_adapters` contains the SQLite repository and database setup.
+- `aweille/interface_adapters/sqlite` contains the SQLite repository, reader and database setup.
 - `aweille/api` contains HTTP routes, request and response models, error handling, application wiring, and browser templates and assets.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
@@ -94,7 +94,7 @@ I'll use Clean Architecture layers within one package. Business rules sit in the
 | --- | --- |
 | `aweille/domain` | The planned course entity, its value objects, validation rules, and the domain `ValidationError`. Standard library only. |
 | `aweille/application` | Use cases, the `PlannedCourseRepository` ABC, and application exceptions. |
-| `aweille/interface_adapters` | The SQLite repository and database creation and validation. SQL lives here. |
+| `aweille/interface_adapters` | Adapters, grouped by technology. `sqlite/` holds the SQLite repository, reader, and database creation and validation. SQL lives there. |
 | `aweille/api` | HTTP routes, request and response models, error handling, the application factory, local startup, and browser templates and assets. |
 
 Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handlers, and planned-course write transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `api/templates` and `api/static`; browser checks live in `tests/browser`.
@@ -159,7 +159,7 @@ Create the database once before using the adapter. Its parent directory must exi
 uv run aweille-init-db aweille.sqlite
 ```
 
-The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.interface_adapters.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates schema version 3 and the planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. There is no migration: storage and startup reject version 1 and 2 files from before planned courses unchanged, so create a new database with `aweille-init-db`.
+The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.interface_adapters.sqlite.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates schema version 3 and the planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. There is no migration: storage and startup reject version 1 and 2 files from before planned courses unchanged, so create a new database with `aweille-init-db`.
 
 Then import the SQLite repository and reader from `aweille.interface_adapters`:
 

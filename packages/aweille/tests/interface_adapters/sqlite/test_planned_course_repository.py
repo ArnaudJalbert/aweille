@@ -15,7 +15,7 @@ import pytest
 from aweille.application import StorageFailure, StorageUnavailable
 from aweille.domain import CourseType, Distance, Pace, PlannedCourse, Section
 from aweille.interface_adapters import SQLitePlannedCourseRepository
-from aweille.interface_adapters.create_database import create_database
+from aweille.interface_adapters.sqlite.create_database import create_database
 
 
 def test_saved_planned_course_survives_reopening_with_exact_sections_and_notes(

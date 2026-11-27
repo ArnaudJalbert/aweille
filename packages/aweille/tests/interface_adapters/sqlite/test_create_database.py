@@ -9,7 +9,7 @@ from typing import Literal
 import pytest
 from aweille.domain import PlannedCourse
 from aweille.interface_adapters import SQLitePlannedCourseRepository
-from aweille.interface_adapters.create_database import create_database
+from aweille.interface_adapters.sqlite.create_database import create_database
 
 
 def test_creation_script_creates_storage_and_refuses_to_reinitialize_it(

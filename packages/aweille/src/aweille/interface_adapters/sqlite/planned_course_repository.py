@@ -13,8 +13,8 @@ from aweille.application import (
 )
 from aweille.domain import PlannedCourse
 
-from ..planned_course_row import decode_planned_course_row, encode_planned_course_row
-from ..sqlite_connection import open_connection
+from .connection import open_connection
+from .planned_course_row import decode_planned_course_row, encode_planned_course_row
 
 
 class SQLitePlannedCourseRepository(PlannedCourseRepository):

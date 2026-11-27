@@ -9,7 +9,7 @@ from aweille.interface_adapters import (
     SQLitePlannedCourseReader,
     SQLitePlannedCourseRepository,
 )
-from aweille.interface_adapters.validate_database import validate_database
+from aweille.interface_adapters.sqlite.validate_database import validate_database
 
 from .create_app import create_app
 

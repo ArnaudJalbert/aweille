@@ -12,8 +12,8 @@ from aweille.application import (
 )
 from aweille.domain import CourseType
 
-from ..planned_course_row import decode_integer, decode_positive_integer
-from ..sqlite_connection import open_connection
+from .connection import open_connection
+from .planned_course_row import decode_integer, decode_positive_integer
 
 
 class SQLitePlannedCourseReader(PlannedCourseReader):
