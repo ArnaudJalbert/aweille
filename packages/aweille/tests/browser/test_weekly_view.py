@@ -298,7 +298,7 @@ def test_untimed_planned_courses_exact_numbers_plain_text_notes_and_phone_layout
         )
         == "pre-wrap"
     )
-    expect(page.get_by_role("img")).to_have_count(0)
+    expect(page.locator("main").get_by_role("img")).to_have_count(0)
     assert page.locator("body").get_attribute("data-injected") is None
     expect(wednesday.get_by_text("Trainer note", exact=True)).to_have_count(0)
     assert (
@@ -308,7 +308,7 @@ def test_untimed_planned_courses_exact_numbers_plain_text_notes_and_phone_layout
         == "14px"
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    expect(page.get_by_text("Aweille", exact=True)).not_to_be_visible()
+    expect(page.get_by_role("img", name="Aweille")).not_to_be_visible()
     expect(page.get_by_role("button", name="Toggle navigation")).to_be_visible()
 
 

@@ -7,6 +7,18 @@ from playwright.sync_api import Page, expect
 from tests.fixtures.live_server import LiveServer
 
 
+def test_sidebar_shows_logo_and_page_serves_its_icon(
+    page: Page, live_server: LiveServer
+):
+    """The sidebar shows the Aweille logo and the page icon loads."""
+    page.goto(live_server.url)
+    logo = page.get_by_role("img", name="Aweille")
+    expect(logo).to_be_visible()
+    assert logo.evaluate("node => node.complete && node.naturalWidth > 0")
+    icon = page.locator('link[rel="icon"]').evaluate("node => node.href")
+    assert page.request.get(icon).ok
+
+
 def test_sidebar_collapse_drawer_focus_and_resize(page: Page, live_server: LiveServer):
     page.set_viewport_size({"width": 900, "height": 800})
     page.goto(live_server.url)

@@ -130,7 +130,7 @@ Keep headings in sentence case, except the explicitly selected relative schedule
 | Labels, help, measurements | 14px / 400 / 1.5; Mono for measurements |
 | Supplementary labels | 12px / 400 / 1.5; never the only statement of essential content |
 | Buttons | Form actions and Add run 13px / 500 / 20px; schedule toolbar 16px / 400 / 1.5; calendar footer 15px / 400 / 1.5 |
-| Sidebar name | 26px / 500 / 1.15, letter spacing -0.035em |
+| Sidebar logo | Lockup image, 28px tall |
 
 Use Sans 400/500 and Mono 400 only. Map emphasis such as `strong` to 500 rather than synthesizing an unshipped bold weight. Keep field labels and notes in Sans; editable values use Sans at 16px. Never reduce essential text to fit a long value. The [production font policy](docs/design/font-options.md#production-files) pins three full self-hosted WOFF2 files, licences, and fallbacks.
 
@@ -140,7 +140,7 @@ Use a consistent alignment grid and fine horizontal rules. Group a label closely
 
 Arnaud accepted the schedule composition on October 17, 2026. Day is the default, with a Week switcher and Today shortcut. Use the compact time column for activities, a calendar icon for contextual day/week selection, relative headings with exact dates beneath, and previous/next arrows beside the calendar. Arnaud requested the direct arrows on October 18; they move by one day in Day and seven days in Week, superseding the earlier calendar-only navigation decision. On narrow content, keep the date controls and Add run in a row below the heading so every target remains 44px. The [schedule decision](docs/design/schedule-layout.md) specifies summaries, Add run placement, editing entry, disclosure defaults, and navigation state. The [approved form presentation](docs/design/run-form-presentation.md) specifies create/edit, deletion, and recovery states.
 
-The [approved sidebar integration](docs/design/sidebar-integration.md) uses a 224px desktop sidebar, initially expanded and fully collapsible, and a closed-by-default overlay drawer below 900px of available application width. Place the menu control beside Week/Day and beside create/edit headings. Keep mobile dismissal controls, focus containment and return, and interim Aweille text in Plex Sans only inside the sidebar, without a slogan. The earlier instruction to retain the old weekly appearance is superseded by the accepted schedule. Reuse the [existing navigation execution issue](https://github.com/ArnaudJalbert/aweille/issues/29); the [approved form presentation](docs/design/run-form-presentation.md) supplies form geometry and recovery rules.
+The [approved sidebar integration](docs/design/sidebar-integration.md) uses a 224px desktop sidebar, initially expanded and fully collapsible, and a closed-by-default overlay drawer below 900px of available application width. Place the menu control beside Week/Day and beside create/edit headings. Keep mobile dismissal controls, focus containment and return, and the Aweille logo only inside the sidebar, without a slogan. The earlier instruction to retain the old weekly appearance is superseded by the accepted schedule. Reuse the [existing navigation execution issue](https://github.com/ArnaudJalbert/aweille/issues/29); the [approved form presentation](docs/design/run-form-presentation.md) supplies form geometry and recovery rules.
 
 On phones, move secondary information below primary content and keep the reading order intact. On larger containers, use columns for related fields and secondary navigation where useful. Never shrink a desktop canvas to fit a phone.
 
@@ -175,6 +175,12 @@ Implement these roles with the existing Jinja/CSS/JavaScript stack and the minim
 - Personal and trainer notes remain separate labeled text. Neither becomes a tooltip or an icon-only disclosure.
 - Create/edit replaces schedule content with a compact sticky footer. Cancel and red Delete run sit on the left, Save on the right. Delete opens an inline saved-target confirmation with Keep run focused first.
 - Error and recovery messages preserve the draft and name the available next step. The [accepted state matrix](docs/design/run-form-presentation.md#state-to-presentation-matrix) covers loading, validation, pending writes, deletion, stale/uncertain results, reload, and missing state. Preserve existing behavior during implementation.
+
+## Logo
+
+Arnaud selected the logo on November 27, 2026, in the [logo exploration](https://github.com/ArnaudJalbert/aweille/issues/31). The mark is a single route stroke with a bowl and a smaller second rise, with no endpoint dot. It is a 13-unit monoline stroke with round caps in a 117 by 78 box. The wordmark is Outfit 500 at -0.02em tracking, converted to outlines so the application loads no extra font. Use ink only; no accent color is selected.
+
+The files are in `packages/aweille/src/aweille/api/static/logo/`: `aweille-lockup.svg` for the sidebar, `aweille-favicon.svg` (paper mark on an ink tile) for the page icon, and `aweille-mark.svg` alone.
 
 Before application adoption, complete state coverage, keyboard and touch checks, real content extremes, and behavior verification against the current app. A working preview Save button does not demonstrate production save behavior.
 
