@@ -13,7 +13,7 @@ Skipping, actual results, and end-to-end use with a selected trainer agent remai
 - [CONTEXT.md](CONTEXT.md) defines domain terms, including agreed future training blocks.
 - [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the accepted visual direction and exact implementation tokens. The browser applies the accepted redesign; [integration verification](docs/verification/redesign-acceptance.md) records checks and pending manual acceptance.
 - [Training blocks](docs/design/training-blocks.md) separates future mixed-training rules from today's run-only model.
-- [Planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
+- [Planned-course editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
 - [CONTRIBUTING.md](CONTRIBUTING.md) defines the contributor workflow; [AGENTS.md](AGENTS.md) routes agent work to the relevant guidance.
 
 ## Purpose
@@ -81,7 +81,7 @@ Within `aweille`:
 
 - `aweille/domain` contains the entity, value objects, and validation rules.
 - `aweille/application` contains the use cases, the repository ABC, and application exceptions.
-- `aweille/interface_adapters` contains the SQLite repository and database setup.
+- `aweille/interface_adapters/sqlite` contains the SQLite repository, reader and database setup.
 - `aweille/api` contains HTTP routes, request and response models, error handling, application wiring, and browser templates and assets.
 
 I prefer microservices. I'll start with one application service and split out additional services when there is a useful boundary.
@@ -94,14 +94,14 @@ I'll use Clean Architecture layers within one package. Business rules sit in the
 | --- | --- |
 | `aweille/domain` | The planned course entity, its value objects, validation rules, and the domain `ValidationError`. Standard library only. |
 | `aweille/application` | Use cases, the `PlannedCourseRepository` ABC, and application exceptions. |
-| `aweille/interface_adapters` | The SQLite repository and database creation and validation. SQL lives here. |
+| `aweille/interface_adapters` | Adapters, grouped by technology. `sqlite/` holds the SQLite repository, reader, and database creation and validation. SQL lives there. |
 | `aweille/api` | HTTP routes, request and response models, error handling, the application factory, local startup, and browser templates and assets. |
 
 Within `aweille/api`, `routes/` holds the HTTP handlers, weekly page handlers, and planned-course write transport guard; `schemas/` holds the Pydantic request and response models and shared field types. The application factory, local startup module, and error handlers remain at the API root. HTTP tests mirror this layout under `tests/api`. Weekly templates and CSS/JavaScript live in `api/templates` and `api/static`; browser checks live in `tests/browser`.
 
 Application depends on the domain. Interface adapters and the API depend on both. The local startup module also imports the SQLite repository. Domain and application have no dependency on FastAPI, the SQLite driver, or interface adapters.
 
-The local entry point, `aweille.api.main:app`, constructs the SQLite repository and passes it explicitly to `create_app(repository=...)`. This single application factory requires an application-owned `PlannedCourseRepository` and binds it to the use cases. HTTP handlers use those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
+The local entry point, `aweille.api.main:app`, constructs the SQLite repository and reader and passes them explicitly to `create_app(repository=..., reader=...)`. This single application factory builds the commands and queries from them. HTTP handlers use those initialized use cases directly. I'll keep ports focused on dependencies required by current use cases.
 
 The browser always calls the API for application data and changes. The trainer uses the same API. Page templates provide the interface structure; browser interactions go through the API. All business rules live in the domain and application layers, with HTTP in the API and storage in interface adapters.
 
@@ -109,46 +109,47 @@ The browser always calls the API for application data and changes. The trainer u
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
 
-The implemented [planned-run editing and deletion contract](docs/design/planned-run-editing-and-deletion.md) records the agreed behavior and test seams.
+The implemented [planned-course editing and deletion contract](docs/design/planned-run-editing-and-deletion.md) records the agreed behavior and test seams.
 
 ## Public core interface
 
-Import the use cases, repository ABC, and application exceptions from `aweille.application`, and the entity, value objects, and `ValidationError` from `aweille.domain`.
-
-- `create_planned_course(repository, *, id, planned_date, course_type, sections, planned_start_time=None, user_note=None, trainer_note=None)` returns `(stored_planned_course, inserted)`. `inserted` is true only after storage commits a new planned course. An identical normalized retry returns the existing planned course and false; changed data under the same ID raises `PlannedCourseConflict`.
-- `read_planned_courses(repository, *, start, end)` returns all planned courses in `[start, end)`, ordered by local date, local start time (untimed planned courses last), and canonical UUID string. `end` must be later than `start`.
-- `read_planned_course(repository, *, id)` returns one planned course or raises `PlannedCourseNotFound`.
-- `update_planned_course(repository, *, id, expected_revision, planned_date=UNSET, planned_start_time=UNSET, course_type=UNSET, sections=UNSET, user_note=UNSET, trainer_note=UNSET)` changes only supplied fields. The current revision must match exactly or `PlannedCourseRevisionConflict` is raised. Changed normalized content increments the revision; no-ops do not.
-- `delete_planned_course(repository, *, id, expected_revision)` permanently removes a matching planned course and reserves its UUID. A stale revision raises `PlannedCourseRevisionConflict`; an absent or already-deleted planned course raises `PlannedCourseNotFound`. Creation under a reserved UUID raises `PlannedCourseConflict`.
-
-Inputs use `UUID`, `date`, and optional naive `time` values with minute precision. Course type is a `CourseType` enum member: `EASY`, `HARD`, `INTERVAL`, or `LONG`. The enum's string values remain `easy`, `hard`, `interval`, and `long`; adapters can parse them with `CourseType(value)`.
-
-Supply an ordered sequence of immutable `Section` values:
+Import the commands, queries, ports, read models, and application exceptions from `aweille.application`. Each command and query is a class built with its port, with an inner `InputData` of plain values, an inner `OutputData`, and `execute(input_data)`:
 
 ```python
-from aweille.domain import Distance, Pace, CourseType, Section
+from aweille.application import CreatePlannedCourseCommand
 
-course_type = CourseType.INTERVAL
-sections = [
-    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
-    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=345)),
-    Section(distance=Distance(metres=1000), target_pace=Pace(seconds_per_km=390)),
-]
+command = CreatePlannedCourseCommand(repository)
+section = CreatePlannedCourseCommand.InputData.SectionInput
+output = command.execute(
+    CreatePlannedCourseCommand.InputData(
+        id=planned_course_id,
+        planned_date=date(2026, 10, 14),
+        course_type="interval",
+        sections=(section(metres=1000, seconds_per_km=390),),
+        planned_start_time=None,
+        user_note=None,
+        trainer_note=None,
+    )
+)
 ```
 
-`Distance` and `Pace` validate during construction. They accept positive integers only, rejecting booleans, floats, Decimal values, and strings without coercion. Distances use whole metres; paces use whole seconds per kilometre. Neither has a domain upper limit. `Section` requires these validated value objects. Both input and saved planned courses use this same section model. Read numeric values through `section.distance.metres` and `section.target_pace.seconds_per_km`.
+- `CreatePlannedCourseCommand(repository)` returns the saved planned course and `created`. `created` is true only after the repository commits a new planned course. An identical normalized retry returns the saved one with `created` false; changed data under the same ID, or a deleted ID, raises `PlannedCourseConflict`.
+- `UpdatePlannedCourseCommand(repository)` changes only the supplied fields. Fields left at `Unchanged.UNCHANGED` keep their saved values, and `None` clears the start time or a note. The current revision must match exactly or `PlannedCourseRevisionConflict` is raised. Changed normalized content increments the revision; no-ops do not.
+- `DeletePlannedCourseCommand(repository)` permanently removes a matching planned course, reserves its UUID, and returns no course data. A stale revision raises `PlannedCourseRevisionConflict`; an absent or already-deleted planned course raises `PlannedCourseNotFound`.
+- `ReadPlannedCourseQuery(reader)` returns one planned course or raises `PlannedCourseNotFound`.
+- `ReadPlannedCoursesQuery(reader)` returns all planned courses in `[start, end)`, ordered by local date, local start time (untimed planned courses last), and canonical UUID string. `end` must be later than `start`.
 
-`PlannedCourse` is a frozen dataclass with a generated constructor. Its `__post_init__` only validates fields, without changing them. Direct construction requires a non-empty section tuple, trimmed nonblank notes or `None`, and a local time without a selected daylight-saving occurrence. `create_planned_course` normalizes these inputs before calling the constructor: it copies section sequences into a tuple, trims notes, converts blank notes to `None`, and clears the local time's occurrence selection. Section order, repeated entries, and internal note spacing and line breaks are preserved. Planned-course IDs remain caller-supplied `UUID` values; `str(planned_course.id)` gives the canonical lowercase, hyphenated representation. Optional start times remain Montreal local clock times without an offset.
+`InputData` uses `UUID`, `date`, optional naive `time` values with minute precision, the course type value (`easy`, `hard`, `interval`, or `long`), sections in whole metres and whole seconds per kilometre, and notes. Neither target has an upper limit. Commands trim notes, treat blank notes as absent, and clear the local time's daylight-saving occurrence. Section order, repeated entries, and internal note spacing and line breaks are preserved. `OutputData` holds plain values too: course types are strings and sections are `SectionReadModel` values. No domain entity leaves the application layer.
 
-Invalid domain values raise `ValidationError`. The use cases translate it into the application `InvalidPlannedCourse`, which carries the same problems. The `problems` tuple reports the first invalid field using a `ValidationProblem` with `loc`, `code`, and `message`, without raw input values. Constructor paths are relative to their value, such as `("metres",)`; invalid section-list entries use paths such as `("sections", 1)`. The HTTP adapter uses strict Pydantic request models, reports field and section locations, and adds `body` or `query` prefixes. Unknown enum strings are rejected without exposing the input.
+The domain validates the planned course and raises `ValidationError`. Commands and queries translate it into `InvalidPlannedCourse`, which carries the same `problems`: each `ValidationProblem` has a `loc`, `code`, and `message`, without raw input values. The HTTP adapter uses strict Pydantic request models, reports field and section locations, and adds `body` or `query` prefixes.
 
-Subclass the application-owned `PlannedCourseRepository` ABC with `save(planned_course)`, `get(start, end)`, `load(id)`, `replace(planned_course, *, expected_revision)`, and `delete(id, *, expected_revision)`. `save` atomically inserts a missing ID or returns its existing planned course unchanged, with `(stored_planned_course, inserted)` as the result. A true insertion outcome means the write has committed. `get` returns every planned course in `[start, end)` from one committed snapshot, in any order; the read use case applies sorting. `load` returns the committed planned course for a UUID or `None` when absent. `replace` checks the saved revision atomically: it raises `PlannedCourseNotFound` if absent or `PlannedCourseRevisionConflict` if stale, returns the unchanged planned course on a normalized no-op, and otherwise commits the replacement with an incremented revision. `delete` checks existence and revision in the same transaction that removes workout content and permanently reserves only the UUID. It returns only after commit. Adapters return normalized `PlannedCourse` values and translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages. The use cases preserve these failure categories. The application factory binds the supplied repository to the functions with `functools.partial`.
+Subclass `PlannedCourseRepository` for commands, with `save(planned_course)`, `load(id)`, `replace(planned_course, *, expected_revision)`, and `delete(id, *, expected_revision)`. It loads and returns fully hydrated `PlannedCourse` entities. `save` atomically inserts a missing ID or returns its saved planned course unchanged, with `(saved_planned_course, inserted)` as the result. `load` returns the committed planned course or `None`. `replace` checks the saved revision atomically: it raises `PlannedCourseNotFound` if absent or `PlannedCourseRevisionConflict` if stale, returns the unchanged planned course on a normalized no-op, and otherwise commits the replacement with an incremented revision. `delete` checks existence and revision in the same transaction that removes workout content and permanently reserves only the UUID.
+
+Subclass `PlannedCourseReader` for queries, with `read(id)` and `read_range(start, end)`. It returns frozen `PlannedCourseReadModel` values without building entities. `read_range` returns every planned course in `[start, end)` from one committed snapshot, in any order; the query applies ordering. Repositories and readers translate driver errors to `StorageUnavailable` or `StorageFailure` with safe messages, and commands and queries keep these failure categories.
 
 The [data decision](https://github.com/ArnaudJalbert/aweille/issues/2#issuecomment-6100383988), [API contract](https://github.com/ArnaudJalbert/aweille/issues/3#issuecomment-6100699377), and [core implementation agreement](https://github.com/ArnaudJalbert/aweille/issues/5#issuecomment-6128315787) were synchronized with the implementation on October 13, 2026. The HTTP API uses `distance_m`, encoded as a positive whole-metre decimal-digit string such as `"1000"`, and `target_pace_seconds_per_km`, such as `"390"`. Numeric JSON values, signs, decimal points, exponent notation, and whitespace are invalid; responses use canonical digits. The browser converts distances to and from kilometres exactly and formats seconds for presentation. Future durations also use seconds. Planned start times retain the agreed Montreal clock-time meaning and minute precision.
 
-Tests use the public constructors and use cases, with an in-memory storage fake for normal behavior and mocks for storage failures. Focused core verification is recorded in [planned-run core verification](docs/verification/planned-run-core.md). SQLite checks use the real adapter. HTTP checks use the application factory and real file-backed SQLite, with storage-port fault injection for unexpected failures.
-
-`planned_course.to_dict()` produces a fresh portable dictionary with canonical UUID, date, and time strings, ordered sections with decimal-digit metre and pace strings, separate optional notes, and a canonical positive revision string. `PlannedCourse.from_dict(data)` reconstructs a validated model from that complete canonical representation. It raises `ValueError` for invalid encoded structure or representation and `ValidationError` for invalid domain values. These methods have no JSON or SQLite dependency. Parsing raw HTTP creation requests and their optional fields remains the request adapter's job.
+Domain and application tests call only `execute`, with `create_autospec` mocks of the repository and reader. SQLite checks use the real adapters against temporary files. HTTP checks use the application factory and real file-backed SQLite, with repository and reader fault injection for unexpected failures.
 
 ## SQLite storage
 
@@ -158,21 +159,25 @@ Create the database once before using the adapter. Its parent directory must exi
 uv run aweille-init-db aweille.sqlite
 ```
 
-The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.interface_adapters.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates schema version 3 and the planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. There is no migration: storage and startup reject version 1 and 2 files from before planned courses unchanged, so create a new database with `aweille-init-db`.
+The `aweille` package installs the `aweille-init-db` command, implemented in `aweille.interface_adapters.sqlite.create_database`. After installing Aweille, use `aweille-init-db <path>` from any working directory. The command creates schema version 3 and the planned-date index. It refuses an existing path without changing it and removes its new file if setup fails. There is no migration: storage and startup reject version 1 and 2 files from before planned courses unchanged, so create a new database with `aweille-init-db`.
 
-Then import `SQLitePlannedCourseRepository` from `aweille.interface_adapters`:
+Then import the SQLite repository and reader from `aweille.interface_adapters`:
 
 ```python
-from aweille.interface_adapters import SQLitePlannedCourseRepository
+from aweille.interface_adapters import (
+    SQLitePlannedCourseReader,
+    SQLitePlannedCourseRepository,
+)
 
 repository = SQLitePlannedCourseRepository("aweille.sqlite", timeout=1.0)
+reader = SQLitePlannedCourseReader("aweille.sqlite", timeout=1.0)
 ```
 
 Construction stores connection settings and assumes the database has been prepared correctly. It does not open the file, create tables, or inspect the schema. Local startup resolves the database path and rejects missing files; it does not create or repair the schema.
 
-The adapter implements `PlannedCourseRepository.save/get/load/replace/delete`. Each operation closes its connections; reads use committed data and range reads use one committed snapshot. `replace` acquires a write transaction before comparing revisions, so a competing edit cannot silently overwrite a newer planned course. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
+The repository implements `PlannedCourseRepository.save/load/replace/delete`, and `SQLitePlannedCourseReader` implements `PlannedCourseReader.read/read_range`. Each operation closes its connections; reads use committed data and range reads use one committed snapshot. `replace` acquires a write transaction before comparing revisions, so a competing edit cannot silently overwrite a newer planned course. Separate application processes can safely insert the same ID. Operations fail if the file disappears, rather than creating replacement storage.
 
-The adapter uses the model's dictionary representation, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. Reads use `PlannedCourse.from_dict`. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain `save` outcome can be checked by retrying the same ID and payload; after an uncertain `replace` or `delete`, reload and review before another write. Deletion and ID reservation commit together and survive restart. Deleted planned courses are excluded from all reads, and their UUIDs cannot be reused.
+The adapters store canonical strings, with JSON only for the sections column, preserving exact integers without an imposed numeric limit. The repository decodes rows into validated entities; the reader maps them straight to read models, so it rejects undecodable rows but does not recheck domain rules such as nonexistent start times. Startup validates every saved row. Malformed saved data fails the whole operation with `StorageFailure`, including when retrieving an existing ID during a save. SQLite contention and temporary unavailability raise `StorageUnavailable`; other storage failures raise `StorageFailure`. Messages omit SQL, paths, and stored values. An uncertain `save` outcome can be checked by retrying the same ID and payload; after an uncertain `replace` or `delete`, reload and review before another write. Deletion and ID reservation commit together and survive restart. Deleted planned courses are excluded from all reads, and their UUIDs cannot be reused.
 
 The default lock wait is one second, configurable through `timeout`. SQLite handles this bounded wait; the adapter adds no retry loop. Tests use real temporary files, short deliberate lock waits, and targeted driver fault injection. See [SQLite storage verification](docs/verification/sqlite-run-storage.md) and [testing research](docs/research/sqlite-storage-testing.md).
 

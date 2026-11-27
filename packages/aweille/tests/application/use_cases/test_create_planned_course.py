@@ -1,252 +1,128 @@
-from dataclasses import FrozenInstanceError, replace
+from dataclasses import replace
 from datetime import UTC, date, datetime, time
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import create_autospec
+from uuid import UUID
 
 import pytest
 from aweille.application import (
+    CreatePlannedCourseCommand,
     InvalidPlannedCourse,
     PlannedCourseConflict,
     PlannedCourseRepository,
+    SectionReadModel,
     StorageFailure,
     StorageUnavailable,
-    create_planned_course,
-    read_planned_courses,
 )
-from aweille.domain import CourseType, Distance, Pace, Section
+from aweille.domain import Distance, Pace, Section
+
+SectionInput = CreatePlannedCourseCommand.InputData.SectionInput
 
 
-def test_created_planned_course_can_be_read_with_exact_ordered_targets(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    planned_course, inserted = create_planned_course(
-        storage, **planned_course_input, planned_start_time=time(7, 30)
+@pytest.fixture
+def repository() -> Any:
+    # Any: autospec mocks expose Mock attributes that the port type hides.
+    repository = create_autospec(PlannedCourseRepository, instance=True)
+    repository.save.side_effect = lambda planned_course: (planned_course, True)
+    return repository
+
+
+@pytest.fixture
+def command(repository: Any) -> CreatePlannedCourseCommand:
+    return CreatePlannedCourseCommand(repository)
+
+
+@pytest.fixture
+def input_data() -> CreatePlannedCourseCommand.InputData:
+    return CreatePlannedCourseCommand.InputData(
+        id=UUID("54d97d4d-fadb-4d50-926e-af1bb26c711a"),
+        planned_date=date(2026, 10, 14),
+        course_type="interval",
+        sections=(
+            SectionInput(metres=1000, seconds_per_km=390),
+            SectionInput(metres=1000, seconds_per_km=345),
+            SectionInput(metres=1000, seconds_per_km=390),
+        ),
+        planned_start_time=time(7, 30),
+        user_note="  Keep the first section easy.  ",
+        trainer_note="  Finish relaxed.  ",
     )
 
-    assert inserted is True
-    assert str(planned_course.id) == "54d97d4d-fadb-4d50-926e-af1bb26c711a"
-    assert planned_course.planned_date == date(2026, 10, 14)
-    assert planned_course.planned_start_time == time(7, 30)
-    assert planned_course.course_type is CourseType.INTERVAL
-    assert [
-        (s.distance.metres, s.target_pace.seconds_per_km)
-        for s in planned_course.sections
-    ] == [
-        (1000, 390),
-        (1000, 345),
-        (1000, 390),
-    ]
-    assert planned_course.user_note == "Keep the first section easy."
-    assert planned_course.trainer_note == "Finish relaxed."
-    assert read_planned_courses(
-        storage, start=date(2026, 10, 12), end=date(2026, 10, 19)
-    ) == [planned_course]
+
+def test_creation_saves_normalized_values_and_reports_a_new_planned_course(
+    command: CreatePlannedCourseCommand,
+    repository: Any,
+    input_data: CreatePlannedCourseCommand.InputData,
+) -> None:
+    """A new planned course is saved with trimmed notes and its exact sections."""
+    output = command.execute(input_data)
+
+    assert output == CreatePlannedCourseCommand.OutputData(
+        id=UUID("54d97d4d-fadb-4d50-926e-af1bb26c711a"),
+        planned_date=date(2026, 10, 14),
+        planned_start_time=time(7, 30),
+        course_type="interval",
+        sections=(
+            SectionReadModel(metres=1000, seconds_per_km=390),
+            SectionReadModel(metres=1000, seconds_per_km=345),
+            SectionReadModel(metres=1000, seconds_per_km=390),
+        ),
+        user_note="Keep the first section easy.",
+        trainer_note="Finish relaxed.",
+        revision=1,
+        created=True,
+    )
+    saved = repository.save.call_args.args[0]
+    assert saved.user_note == "Keep the first section easy."
+    assert saved.trainer_note == "Finish relaxed."
 
 
 def test_exact_numeric_targets_have_no_domain_upper_limit(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
+    command: CreatePlannedCourseCommand,
+    input_data: CreatePlannedCourseCommand.InputData,
 ) -> None:
-    planned_course_input["sections"] = [Section(Distance(10**5003), Pace(10**5000))]
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
+    """Huge whole-number targets pass through unchanged."""
+    huge = (SectionInput(metres=10**5003, seconds_per_km=10**5000),)
 
-    assert planned_course.sections[0].distance.metres == 10**5003
-    assert planned_course.sections[0].target_pace.seconds_per_km == 10**5000
-    assert create_planned_course(storage, **planned_course_input) == (
-        planned_course,
-        False,
+    output = command.execute(replace(input_data, sections=huge))
+
+    assert output.sections == (
+        SectionReadModel(metres=10**5003, seconds_per_km=10**5000),
     )
 
 
-@pytest.mark.parametrize(
-    ("field", "value", "field_path", "code"),
-    [
-        ("id", "54d97d4d-fadb-4d50-926e-af1bb26c711a", ("id",), "invalid_id"),
-        ("planned_date", "2026-10-14", ("planned_date",), "invalid_date"),
-        ("planned_date", datetime(2026, 10, 14), ("planned_date",), "invalid_date"),
-        ("course_type", "long_run", ("course_type",), "invalid_course_type"),
-        ("course_type", "easy", ("course_type",), "invalid_course_type"),
-        ("course_type", ["easy"], ("course_type",), "invalid_course_type"),
-        ("sections", [], ("sections",), "invalid_sections"),
-        ("sections", None, ("sections",), "invalid_sections"),
-        ("sections", "1 km", ("sections",), "invalid_sections"),
-        ("sections", [None], ("sections", 0), "invalid_section"),
-        ("user_note", 123, ("user_note",), "invalid_note"),
-        ("trainer_note", True, ("trainer_note",), "invalid_note"),
-    ],
-)
-def test_invalid_fields_report_safe_problems_before_saving(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
-    field: str,
-    value: Any,
-    field_path: tuple[str | int, ...],
-    code: str,
+def test_section_count_and_note_length_are_not_limited(
+    command: CreatePlannedCourseCommand,
+    input_data: CreatePlannedCourseCommand.InputData,
 ) -> None:
-    planned_course_input[field] = value
+    """Many sections and long notes are accepted as given."""
+    note = "x" * 1_048_577
+    sections = (SectionInput(metres=1000, seconds_per_km=390),) * 1001
 
-    with pytest.raises(InvalidPlannedCourse) as failure:
-        create_planned_course(storage, **planned_course_input)
-
-    assert failure.value.problems[0].loc == field_path
-    assert failure.value.problems[0].code == code
-    assert failure.value.problems[0].message
-    assert (
-        read_planned_courses(storage, start=date(2026, 10, 12), end=date(2026, 10, 19))
-        == []
+    output = command.execute(
+        replace(input_data, sections=sections, user_note=note, trainer_note=note)
     )
 
+    assert len(output.sections) == 1001
+    assert output.user_note == note
+    assert output.trainer_note == note
 
-@pytest.mark.parametrize(
-    "start_time",
-    [
-        time(7, 30, 1),
-        time(7, 30, microsecond=1),
-        time(7, 30, tzinfo=UTC),
-        "07:30",
-    ],
-)
-def test_start_time_requires_a_local_minute_precision_time(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
-    start_time: Any,
+
+def test_notes_keep_internal_whitespace_and_blank_notes_become_absent(
+    command: CreatePlannedCourseCommand,
+    input_data: CreatePlannedCourseCommand.InputData,
 ) -> None:
-    with pytest.raises(InvalidPlannedCourse) as failure:
-        create_planned_course(
-            storage, **planned_course_input, planned_start_time=start_time
+    """Only outer whitespace is trimmed; a blank note is treated as absent."""
+    output = command.execute(
+        replace(
+            input_data,
+            user_note=" \n First  line\n\tSecond line. \t",
+            trainer_note="   ",
         )
-
-    assert failure.value.problems[0].loc == ("planned_start_time",)
-    assert failure.value.problems[0].code == "invalid_start_time"
-    assert (
-        read_planned_courses(storage, start=date(2026, 10, 12), end=date(2026, 10, 19))
-        == []
     )
 
-
-@pytest.mark.parametrize("start_time", [time(2), time(2, 59)])
-def test_montreal_spring_forward_gap_rejects_nonexistent_start_times(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
-    start_time: time,
-) -> None:
-    planned_course_input["planned_date"] = date(2026, 3, 8)
-    with pytest.raises(InvalidPlannedCourse) as failure:
-        create_planned_course(
-            storage, **planned_course_input, planned_start_time=start_time
-        )
-
-    assert failure.value.problems[0].code == "nonexistent_start_time"
-    assert (
-        read_planned_courses(storage, start=date(2026, 3, 8), end=date(2026, 3, 9))
-        == []
-    )
-
-
-def test_identical_retry_compares_normalized_values_and_returns_existing_planned_course(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    planned_course_input["user_note"] = " \n \t "
-    planned_course_input.pop("trainer_note")
-    original, inserted = create_planned_course(storage, **planned_course_input)
-    assert inserted is True
-
-    planned_course_input["sections"] = [
-        Section(Distance(1000), Pace(390)),
-        Section(Distance(1000), Pace(345)),
-        Section(Distance(1000), Pace(390)),
-    ]
-    planned_course_input["user_note"] = None
-    planned_course_input["trainer_note"] = None
-    retried, inserted = create_planned_course(
-        storage, **planned_course_input, planned_start_time=None
-    )
-
-    assert retried == original
-    assert inserted is False
-    assert original.user_note is None
-    assert original.trainer_note is None
-    assert original.planned_start_time is None
-    assert read_planned_courses(
-        storage, start=date(2026, 10, 12), end=date(2026, 10, 19)
-    ) == [original]
-
-
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        ("planned_date", date(2026, 10, 15)),
-        ("planned_start_time", time(7, 30)),
-        ("course_type", CourseType.EASY),
-        ("user_note", "Changed user note"),
-        ("trainer_note", "Changed trainer note"),
-        ("distance", Distance(1001)),
-        ("target_pace", Pace(391)),
-        (
-            "sections",
-            [
-                Section(Distance(1000), Pace(345)),
-                Section(Distance(1000), Pace(390)),
-                Section(Distance(1000), Pace(390)),
-            ],
-        ),
-        (
-            "sections",
-            [Section(Distance(1000), Pace(390)), Section(Distance(1000), Pace(345))],
-        ),
-    ],
-)
-def test_changed_retry_conflicts_and_leaves_saved_planned_course_untouched(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
-    field: str,
-    value: Any,
-) -> None:
-    original, _ = create_planned_course(storage, **planned_course_input)
-    if field in ("distance", "target_pace"):
-        planned_course_input["sections"][0] = replace(
-            planned_course_input["sections"][0], **{field: value}
-        )
-    else:
-        planned_course_input[field] = value
-
-    with pytest.raises(PlannedCourseConflict):
-        create_planned_course(storage, **planned_course_input)
-
-    assert read_planned_courses(
-        storage, start=date(2026, 10, 12), end=date(2026, 10, 19)
-    ) == [original]
-
-
-def test_saved_targets_and_notes_cannot_be_changed_through_returned_values(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-    planned_course_input["sections"].clear()
-
-    for value, field, replacement in [
-        (planned_course, "user_note", "Changed"),
-        (planned_course.sections[0], "distance", Distance(2000)),
-        (planned_course.sections[0].distance, "metres", 2000),
-        (planned_course.sections[0].target_pace, "seconds_per_km", 400),
-    ]:
-        with pytest.raises(FrozenInstanceError):
-            setattr(value, field, replacement)
-
-    assert len(planned_course.sections) == 3
-    assert read_planned_courses(
-        storage, start=date(2026, 10, 12), end=date(2026, 10, 19)
-    ) == [planned_course]
-
-
-def test_invalid_inputs_are_rejected_even_when_storage_is_unavailable(
-    planned_course_input: dict[str, Any],
-) -> None:
-    storage = Mock(spec=PlannedCourseRepository)
-    storage.save.side_effect = StorageUnavailable("Storage unavailable.")
-    planned_course_input["sections"][1] = None
-
-    with pytest.raises(InvalidPlannedCourse):
-        create_planned_course(storage, **planned_course_input)
+    assert output.user_note == "First  line\n\tSecond line."
+    assert output.trainer_note is None
 
 
 @pytest.mark.parametrize(
@@ -258,90 +134,152 @@ def test_invalid_inputs_are_rejected_even_when_storage_is_unavailable(
         (date(2026, 1, 14), time(7, 30)),
         (date.min, time(0)),
         (date.max, time(23, 59)),
+        (date(2026, 10, 14), None),
     ],
 )
-def test_valid_local_schedules_keep_the_date_and_time_without_selecting_an_occurrence(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
+def test_valid_local_schedules_keep_the_time_without_selecting_an_occurrence(
+    command: CreatePlannedCourseCommand,
+    input_data: CreatePlannedCourseCommand.InputData,
     planned_date: date,
     start_time: time | None,
 ) -> None:
-    planned_course_input.update(
-        planned_date=planned_date, planned_start_time=start_time
+    """Existing Montreal times are kept, and a fall-back time selects no occurrence."""
+    output = command.execute(
+        replace(input_data, planned_date=planned_date, planned_start_time=start_time)
     )
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-    expected_time = start_time.replace(fold=0) if start_time is not None else None
 
-    assert planned_course.planned_date == planned_date
-    assert planned_course.planned_start_time == expected_time
-    if planned_course.planned_start_time is not None:
-        assert planned_course.planned_start_time.tzinfo is None
-        assert planned_course.planned_start_time.fold == 0
-    planned_course_input["planned_start_time"] = expected_time
-    assert create_planned_course(storage, **planned_course_input) == (
-        planned_course,
+    assert output.planned_date == planned_date
+    assert output.planned_start_time == start_time
+    if output.planned_start_time is not None:
+        assert output.planned_start_time.fold == 0
+
+
+@pytest.mark.parametrize(
+    ("changes", "field_path", "code"),
+    [
+        ({"id": "54d97d4d-fadb-4d50-926e-af1bb26c711a"}, ("id",), "invalid_id"),
+        ({"planned_date": "2026-10-14"}, ("planned_date",), "invalid_date"),
+        ({"planned_date": datetime(2026, 10, 14)}, ("planned_date",), "invalid_date"),
+        ({"course_type": "long_run"}, ("course_type",), "invalid_course_type"),
+        ({"sections": ()}, ("sections",), "invalid_sections"),
+        (
+            {"sections": (SectionInput(metres=0, seconds_per_km=390),)},
+            ("metres",),
+            "invalid_distance",
+        ),
+        (
+            {"sections": (SectionInput(metres=1000, seconds_per_km=True),)},
+            ("seconds_per_km",),
+            "invalid_pace",
+        ),
+        ({"user_note": 123}, ("user_note",), "invalid_note"),
+        ({"trainer_note": True}, ("trainer_note",), "invalid_note"),
+        (
+            {"planned_start_time": time(7, 30, 1)},
+            ("planned_start_time",),
+            "invalid_start_time",
+        ),
+        (
+            {"planned_start_time": time(7, 30, microsecond=1)},
+            ("planned_start_time",),
+            "invalid_start_time",
+        ),
+        (
+            {"planned_start_time": time(7, 30, tzinfo=UTC)},
+            ("planned_start_time",),
+            "invalid_start_time",
+        ),
+        (
+            {"planned_start_time": "07:30"},
+            ("planned_start_time",),
+            "invalid_start_time",
+        ),
+        (
+            {"planned_date": date(2026, 3, 8), "planned_start_time": time(2)},
+            ("planned_start_time",),
+            "nonexistent_start_time",
+        ),
+        (
+            {"planned_date": date(2026, 3, 8), "planned_start_time": time(2, 59)},
+            ("planned_start_time",),
+            "nonexistent_start_time",
+        ),
+    ],
+)
+def test_invalid_fields_report_safe_problems_before_saving(
+    command: CreatePlannedCourseCommand,
+    repository: Any,
+    input_data: CreatePlannedCourseCommand.InputData,
+    changes: dict[str, Any],
+    field_path: tuple[str | int, ...],
+    code: str,
+) -> None:
+    """An invalid field reports its path, code and message, and nothing is saved."""
+    # Any: invalid inputs deliberately break the declared field types.
+    with pytest.raises(InvalidPlannedCourse) as failure:
+        command.execute(replace(input_data, **changes))
+
+    assert failure.value.problems[0].loc == field_path
+    assert failure.value.problems[0].code == code
+    assert failure.value.problems[0].message
+    repository.save.assert_not_called()
+
+
+def test_identical_retry_returns_the_saved_planned_course(
+    command: CreatePlannedCourseCommand,
+    repository: Any,
+    input_data: CreatePlannedCourseCommand.InputData,
+) -> None:
+    """A retry matching the saved normalized values returns it, not created."""
+    repository.save.side_effect = lambda planned_course: (
+        replace(planned_course, revision=3),
         False,
     )
 
+    output = command.execute(input_data)
 
-@pytest.mark.parametrize("course_type", list(CourseType))
-def test_course_type_does_not_impose_section_rules(
-    storage: PlannedCourseRepository,
-    planned_course_input: dict[str, Any],
-    course_type: Any,
+    assert output.created is False
+    assert output.revision == 3
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"planned_date": date(2026, 10, 15)},
+        {"planned_start_time": None},
+        {"user_note": "Changed user note"},
+        {"sections": (Section(Distance(1000), Pace(390)),)},
+    ],
+)
+def test_changed_retry_conflicts(
+    command: CreatePlannedCourseCommand,
+    repository: Any,
+    input_data: CreatePlannedCourseCommand.InputData,
+    changes: dict[str, Any],
 ) -> None:
-    planned_course_input.update(
-        course_type=course_type, sections=[Section(Distance(1), Pace(1))]
-    )
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-
-    assert planned_course.course_type == course_type
-    assert len(planned_course.sections) == 1
-    assert planned_course.sections[0].distance.metres == 1
-
-
-def test_notes_preserve_internal_whitespace_and_line_breaks(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    planned_course_input.update(
-        user_note=" \n First  line\n\tSecond line. \t", trainer_note="   "
-    )
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-
-    assert planned_course.user_note == "First  line\n\tSecond line."
-    assert planned_course.trainer_note is None
-    planned_course_input.update(user_note=planned_course.user_note, trainer_note=None)
-    assert create_planned_course(storage, **planned_course_input) == (
-        planned_course,
+    """A saved planned course with different values under the ID is a conflict."""
+    # Any: invalid inputs deliberately break the declared field types.
+    repository.save.side_effect = lambda planned_course: (
+        replace(planned_course, **changes),
         False,
     )
 
-
-def test_core_does_not_limit_section_count_or_note_length(
-    storage: PlannedCourseRepository, planned_course_input: dict[str, Any]
-) -> None:
-    note = "x" * 1_048_577
-    planned_course_input.update(
-        sections=[Section(Distance(1000), Pace(390))] * 1001,
-        user_note=note,
-        trainer_note=note,
-    )
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
-
-    assert len(planned_course.sections) == 1001
-    assert planned_course.user_note == note
-    assert planned_course.trainer_note == note
+    with pytest.raises(PlannedCourseConflict):
+        command.execute(input_data)
 
 
 @pytest.mark.parametrize("error_type", [StorageUnavailable, StorageFailure])
-def test_storage_failure_categories_reach_the_public_caller(
-    planned_course_input: dict[str, Any], error_type: type[Exception]
+def test_storage_failure_categories_reach_the_caller(
+    command: CreatePlannedCourseCommand,
+    repository: Any,
+    input_data: CreatePlannedCourseCommand.InputData,
+    error_type: type[Exception],
 ) -> None:
+    """Storage failures keep their category so callers know whether to retry."""
     failure = error_type("Storage could not complete the operation.")
-    storage = Mock(spec=PlannedCourseRepository)
-    storage.save.side_effect = failure
+    repository.save.side_effect = failure
 
     with pytest.raises(error_type) as reported:
-        create_planned_course(storage, **planned_course_input)
+        command.execute(input_data)
 
     assert reported.value is failure

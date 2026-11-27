@@ -2,10 +2,8 @@ import multiprocessing
 import sqlite3
 from contextlib import closing
 from dataclasses import replace
-from datetime import date
 from functools import partial
 from pathlib import Path
-from typing import Any
 
 import pytest
 from aweille.application import (
@@ -14,16 +12,16 @@ from aweille.application import (
     PlannedCourseRevisionConflict,
     StorageFailure,
     StorageUnavailable,
-    create_planned_course,
 )
+from aweille.domain import PlannedCourse
 from aweille.interface_adapters import SQLitePlannedCourseRepository
 
 
 def test_atomic_deletion_persists_reservation_and_rejects_stale_or_missing(
-    database_path: Path, planned_course_input: dict[str, Any]
+    database_path: Path, planned_course: PlannedCourse
 ) -> None:
     storage = SQLitePlannedCourseRepository(database_path)
-    saved, _ = create_planned_course(storage, **planned_course_input)
+    saved, _ = storage.save(planned_course)
     current = storage.replace(replace(saved, trainer_note="new"), expected_revision=1)
     with pytest.raises(PlannedCourseRevisionConflict):
         storage.delete(saved.id, expected_revision=1)
@@ -31,7 +29,6 @@ def test_atomic_deletion_persists_reservation_and_rejects_stale_or_missing(
     assert storage.delete(saved.id, expected_revision=2) is None
     reopened = SQLitePlannedCourseRepository(database_path)
     assert reopened.load(saved.id) is None
-    assert reopened.get(date(2026, 1, 1), date(2027, 1, 1)) == []
     with pytest.raises(PlannedCourseNotFound):
         reopened.delete(saved.id, expected_revision=2)
     with pytest.raises(PlannedCourseNotFound):
@@ -41,10 +38,10 @@ def test_atomic_deletion_persists_reservation_and_rejects_stale_or_missing(
 
 
 def test_failed_reservation_rolls_back_removal(
-    database_path: Path, planned_course_input: dict[str, Any]
+    database_path: Path, planned_course: PlannedCourse
 ) -> None:
     storage = SQLitePlannedCourseRepository(database_path)
-    saved, _ = create_planned_course(storage, **planned_course_input)
+    saved, _ = storage.save(planned_course)
     with closing(sqlite3.connect(database_path)) as connection, connection:
         connection.execute(
             "CREATE TRIGGER reject_reservation "
@@ -66,12 +63,12 @@ def test_failed_reservation_rolls_back_removal(
 @pytest.mark.parametrize("committed", [False, True])
 def test_uncertain_commit_requires_reading_current_state(
     database_path: Path,
-    planned_course_input: dict[str, Any],
+    planned_course: PlannedCourse,
     monkeypatch,
     committed: bool,
 ) -> None:
     storage = SQLitePlannedCourseRepository(database_path)
-    saved, _ = create_planned_course(storage, **planned_course_input)
+    saved, _ = storage.save(planned_course)
 
     class CommitFailure(sqlite3.Connection):
         def __exit__(self, exc_type, exc, traceback):
@@ -101,10 +98,10 @@ def test_uncertain_commit_requires_reading_current_state(
 
 
 def test_locked_or_corrupt_planned_course_cannot_be_deleted(
-    database_path: Path, planned_course_input: dict[str, Any]
+    database_path: Path, planned_course: PlannedCourse
 ) -> None:
     storage = SQLitePlannedCourseRepository(database_path, timeout=0.02)
-    saved, _ = create_planned_course(storage, **planned_course_input)
+    saved, _ = storage.save(planned_course)
     with closing(sqlite3.connect(database_path)) as connection, connection:
         connection.execute("BEGIN EXCLUSIVE")
         with pytest.raises(StorageUnavailable):
@@ -143,10 +140,10 @@ def _competing_write(path, planned_course, action, start, outcomes):
 
 @pytest.mark.parametrize("other", ["edit", "delete", "post"])
 def test_independent_process_writes_serialize_with_deletion(
-    database_path: Path, planned_course_input: dict[str, Any], other: str
+    database_path: Path, planned_course: PlannedCourse, other: str
 ) -> None:
     storage = SQLitePlannedCourseRepository(database_path)
-    planned_course, _ = create_planned_course(storage, **planned_course_input)
+    planned_course, _ = storage.save(planned_course)
     context = multiprocessing.get_context("spawn")
     start = context.Event()
     outcomes = context.Queue()

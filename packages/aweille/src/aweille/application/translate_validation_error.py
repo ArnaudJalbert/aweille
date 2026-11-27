@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from aweille.domain import ValidationError
 
-from ..exceptions.invalid_planned_course import InvalidPlannedCourse
+from .exceptions.invalid_planned_course import InvalidPlannedCourse
 
 
 @contextmanager

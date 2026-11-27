@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from datetime import date
 from uuid import UUID
 
 from aweille.domain import PlannedCourse
 
 
 class PlannedCourseRepository(ABC):
-    """Repositories implement synchronous planned-course reads and writes.
+    """Repositories load and write fully hydrated planned courses for commands.
 
     Translate temporary contention or unavailability to StorageUnavailable,
     and unexpected failures to StorageFailure, with safe explanatory messages.
@@ -36,14 +35,47 @@ class PlannedCourseRepository(ABC):
 
     @abstractmethod
     def load(self, id: UUID) -> PlannedCourse | None:
-        """Read a single committed planned course, or None if absent."""
+        """Read one committed planned course.
+
+        Args:
+            id: UUID of the saved planned course.
+
+        Returns:
+            The validated saved planned course, or None if the UUID is absent or
+            deleted.
+
+        Raises:
+            StorageUnavailable: Temporary contention or unavailability prevents
+                the read. The caller may retry.
+            StorageFailure: Saved data is invalid or the read fails.
+        """
         ...
 
     @abstractmethod
     def replace(
         self, planned_course: PlannedCourse, *, expected_revision: int
     ) -> PlannedCourse:
-        """Atomically check revision and replace changed content."""
+        """Atomically replace a planned course when its saved revision matches.
+
+        Args:
+            planned_course: Validated, normalized candidate with the saved planned
+                course's UUID. Its own revision is ignored.
+            expected_revision: Revision the caller observed before editing.
+
+        Returns:
+            The committed planned course with its revision incremented by one. When
+            the candidate equals the saved content, nothing is written and the
+            saved planned course returns with its revision unchanged.
+
+        Raises:
+            PlannedCourseNotFound: The UUID is absent or deleted.
+            PlannedCourseRevisionConflict: The saved revision differs from the
+                expected one.
+            StorageUnavailable: Temporary contention or unavailability prevents
+                the replacement. The caller may retry.
+            StorageFailure: Saved data is invalid or the write fails; a possible
+                commit remains uncertain.
+        """
         ...
 
     @abstractmethod
@@ -60,25 +92,5 @@ class PlannedCourseRepository(ABC):
                 one.
             StorageUnavailable: Storage is temporarily unavailable.
             StorageFailure: Storage failed; a possible commit remains uncertain.
-        """
-        ...
-
-    @abstractmethod
-    def get(self, start: date, end: date) -> list[PlannedCourse]:
-        """Return planned courses in [start, end) from one snapshot, in any order.
-
-        Args:
-            start: First included Montreal calendar date.
-            end: First excluded Montreal calendar date, later than start.
-
-        Returns:
-            All matching normalized planned courses from one committed snapshot, or an
-            empty list. Storage order is unspecified; the read use case applies
-            ordering. There is no pagination or silent result cap.
-
-        Raises:
-            StorageUnavailable: Temporary contention or unavailability prevents
-                the read. The caller may retry.
-            StorageFailure: An unexpected storage failure prevents the read.
         """
         ...

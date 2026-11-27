@@ -1,4 +1,3 @@
-from functools import partial
 from typing import Any, cast
 
 from fastapi import FastAPI
@@ -6,18 +5,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 
 from aweille.application import (
+    CreatePlannedCourseCommand,
+    DeletePlannedCourseCommand,
     InvalidPlannedCourse,
     PlannedCourseConflict,
     PlannedCourseNotFound,
+    PlannedCourseReader,
     PlannedCourseRepository,
     PlannedCourseRevisionConflict,
+    ReadPlannedCourseQuery,
+    ReadPlannedCoursesQuery,
     StorageFailure,
     StorageUnavailable,
-    create_planned_course,
-    delete_planned_course,
-    read_planned_course,
-    read_planned_courses,
-    update_planned_course,
+    UpdatePlannedCourseCommand,
 )
 
 from .api_errors import (
@@ -32,20 +32,22 @@ from .routes.weekly_page import WEB_DIRECTORY
 from .routes.weekly_page import router as weekly_router
 
 
-def create_app(*, repository: PlannedCourseRepository) -> FastAPI:
-    """Construct the HTTP application with an explicitly supplied repository.
+def create_app(
+    *, repository: PlannedCourseRepository, reader: PlannedCourseReader
+) -> FastAPI:
+    """Construct the HTTP application with an explicitly supplied repository and reader.
 
     Args:
-        repository: Initialized repository for planned-course creation, reads,
-            and edits.
+        repository: Initialized repository for planned-course commands.
+        reader: Initialized reader for planned-course queries.
 
     Returns:
-        HTTP and browser application with planned-course use cases bound to the
-        repository.
+        HTTP and browser application with planned-course commands and queries
+        built on the repository and reader.
     """
     app = FastAPI()
     _register_error_handlers(app)
-    _bind_use_cases(app, repository)
+    _bind_use_cases(app, repository, reader)
     _configure_cache_policy(app)
     _configure_routes(app)
     _configure_openapi(app)
@@ -62,12 +64,14 @@ def _register_error_handlers(app: FastAPI) -> None:
         app.add_exception_handler(error, failure_response)
 
 
-def _bind_use_cases(app: FastAPI, repository: PlannedCourseRepository) -> None:
-    app.state.create_planned_course = partial(create_planned_course, repository)
-    app.state.read_planned_courses = partial(read_planned_courses, repository)
-    app.state.read_planned_course = partial(read_planned_course, repository)
-    app.state.update_planned_course = partial(update_planned_course, repository)
-    app.state.delete_planned_course = partial(delete_planned_course, repository)
+def _bind_use_cases(
+    app: FastAPI, repository: PlannedCourseRepository, reader: PlannedCourseReader
+) -> None:
+    app.state.create_planned_course = CreatePlannedCourseCommand(repository)
+    app.state.update_planned_course = UpdatePlannedCourseCommand(repository)
+    app.state.delete_planned_course = DeletePlannedCourseCommand(repository)
+    app.state.read_planned_course = ReadPlannedCourseQuery(reader)
+    app.state.read_planned_courses = ReadPlannedCoursesQuery(reader)
 
 
 def _configure_cache_policy(app: FastAPI) -> None:

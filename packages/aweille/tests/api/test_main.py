@@ -3,7 +3,7 @@ from pathlib import Path
 from runpy import run_module
 
 import pytest
-from aweille.interface_adapters.create_database import create_database
+from aweille.interface_adapters.sqlite.create_database import create_database
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 

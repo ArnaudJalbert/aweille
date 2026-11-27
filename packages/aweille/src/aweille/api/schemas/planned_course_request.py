@@ -1,11 +1,12 @@
 from datetime import time
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidateAs
 
-from aweille.domain import CourseType, Distance, Pace, Section
+from aweille.application import CreatePlannedCourseCommand
+from aweille.domain import CourseType
 
 from .request_date import RequestDate
 
@@ -46,19 +47,25 @@ class PlannedCourseRequest(BaseModel):
     user_note: str | None = None
     trainer_note: str | None = None
 
-    def core_inputs(self) -> dict[str, Any]:
-        """Build validated inputs for the create_planned_course use case.
+    def to_input_data(self) -> CreatePlannedCourseCommand.InputData:
+        """Build the create command's input from the validated request.
 
         Returns:
-            Typed planned course fields and ordered Distance/Pace/Section values.
+            Plain planned course values with ordered sections in whole metres and
+            seconds per kilometre.
         """
-        return {
-            **self.model_dump(exclude={"sections"}),
-            "sections": [
-                Section(
-                    Distance(section.distance_m),
-                    Pace(section.target_pace_seconds_per_km),
+        return CreatePlannedCourseCommand.InputData(
+            id=self.id,
+            planned_date=self.planned_date,
+            course_type=self.course_type,
+            sections=tuple(
+                CreatePlannedCourseCommand.InputData.SectionInput(
+                    metres=section.distance_m,
+                    seconds_per_km=section.target_pace_seconds_per_km,
                 )
                 for section in self.sections
-            ],
-        }
+            ),
+            planned_start_time=self.planned_start_time,
+            user_note=self.user_note,
+            trainer_note=self.trainer_note,
+        )

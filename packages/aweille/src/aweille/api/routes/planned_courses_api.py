@@ -6,6 +6,12 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict
 
+from aweille.application import (
+    DeletePlannedCourseCommand,
+    ReadPlannedCourseQuery,
+    ReadPlannedCoursesQuery,
+)
+
 from ..schemas.planned_course_error import MessageResponse, ProblemResponse
 from ..schemas.planned_course_patch import PlannedCoursePatch
 from ..schemas.planned_course_request import PlannedCourseRequest
@@ -33,7 +39,7 @@ _RECOVERY_RESPONSE_EXAMPLES = {
         "stale-write": {
             "summary": "Reload after a stale write",
             "value": {
-                "detail": "The planned run has changed; reload it before another "
+                "detail": "The planned course has changed; reload it before another "
                 "edit or deletion."
             },
         }
@@ -42,7 +48,9 @@ _RECOVERY_RESPONSE_EXAMPLES = {
         "missing-if-match": {
             "summary": "Supply the missing precondition",
             "value": {
-                "detail": "Reload the run and supply its quoted revision in If-Match."
+                "detail": (
+                    "Reload the course and supply its quoted revision in If-Match."
+                )
             },
         }
     },
@@ -64,7 +72,7 @@ _EDIT_ERRORS = {
         ),
     }
     for status, description in {
-        404: "Planned run not found.",
+        404: "Planned course not found.",
         412: "Stale revision; reload before another write.",
         413: "Body exceeds 1 MiB.",
         415: "JSON field object required.",
@@ -119,13 +127,13 @@ def post_planned_course(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_course, inserted = request.app.state.create_planned_course(
-        **data.core_inputs()
+    planned_course = request.app.state.create_planned_course.execute(
+        data.to_input_data()
     )
-    response.status_code = 201 if inserted else 200
-    if inserted:
+    response.status_code = 201 if planned_course.created else 200
+    if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    return PlannedCourseResponse.from_output_data(planned_course)
 
 
 @router.get(
@@ -149,12 +157,12 @@ def get_planned_courses(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_courses = request.app.state.read_planned_courses(
-        start=query.start, end=query.end
+    output = request.app.state.read_planned_courses.execute(
+        ReadPlannedCoursesQuery.InputData(start=query.start, end=query.end)
     )
     return [
-        PlannedCourseResponse.model_validate(planned_course.to_dict())
-        for planned_course in planned_courses
+        PlannedCourseResponse.from_output_data(planned_course)
+        for planned_course in output.planned_courses
     ]
 
 
@@ -168,7 +176,7 @@ def _revision(request: Request) -> int:
     ]
     if not values:
         raise HTTPException(
-            428, "Reload the run and supply its quoted revision in If-Match."
+            428, "Reload the course and supply its quoted revision in If-Match."
         )
     if (
         len(values) != 1
@@ -240,9 +248,13 @@ def get_planned_course(
         StorageUnavailable: Storage cannot currently read (HTTP 503).
         StorageFailure: Storage cannot read or decode the planned course (HTTP 500).
     """
-    planned_course = request.app.state.read_planned_course(id=id)
-    response.headers["ETag"] = f'"{planned_course.to_dict()["revision"]}"'
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    planned_course = PlannedCourseResponse.from_output_data(
+        request.app.state.read_planned_course.execute(
+            ReadPlannedCourseQuery.InputData(id=id)
+        )
+    )
+    response.headers["ETag"] = f'"{planned_course.revision}"'
+    return planned_course
 
 
 @router.patch(
@@ -299,11 +311,13 @@ def patch_planned_course(
         StorageUnavailable: Storage cannot currently read or write (HTTP 503).
         StorageFailure: Storage cannot read or write the planned course (HTTP 500).
     """
-    planned_course = request.app.state.update_planned_course(
-        id=id, expected_revision=_revision(request), **data.core_inputs()
+    planned_course = PlannedCourseResponse.from_output_data(
+        request.app.state.update_planned_course.execute(
+            data.to_input_data(id, _revision(request))
+        )
     )
-    response.headers["ETag"] = f'"{planned_course.to_dict()["revision"]}"'
-    return PlannedCourseResponse.model_validate(planned_course.to_dict())
+    response.headers["ETag"] = f'"{planned_course.revision}"'
+    return planned_course
 
 
 @router.delete(
@@ -341,5 +355,9 @@ def delete_planned_course(
         StorageUnavailable: Storage is unavailable; reload and review (HTTP 503).
         StorageFailure: The outcome may be uncertain; reload and review (HTTP 500).
     """
-    request.app.state.delete_planned_course(id=id, expected_revision=_revision(request))
+    request.app.state.delete_planned_course.execute(
+        DeletePlannedCourseCommand.InputData(
+            id=id, expected_revision=_revision(request)
+        )
+    )
     return Response(status_code=204)

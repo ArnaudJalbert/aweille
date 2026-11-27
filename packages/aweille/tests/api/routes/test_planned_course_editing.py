@@ -62,7 +62,7 @@ def test_stale_edit_does_not_overwrite_saved_planned_course(
     )
     assert stale.status_code == 412
     assert stale.json() == {
-        "detail": "The planned run has changed; reload it before another edit "
+        "detail": "The planned course has changed; reload it before another edit "
         "or deletion."
     }
     assert api_client.get(url).json()["user_note"] == "new"
@@ -195,11 +195,11 @@ def test_openapi_recovery_examples_match_http_responses(
         "examples"
     ]["reload-recovery"]["value"]
     assert stale_example == {
-        "detail": "The planned run has changed; reload it before another edit "
+        "detail": "The planned course has changed; reload it before another edit "
         "or deletion."
     }
     assert missing_example == {
-        "detail": "Reload the run and supply its quoted revision in If-Match."
+        "detail": "Reload the course and supply its quoted revision in If-Match."
     }
     assert reload_example == {
         "id": "54d97d4d-fadb-4d50-926e-af1bb26c711a",
@@ -285,15 +285,21 @@ def test_storage_failure_response_remains_no_store(
 ) -> None:
     from aweille.api.create_app import create_app
     from aweille.application import StorageFailure
-    from aweille.interface_adapters import SQLitePlannedCourseRepository
+    from aweille.interface_adapters import (
+        SQLitePlannedCourseReader,
+        SQLitePlannedCourseRepository,
+    )
     from fastapi.testclient import TestClient
 
-    class BrokenStorage(SQLitePlannedCourseRepository):
-        def load(self, id):
+    class BrokenReader(SQLitePlannedCourseReader):
+        def read(self, id):
             raise StorageFailure("PRIVATE SQL path")
 
     with TestClient(
-        create_app(repository=BrokenStorage(database_path)),
+        create_app(
+            repository=SQLitePlannedCourseRepository(database_path),
+            reader=BrokenReader(database_path),
+        ),
         raise_server_exceptions=False,
     ) as client:
         response = client.get(f"/v1/planned-courses/{planned_course_request['id']}")

@@ -1,17 +1,21 @@
 import asyncio
 from dataclasses import replace
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, create_autospec
 
 import httpx2 as httpx
 import pytest
 from aweille.api.create_app import create_app
 from aweille.application import (
+    PlannedCourseReader,
     PlannedCourseRepository,
     StorageFailure,
     StorageUnavailable,
 )
-from aweille.interface_adapters import SQLitePlannedCourseRepository
+from aweille.interface_adapters import (
+    SQLitePlannedCourseReader,
+    SQLitePlannedCourseRepository,
+)
 from fastapi.testclient import TestClient
 
 
@@ -35,13 +39,13 @@ def test_delete_commits_empty_response_and_prevents_resurrection(
     )
     repeated = api_client.delete(url, headers={"If-Match": '"1"'})
     assert repeated.status_code == 404
-    assert repeated.json() == {"detail": "Planned run not found."}
+    assert repeated.json() == {"detail": "Planned course not found."}
     assert (
         api_client.patch(url, json={}, headers={"If-Match": '"1"'}).status_code == 404
     )
     retry = api_client.post("/v1/planned-courses", json=planned_course_request)
     assert retry.status_code == 409
-    assert retry.json() == {"detail": "The ID cannot be used for this planned run."}
+    assert retry.json() == {"detail": "The ID cannot be used for this planned course."}
 
 
 @pytest.mark.parametrize(
@@ -57,7 +61,8 @@ def test_delete_precondition_failures_never_reach_storage(
     headers, planned_course_request
 ) -> None:
     storage = Mock(spec=PlannedCourseRepository)
-    with TestClient(create_app(repository=storage)) as client:
+    reader = create_autospec(PlannedCourseReader, instance=True)
+    with TestClient(create_app(repository=storage, reader=reader)) as client:
         response = client.delete(
             f"/v1/planned-courses/{planned_course_request['id']}", headers=headers
         )
@@ -70,6 +75,7 @@ def test_delete_precondition_failures_never_reach_storage(
         }
     assert response.headers["cache-control"] == "no-store"
     assert storage.mock_calls == []
+    assert reader.mock_calls == []
 
 
 @pytest.mark.parametrize(
@@ -84,11 +90,13 @@ def test_delete_transport_and_schema_precede_missing_header(
     path, body, location
 ) -> None:
     storage = Mock(spec=PlannedCourseRepository)
-    with TestClient(create_app(repository=storage)) as client:
+    reader = create_autospec(PlannedCourseReader, instance=True)
+    with TestClient(create_app(repository=storage, reader=reader)) as client:
         response = client.request("DELETE", f"/v1/planned-courses/{path}", content=body)
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == location
     assert storage.mock_calls == []
+    assert reader.mock_calls == []
 
 
 def test_delete_stops_reading_nonempty_stream(
@@ -129,7 +137,12 @@ def test_delete_rechecks_competing_writes_at_atomic_boundary(
                 super().delete(id, expected_revision=1)
             super().delete(id, expected_revision=expected_revision)
 
-    with TestClient(create_app(repository=CompetingStorage(database_path))) as client:
+    with TestClient(
+        create_app(
+            repository=CompetingStorage(database_path),
+            reader=SQLitePlannedCourseReader(database_path),
+        )
+    ) as client:
         client.post("/v1/planned-courses", json=planned_course_request)
         url = f"/v1/planned-courses/{planned_course_request['id']}"
         response = client.delete(url, headers={"If-Match": ' "1"\t'})
@@ -152,7 +165,10 @@ def test_delete_storage_errors_are_safe_and_do_not_claim_rollback(
             raise error("PRIVATE SQL path")
 
     with TestClient(
-        create_app(repository=FailingStorage(database_path)),
+        create_app(
+            repository=FailingStorage(database_path),
+            reader=SQLitePlannedCourseReader(database_path),
+        ),
         raise_server_exceptions=False,
     ) as client:
         client.post("/v1/planned-courses", json=planned_course_request)

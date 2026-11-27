@@ -1,10 +1,12 @@
 """Partial, strictly typed planned-course edits."""
 
 from typing import Any, cast
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from aweille.domain import CourseType, Distance, Pace, Section
+from aweille.application import UpdatePlannedCourseCommand
+from aweille.domain import CourseType
 
 from .planned_course_request import _SectionRequest, _StartTime
 from .request_date import RequestDate
@@ -32,12 +34,27 @@ class PlannedCoursePatch(BaseModel):
             raise ValueError("Required editable field cannot be null.")
         return value
 
-    def core_inputs(self) -> dict[str, Any]:
-        """Return only supplied, validated editable fields."""
-        data = self.model_dump(exclude_unset=True)
-        if "sections" in data:
-            data["sections"] = [
-                Section(Distance(s.distance_m), Pace(s.target_pace_seconds_per_km))
-                for s in self.sections
-            ]
-        return data
+    def to_input_data(
+        self, id: UUID, expected_revision: int
+    ) -> UpdatePlannedCourseCommand.InputData:
+        """Build the update command's input from only the supplied fields.
+
+        Args:
+            id: Planned course UUID from the path.
+            expected_revision: Revision from If-Match.
+
+        Returns:
+            Input that leaves every omitted field unchanged.
+        """
+        changes = self.model_dump(exclude_unset=True, exclude={"sections"})
+        if "sections" in self.model_fields_set:
+            changes["sections"] = tuple(
+                UpdatePlannedCourseCommand.InputData.SectionInput(
+                    metres=section.distance_m,
+                    seconds_per_km=section.target_pace_seconds_per_km,
+                )
+                for section in self.sections
+            )
+        return UpdatePlannedCourseCommand.InputData(
+            id=id, expected_revision=expected_revision, **changes
+        )
