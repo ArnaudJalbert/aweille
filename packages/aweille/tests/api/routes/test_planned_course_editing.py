@@ -2,6 +2,7 @@ import sqlite3
 from typing import Any
 
 import pytest
+from aweille.application import StorageFailure
 
 
 def test_single_read_and_partial_patch_with_strong_revision(
@@ -281,28 +282,11 @@ def test_missing_planned_course_and_unknown_query_have_safe_locations(
 
 
 def test_storage_failure_response_remains_no_store(
-    database_path, planned_course_request: dict[str, Any]
+    stub_client, stub_use_cases, planned_course_request: dict[str, Any]
 ) -> None:
-    from aweille.api.create_app import create_app
-    from aweille.application import StorageFailure
-    from aweille.interface_adapters import (
-        SQLitePlannedCourseReader,
-        SQLitePlannedCourseRepository,
-    )
-    from fastapi.testclient import TestClient
-
-    class BrokenReader(SQLitePlannedCourseReader):
-        def read(self, id):
-            raise StorageFailure("PRIVATE SQL path")
-
-    with TestClient(
-        create_app(
-            repository=SQLitePlannedCourseRepository(database_path),
-            reader=BrokenReader(database_path),
-        ),
-        raise_server_exceptions=False,
-    ) as client:
-        response = client.get(f"/v1/planned-courses/{planned_course_request['id']}")
+    """A failed single read still answers no-store and hides the error detail."""
+    stub_use_cases.read_one.execute.side_effect = StorageFailure("PRIVATE SQL path")
+    response = stub_client.get(f"/v1/planned-courses/{planned_course_request['id']}")
     assert response.status_code == 500
     assert response.headers["cache-control"] == "no-store"
     assert "PRIVATE" not in response.text

@@ -3,6 +3,7 @@ from pathlib import Path
 from runpy import run_module
 
 import pytest
+from aweille.application import StorageFailure
 from aweille.interface_adapters.sqlite.create_database import create_database
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -80,8 +81,8 @@ def test_unprepared_file_is_not_repaired_at_startup_or_during_requests(
     path = tmp_path / "unprepared.sqlite"
     path.write_bytes(contents)
     monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
-    with pytest.raises(ValueError, match="aweille-init-db"):
-        _load_local_app()
+    with pytest.raises(StorageFailure, match="aweille-init-db"):
+        _start_local_app()
     assert path.read_bytes() == contents
 
 
@@ -96,10 +97,15 @@ def test_pre_rename_database_is_rejected_at_startup(
         connection.execute(f"PRAGMA user_version = {version}")
     before = path.read_bytes()
     monkeypatch.setenv("AWEILLE_DB_PATH", str(path))
-    with pytest.raises(ValueError, match=f"version {version}.*aweille-init-db"):
-        _load_local_app()
+    with pytest.raises(StorageFailure, match=f"version {version}.*aweille-init-db"):
+        _start_local_app()
     assert path.read_bytes() == before
 
 
 def _load_local_app() -> FastAPI:
     return run_module("aweille.api.main")["app"]
+
+
+def _start_local_app() -> None:
+    with TestClient(_load_local_app()):
+        pass

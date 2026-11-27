@@ -1,11 +1,7 @@
 import sqlite3
 from contextlib import closing
-from unittest.mock import Mock, create_autospec
 
 import pytest
-from aweille.api.create_app import create_app
-from aweille.application import PlannedCourseReader, PlannedCourseRepository
-from fastapi.testclient import TestClient
 
 
 def test_missing_database_returns_retryable_errors_without_recreating(
@@ -66,28 +62,21 @@ def test_failed_write_has_safe_error_and_no_partial_save(
     )
 
 
-@pytest.mark.parametrize("operation", ["save", "read_range"])
-def test_injected_storage_failure_is_safe_without_database(
-    tmp_path, monkeypatch, planned_course_request, caplog, operation
+@pytest.mark.parametrize("operation", ["create", "read_range"])
+def test_unexpected_failure_is_logged_but_hidden_from_the_response(
+    stub_client, stub_use_cases, planned_course_request, caplog, operation
 ):
-    database_path = tmp_path / "unused.sqlite"
-    monkeypatch.setenv("AWEILLE_DB_PATH", str(database_path))
-    storage = Mock(spec=PlannedCourseRepository)
-    reader = create_autospec(PlannedCourseReader, instance=True)
-    failing = storage if operation == "save" else reader
-    getattr(failing, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
-    with TestClient(
-        create_app(repository=storage, reader=reader), raise_server_exceptions=False
-    ) as client:
-        response = (
-            client.post("/v1/planned-courses", json=planned_course_request)
-            if operation == "save"
-            else client.get("/v1/planned-courses?start=2026-10-14&end=2026-10-15")
-        )
+    """An unexpected use case error returns a generic 500 and logs the detail."""
+    failing = getattr(stub_use_cases, operation)
+    failing.execute.side_effect = RuntimeError("PRIVATE unexpected failure")
+    response = (
+        stub_client.post("/v1/planned-courses", json=planned_course_request)
+        if operation == "create"
+        else stub_client.get("/v1/planned-courses?start=2026-10-14&end=2026-10-15")
+    )
     assert response.status_code == 500
     assert response.json() == {
         "detail": "An unexpected failure prevents the operation."
     }
     assert "PRIVATE" not in response.text
     assert "PRIVATE unexpected failure" in caplog.text
-    assert not database_path.exists()

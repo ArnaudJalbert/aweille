@@ -1,3 +1,9 @@
+from collections.abc import AsyncGenerator, Callable
+from contextlib import (
+    AbstractAsyncContextManager,
+    AbstractContextManager,
+    asynccontextmanager,
+)
 from typing import Any, cast
 
 from fastapi import FastAPI
@@ -5,20 +11,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 
 from aweille.application import (
-    CreatePlannedCourseCommand,
-    DeletePlannedCourseCommand,
     InvalidPlannedCourse,
     PlannedCourseConflict,
     PlannedCourseNotFound,
-    PlannedCourseReader,
-    PlannedCourseRepository,
     PlannedCourseRevisionConflict,
-    ReadPlannedCourseQuery,
-    ReadPlannedCoursesQuery,
     StorageFailure,
     StorageUnavailable,
-    UpdatePlannedCourseCommand,
 )
+from aweille.infrastructure import AweilleFactory
 
 from .api_errors import (
     conflict_response,
@@ -31,23 +31,23 @@ from .routes.planned_courses_api import router
 from .routes.weekly_page import WEB_DIRECTORY
 from .routes.weekly_page import router as weekly_router
 
+FactorySessionOpener = Callable[[], AbstractContextManager[AweilleFactory]]
 
-def create_app(
-    *, repository: PlannedCourseRepository, reader: PlannedCourseReader
-) -> FastAPI:
-    """Construct the HTTP application with an explicitly supplied repository and reader.
+
+def create_app(*, factory: FactorySessionOpener) -> FastAPI:
+    """Construct the HTTP application over a factory session opened at startup.
 
     Args:
-        repository: Initialized repository for planned-course commands.
-        reader: Initialized reader for planned-course queries.
+        factory: Opens the factory session. The app's lifespan calls it once per
+            startup and keeps the yielded factory until shutdown.
 
     Returns:
-        HTTP and browser application with planned-course commands and queries
-        built on the repository and reader.
+        HTTP and browser application whose routes call the factory's use cases.
+        Startup raises whatever the session raises, such as StorageFailure for
+        an incompatible database.
     """
-    app = FastAPI()
+    app = FastAPI(lifespan=_hold_factory_session(factory))
     _register_error_handlers(app)
-    _bind_use_cases(app, repository, reader)
     _configure_cache_policy(app)
     _configure_routes(app)
     _configure_openapi(app)
@@ -64,14 +64,16 @@ def _register_error_handlers(app: FastAPI) -> None:
         app.add_exception_handler(error, failure_response)
 
 
-def _bind_use_cases(
-    app: FastAPI, repository: PlannedCourseRepository, reader: PlannedCourseReader
-) -> None:
-    app.state.create_planned_course = CreatePlannedCourseCommand(repository)
-    app.state.update_planned_course = UpdatePlannedCourseCommand(repository)
-    app.state.delete_planned_course = DeletePlannedCourseCommand(repository)
-    app.state.read_planned_course = ReadPlannedCourseQuery(reader)
-    app.state.read_planned_courses = ReadPlannedCoursesQuery(reader)
+def _hold_factory_session(
+    factory: FactorySessionOpener,
+) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        with factory() as opened_factory:
+            app.state.factory = opened_factory
+            yield
+
+    return lifespan
 
 
 def _configure_cache_policy(app: FastAPI) -> None:

@@ -1,22 +1,14 @@
 import asyncio
-from dataclasses import replace
 from typing import Any
-from unittest.mock import Mock, create_autospec
 
 import httpx2 as httpx
 import pytest
-from aweille.api.create_app import create_app
 from aweille.application import (
-    PlannedCourseReader,
-    PlannedCourseRepository,
+    PlannedCourseNotFound,
+    PlannedCourseRevisionConflict,
     StorageFailure,
     StorageUnavailable,
 )
-from aweille.interface_adapters import (
-    SQLitePlannedCourseReader,
-    SQLitePlannedCourseRepository,
-)
-from fastapi.testclient import TestClient
 
 
 def test_delete_commits_empty_response_and_prevents_resurrection(
@@ -58,14 +50,11 @@ def test_delete_commits_empty_response_and_prevents_resurrection(
     ],
 )
 def test_delete_precondition_failures_never_reach_storage(
-    headers, planned_course_request
+    stub_client, stub_use_cases, headers, planned_course_request
 ) -> None:
-    storage = Mock(spec=PlannedCourseRepository)
-    reader = create_autospec(PlannedCourseReader, instance=True)
-    with TestClient(create_app(repository=storage, reader=reader)) as client:
-        response = client.delete(
-            f"/v1/planned-courses/{planned_course_request['id']}", headers=headers
-        )
+    response = stub_client.delete(
+        f"/v1/planned-courses/{planned_course_request['id']}", headers=headers
+    )
     assert response.status_code == (428 if headers is None else 422)
     if headers is not None:
         assert response.json()["detail"][0] == {
@@ -74,8 +63,7 @@ def test_delete_precondition_failures_never_reach_storage(
             "msg": "Supply one quoted positive canonical revision.",
         }
     assert response.headers["cache-control"] == "no-store"
-    assert storage.mock_calls == []
-    assert reader.mock_calls == []
+    stub_use_cases.delete.execute.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -87,16 +75,14 @@ def test_delete_precondition_failures_never_reach_storage(
     ],
 )
 def test_delete_transport_and_schema_precede_missing_header(
-    path, body, location
+    stub_client, stub_use_cases, path, body, location
 ) -> None:
-    storage = Mock(spec=PlannedCourseRepository)
-    reader = create_autospec(PlannedCourseReader, instance=True)
-    with TestClient(create_app(repository=storage, reader=reader)) as client:
-        response = client.request("DELETE", f"/v1/planned-courses/{path}", content=body)
+    response = stub_client.request(
+        "DELETE", f"/v1/planned-courses/{path}", content=body
+    )
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == location
-    assert storage.mock_calls == []
-    assert reader.mock_calls == []
+    stub_use_cases.delete.execute.assert_not_called()
 
 
 def test_delete_stops_reading_nonempty_stream(
@@ -123,64 +109,39 @@ def test_delete_stops_reading_nonempty_stream(
     assert response.json()["detail"][0]["loc"] == ["body"]
 
 
-@pytest.mark.parametrize("competing", ["edit", "delete"])
-def test_delete_rechecks_competing_writes_at_atomic_boundary(
-    database_path, planned_course_request, competing
+@pytest.mark.parametrize(
+    "error,status",
+    [(PlannedCourseRevisionConflict, 412), (PlannedCourseNotFound, 404)],
+)
+def test_delete_reports_a_competing_write(
+    stub_client, stub_use_cases, planned_course_request, error, status
 ) -> None:
-    class CompetingStorage(SQLitePlannedCourseRepository):
-        def delete(self, id, *, expected_revision):
-            if competing == "edit":
-                current = self.load(id)
-                assert current is not None
-                self.replace(replace(current, trainer_note="new"), expected_revision=1)
-            else:
-                super().delete(id, expected_revision=1)
-            super().delete(id, expected_revision=expected_revision)
-
-    with TestClient(
-        create_app(
-            repository=CompetingStorage(database_path),
-            reader=SQLitePlannedCourseReader(database_path),
-        )
-    ) as client:
-        client.post("/v1/planned-courses", json=planned_course_request)
-        url = f"/v1/planned-courses/{planned_course_request['id']}"
-        response = client.delete(url, headers={"If-Match": ' "1"\t'})
-        assert response.status_code == (412 if competing == "edit" else 404)
-        current = client.get(url)
-        assert current.status_code == (200 if competing == "edit" else 404)
-        if competing == "edit":
-            assert current.json()["trainer_note"] == "new"
+    """A delete that loses to a competing edit or delete gets 412 or 404."""
+    stub_use_cases.delete.execute.side_effect = error()
+    response = stub_client.delete(
+        f"/v1/planned-courses/{planned_course_request['id']}",
+        headers={"If-Match": ' "1"\t'},
+    )
+    assert response.status_code == status
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.parametrize("error", [StorageFailure, StorageUnavailable])
-@pytest.mark.parametrize("committed", [False, True])
 def test_delete_storage_errors_are_safe_and_do_not_claim_rollback(
-    database_path, planned_course_request, error, committed
+    stub_client, stub_use_cases, planned_course_request, error
 ) -> None:
-    class FailingStorage(SQLitePlannedCourseRepository):
-        def delete(self, id, *, expected_revision):
-            if committed:
-                super().delete(id, expected_revision=expected_revision)
-            raise error("PRIVATE SQL path")
-
-    with TestClient(
-        create_app(
-            repository=FailingStorage(database_path),
-            reader=SQLitePlannedCourseReader(database_path),
-        ),
-        raise_server_exceptions=False,
-    ) as client:
-        client.post("/v1/planned-courses", json=planned_course_request)
-        url = f"/v1/planned-courses/{planned_course_request['id']}"
-        response = client.delete(url, headers={"If-Match": '"1"'})
-        assert response.status_code == (503 if error is StorageUnavailable else 500)
-        assert "PRIVATE" not in response.text
-        assert response.headers["cache-control"] == "no-store"
-        assert "retry with the same ID" not in response.text
-        if error is StorageUnavailable:
-            assert "Reload and review" in response.json()["detail"]
-        assert client.get(url).status_code == (404 if committed else 200)
+    """A storage error after delete hides its detail and asks for a reload."""
+    stub_use_cases.delete.execute.side_effect = error("PRIVATE SQL path")
+    response = stub_client.delete(
+        f"/v1/planned-courses/{planned_course_request['id']}",
+        headers={"If-Match": '"1"'},
+    )
+    assert response.status_code == (503 if error is StorageUnavailable else 500)
+    assert "PRIVATE" not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert "retry with the same ID" not in response.text
+    if error is StorageUnavailable:
+        assert "Reload and review" in response.json()["detail"]
 
 
 def test_openapi_delete_contract(api_client) -> None:

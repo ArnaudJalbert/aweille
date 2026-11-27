@@ -1,10 +1,8 @@
+from functools import partial
 from pathlib import Path
 
 from aweille.api.create_app import create_app
-from aweille.interface_adapters import (
-    SQLitePlannedCourseReader,
-    SQLitePlannedCourseRepository,
-)
+from aweille.infrastructure import create_factory_session
 from fastapi.testclient import TestClient
 
 
@@ -37,10 +35,7 @@ def test_create_normalize_and_read_after_restart(database_path: Path):
         "revision": "1",
     }
     with TestClient(
-        create_app(
-            repository=SQLitePlannedCourseRepository(database_path),
-            reader=SQLitePlannedCourseReader(database_path),
-        )
+        create_app(factory=partial(create_factory_session, database_path))
     ) as client:
         response = client.post("/v1/planned-courses", json=payload)
         assert response.status_code == 201
@@ -49,10 +44,7 @@ def test_create_normalize_and_read_after_restart(database_path: Path):
         assert response.status_code == 200
         assert response.json() == [expected]
     with TestClient(
-        create_app(
-            repository=SQLitePlannedCourseRepository(database_path),
-            reader=SQLitePlannedCourseReader(database_path),
-        )
+        create_app(factory=partial(create_factory_session, database_path))
     ) as client:
         assert client.get(
             "/v1/planned-courses?start=2026-10-12&end=2026-10-19"
