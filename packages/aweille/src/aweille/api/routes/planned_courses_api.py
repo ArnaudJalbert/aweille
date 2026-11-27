@@ -23,7 +23,7 @@ from .planned_course_request_route import PlannedCourseRequestRoute
 router = APIRouter(route_class=PlannedCourseRequestRoute)
 
 
-def _planned_courses(request: Request) -> PlannedCourseUseCases:
+def _get_planned_course_use_cases(request: Request) -> PlannedCourseUseCases:
     return request.app.state.factory.planned_courses
 
 
@@ -133,7 +133,9 @@ def post_planned_course(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_course = _planned_courses(request).create.execute(data.to_input_data())
+    planned_course = _get_planned_course_use_cases(request).create.execute(
+        data.to_input_data()
+    )
     response.status_code = 201 if planned_course.created else 200
     if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
@@ -161,7 +163,7 @@ def get_planned_courses(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    output = _planned_courses(request).read_range.execute(
+    output = _get_planned_course_use_cases(request).read_range.execute(
         ReadPlannedCoursesQuery.InputData(start=query.start, end=query.end)
     )
     return [
@@ -253,7 +255,7 @@ def get_planned_course(
         StorageFailure: Storage cannot read or decode the planned course (HTTP 500).
     """
     planned_course = PlannedCourseResponse.from_output_data(
-        _planned_courses(request).read_one.execute(
+        _get_planned_course_use_cases(request).read_one.execute(
             ReadPlannedCourseQuery.InputData(id=id)
         )
     )
@@ -316,7 +318,7 @@ def patch_planned_course(
         StorageFailure: Storage cannot read or write the planned course (HTTP 500).
     """
     planned_course = PlannedCourseResponse.from_output_data(
-        _planned_courses(request).update.execute(
+        _get_planned_course_use_cases(request).update.execute(
             data.to_input_data(id, _revision(request))
         )
     )
@@ -359,7 +361,7 @@ def delete_planned_course(
         StorageUnavailable: Storage is unavailable; reload and review (HTTP 503).
         StorageFailure: The outcome may be uncertain; reload and review (HTTP 500).
     """
-    _planned_courses(request).delete.execute(
+    _get_planned_course_use_cases(request).delete.execute(
         DeletePlannedCourseCommand.InputData(
             id=id, expected_revision=_revision(request)
         )

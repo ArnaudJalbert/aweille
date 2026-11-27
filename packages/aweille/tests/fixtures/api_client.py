@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from functools import partial
 from pathlib import Path
 
@@ -8,7 +9,8 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def api_client(database_path: Path):
+def api_client(database_path: Path) -> Generator[TestClient]:
+    """Serve the HTTP app over a real factory session on a temporary database."""
     with TestClient(
         create_app(factory=partial(create_factory_session, database_path))
     ) as client:
