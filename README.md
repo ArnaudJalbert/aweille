@@ -13,7 +13,7 @@ Skipping, actual results, and end-to-end use with a selected trainer agent remai
 - [CONTEXT.md](CONTEXT.md) defines domain terms, including agreed future training blocks.
 - [PRODUCT.md](PRODUCT.md) records product and design constraints; [DESIGN.md](DESIGN.md) records the accepted visual direction and exact implementation tokens. The browser applies the accepted redesign; [integration verification](docs/verification/redesign-acceptance.md) records checks and pending manual acceptance.
 - [Training blocks](docs/design/training-blocks.md) separates future mixed-training rules from today's run-only model.
-- [Planned-run editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
+- [Planned-course editing and deletion](docs/design/planned-run-editing-and-deletion.md) records the implemented behavioral contract and public test seams.
 - [CONTRIBUTING.md](CONTRIBUTING.md) defines the contributor workflow; [AGENTS.md](AGENTS.md) routes agent work to the relevant guidance.
 
 ## Purpose
@@ -109,7 +109,7 @@ The browser always calls the API for application data and changes. The trainer u
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding and testing rules, checks, and the pull request workflow.
 
-The implemented [planned-run editing and deletion contract](docs/design/planned-run-editing-and-deletion.md) records the agreed behavior and test seams.
+The implemented [planned-course editing and deletion contract](docs/design/planned-run-editing-and-deletion.md) records the agreed behavior and test seams.
 
 ## Public core interface
 

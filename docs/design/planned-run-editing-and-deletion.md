@@ -1,8 +1,8 @@
-# Planned-run editing and deletion
+# Planned-course editing and deletion
 
-Agreed design as of October 15, 2026. Issues #32 and #33 implement planned-run editing and permanent deletion on schema version 2. This document retains the complete editing-and-deletion contract.
+Agreed design as of October 15, 2026. Issues #32 and #33 implement planned-course editing and permanent deletion on schema version 2. This document retains the complete editing-and-deletion contract.
 
-This document collects the core, SQLite, HTTP, and browser implementation handoff. The [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-run update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); the browser agreement is recorded in [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22).
+This document collects the core, SQLite, HTTP, and browser implementation handoff. The [planned-course editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17) tracks the broader effort. The original agreements are recorded in [Define planned-course update behavior](https://github.com/ArnaudJalbert/aweille/issues/18#issuecomment-6198793185), [Define concurrent writes, identity, and retries](https://github.com/ArnaudJalbert/aweille/issues/19#issuecomment-6198974288), and [Define update/delete core and SQLite contracts](https://github.com/ArnaudJalbert/aweille/issues/20#issuecomment-6200484195). The HTTP agreement is recorded in [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21); the browser agreement is recorded in [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22).
 
 ## Immutable model and compatibility
 
@@ -116,15 +116,15 @@ Agreed with Arnaud on October 15, 2026. This section records the implemented con
 
 | Method and resource | Request | Success |
 | --- | --- | --- |
-| `POST /v1/runs` | Existing creation JSON, without a revision. | `201` with the complete run for insertion; `200` with the current complete run for a matching normalized retry. |
-| `GET /v1/runs?start=YYYY-MM-DD&end=YYYY-MM-DD` | Existing required date range. | `200` array, with unchanged half-open range and ordering semantics. |
-| `GET /v1/runs/{id}` | UUID path parameter. | `200` with one complete run and its `ETag`. |
-| `PATCH /v1/runs/{id}` | Partial field object and required `If-Match`. | `200` with the complete saved run and its `ETag`, including for an empty or normalized-identical edit. |
-| `DELETE /v1/runs/{id}` | Required `If-Match`; no request body. | `204` with no response body or run `ETag`, after committed deletion. |
+| `POST /v1/planned-courses` | Existing creation JSON, without a revision. | `201` with the complete run for insertion; `200` with the current complete run for a matching normalized retry. |
+| `GET /v1/planned-courses?start=YYYY-MM-DD&end=YYYY-MM-DD` | Existing required date range. | `200` array, with unchanged half-open range and ordering semantics. |
+| `GET /v1/planned-courses/{id}` | UUID path parameter. | `200` with one complete run and its `ETag`. |
+| `PATCH /v1/planned-courses/{id}` | Partial field object and required `If-Match`. | `200` with the complete saved run and its `ETag`, including for an empty or normalized-identical edit. |
+| `DELETE /v1/planned-courses/{id}` | Required `If-Match`; no request body. | `204` with no response body or run `ETag`, after committed deletion. |
 
 All run objects use the existing normalized response shape plus required `revision`, a canonical positive ASCII decimal-digit string matching `[1-9][0-9]*`, such as `"3"`. Keep all other fields, including nullable time and notes, present. Distances and paces retain their existing exact decimal-string encodings. Revisions have no application-imposed numeric maximum; keep them as strings in JavaScript and convert exactly in Python, including beyond its integer/string digit threshold.
 
-Single-run GET and PATCH successes return a strong `ETag` equal to the quoted revision, such as `ETag: "3"`. Serialize a given revision's single-run JSON representation consistently. The collection has no per-run response-header validator; callers quote an item's `revision` to construct `If-Match`. POST responses need no `ETag`; a new insertion adds `Location: /v1/runs/{canonical-id}`. All `/v1/runs` resource responses, including errors, use `Cache-Control: no-store` so reloads reach the API. Conditional GET and `304` caching are outside this handoff.
+Single-run GET and PATCH successes return a strong `ETag` equal to the quoted revision, such as `ETag: "3"`. Serialize a given revision's single-run JSON representation consistently. The collection has no per-run response-header validator; callers quote an item's `revision` to construct `If-Match`. POST responses need no `ETag`; a new insertion adds `Location: /v1/planned-courses/{canonical-id}`. All `/v1/planned-courses` resource responses, including errors, use `Cache-Control: no-store` so reloads reach the API. Conditional GET and `304` caching are outside this handoff.
 
 ### Partial field object
 
@@ -141,7 +141,7 @@ The body is Aweille's partial field object, not an array of JSON Patch operation
 Example for a live run at revision `"3"`:
 
 ```http
-PATCH /v1/runs/00000000-0000-0000-0000-000000000001 HTTP/1.1
+PATCH /v1/planned-courses/00000000-0000-0000-0000-000000000001 HTTP/1.1
 Content-Type: application/json
 If-Match: "3"
 
@@ -175,10 +175,10 @@ After parsing, core's validation order applies: load, reject missing state, reje
 | Invalid transport/request/domain fields | `422` | Existing `detail` problem array with only `loc`, `type`, and safe `msg`. |
 | Oversized POST/PATCH body | `413` | Safe `detail` string. |
 | Missing/unsupported POST/PATCH JSON content type | `415` | Safe `detail` string. |
-| Missing required If-Match | `428` | `{"detail":"Reload the run and supply its quoted revision in If-Match."}` |
-| Deleted or never-existing run | `404` | `{"detail":"Planned run not found."}` |
-| Stale live-run revision | `412` | `{"detail":"The planned run has changed; reload it before another edit or deletion."}` |
-| POST with different current content or a reserved deleted ID | `409` | `{"detail":"The ID cannot be used for this planned run."}` |
+| Missing required If-Match | `428` | `{"detail":"Reload the course and supply its quoted revision in If-Match."}` |
+| Deleted or never-existing run | `404` | `{"detail":"Planned course not found."}` |
+| Stale live-run revision | `412` | `{"detail":"The planned course has changed; reload it before another edit or deletion."}` |
+| POST with different current content or a reserved deleted ID | `409` | `{"detail":"The ID cannot be used for this planned course."}` |
 | Temporary storage unavailability | `503` | Safe `detail` string with operation-appropriate recovery guidance. |
 | Other storage or unexpected operation failure | `500` | Existing safe unexpected-failure `detail` string. |
 
@@ -188,7 +188,7 @@ Error responses never include raw request values, current workout content/revisi
 
 ### Reloads, retries, and compatibility
 
-Recover through `GET /v1/runs/{id}`, even after the run moves outside the selected week. A `200` supplies current fields/revision; a `404` confirms absence. Neither proves which request produced the current state. After stale or uncertain writes, reload and review before deciding whether another write is needed. Never silently retry with the new revision.
+Recover through `GET /v1/planned-courses/{id}`, even after the run moves outside the selected week. A `200` supplies current fields/revision; a `404` confirms absence. Neither proves which request produced the current state. After stale or uncertain writes, reload and review before deciding whether another write is needed. Never silently retry with the new revision.
 
 Retrying the same expected revision can succeed if no change committed or a no-op preserved it. A committed changing edit retried at its old revision is `412`; a committed deletion retried is `404`. Delete success has no replay receipt. POST compares supplied normalized workout fields against current content, excluding revision: matching content returns `200` at the current revision; differing content returns `409`; a reserved deleted ID always returns `409`. Recreating a deleted workout requires a fresh UUID.
 
@@ -215,9 +215,9 @@ Agreed with Arnaud on October 15, 2026. This section records the implemented edi
 
 ### Entry, loading, and editing
 
-Add one accessible `Edit` link to each weekly run card, identifying its run in the accessible name. Open `/runs/{id}/edit?week=YYYY-MM-DD`, carrying the originating selected Monday. Keep deletion on the edit page, without a Delete action on weekly cards. Reuse the creation form's fields, ordered section controls, exact kilometre/pace conversion, separate plain-text notes, responsive layout, and keyboard behavior. Label this mode `Edit a planned run` with `Save changes`; keep Add run and its POST behavior intact.
+Add one accessible `Edit` link to each weekly run card, identifying its run in the accessible name. Open `/planned-courses/{id}/edit?week=YYYY-MM-DD`, carrying the originating selected Monday. Keep deletion on the edit page, without a Delete action on weekly cards. Reuse the creation form's fields, ordered section controls, exact kilometre/pace conversion, separate plain-text notes, responsive layout, and keyboard behavior. Label this mode `Edit a planned course` with `Save changes`; keep Add run and its POST behavior intact.
 
-The edit page is an HTML shell. Load current saved data through `GET /v1/runs/{id}`, rather than relying on the weekly card's older snapshot or reading storage in the page handler. Keep fields, Save, and Delete disabled while the initial read is pending. Prefill every field from a valid complete response, retaining canonical identity and the exact revision string separately from editable inputs. Present sections in their saved order, with repetitions intact; convert distances and paces exactly, including very large values. Null time and notes become empty form values.
+The edit page is an HTML shell. Load current saved data through `GET /v1/planned-courses/{id}`, rather than relying on the weekly card's older snapshot or reading storage in the page handler. Keep fields, Save, and Delete disabled while the initial read is pending. Prefill every field from a valid complete response, retaining canonical identity and the exact revision string separately from editable inputs. Present sections in their saved order, with repetitions intact; convert distances and paces exactly, including very large values. Null time and notes become empty form values.
 
 An initial read failure offers Retry and return to the originating week; it never enables an empty editor. An invalid or missing run shows an explanation and a return action, without Save/Delete or automatic creation under another UUID. A failed, late, or unreadable read must not overwrite a more recent successful load. Validate any supplied origin week using the existing date/week rules and build local return URLs; do not accept arbitrary return URLs. With no usable origin, use the loaded run's week when available, otherwise the normal current-week page.
 
@@ -235,7 +235,7 @@ Drafts remain in the current page's memory only. There is no autosave, local dra
 
 ### Delete confirmation
 
-`Delete run` opens an inline confirmation within the editor. Show the last loaded saved date and run type, rather than a possibly unsaved date/type currently typed in the form. Explain that deletion permanently removes the whole planned run and cannot be undone; if the form is dirty, also explain that its unsaved edits will be discarded. Offer `Delete permanently` and `Keep run`. Opening or cancelling this confirmation sends no write, leaves draft fields intact, and never saves them first.
+`Delete run` opens an inline confirmation within the editor. Show the last loaded saved date and run type, rather than a possibly unsaved date/type currently typed in the form. Explain that deletion permanently removes the whole planned course and cannot be undone; if the form is dirty, also explain that its unsaved edits will be discarded. Offer `Delete permanently` and `Keep run`. Opening or cancelling this confirmation sends no write, leaves draft fields intact, and never saves them first.
 
 Move focus to `Keep run` when the confirmation opens. While it is open, disable editing and Save so its target and revision remain the loaded baseline. `Keep run` restores editing and returns focus to `Delete run`. Confirming sends bodyless DELETE for the same UUID with the baseline `If-Match`. Do not silently reload and substitute a newer revision before deletion.
 
@@ -279,4 +279,4 @@ These browser checks complement the core/storage concurrency and migration check
 
 ## Handoff
 
-The core, SQLite, HTTP, and browser contracts and their public test seams are agreed. The handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) and [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22), completing the [planned-run editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17). The planned-run edit and deletion workflows are implemented in [Edit and reschedule a planned run end-to-end](https://github.com/ArnaudJalbert/aweille/issues/32) and [Permanently delete a planned run end-to-end](https://github.com/ArnaudJalbert/aweille/issues/33). The contract above remains the behavior baseline for later visual and authentication work.
+The core, SQLite, HTTP, and browser contracts and their public test seams are agreed. The handoff above resolves [Define the update/delete HTTP contract](https://github.com/ArnaudJalbert/aweille/issues/21) and [Define edit/delete browser flows and acceptance](https://github.com/ArnaudJalbert/aweille/issues/22), completing the [planned-course editing and deletion map](https://github.com/ArnaudJalbert/aweille/issues/17). The planned-course edit and deletion workflows are implemented in [Edit and reschedule a planned course end-to-end](https://github.com/ArnaudJalbert/aweille/issues/32) and [Permanently delete a planned course end-to-end](https://github.com/ArnaudJalbert/aweille/issues/33). The contract above remains the behavior baseline for later visual and authentication work.

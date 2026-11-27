@@ -168,7 +168,7 @@ Implement these roles with the existing Jinja/CSS/JavaScript stack and the minim
 
 - Buttons use the prototype treatments and typography above. Add run and form actions retain 13px/500/20px text and at least 44px targets. Hover, focus, and disabled states stay recognizable.
 - Fields have persistent labels, panel backgrounds, and control outlines. Distance and pace labels include units. The narrow layout keeps editable text at 16px.
-- Planned-run rows keep day, run type, optional time, section targets, and notes distinct. Repeated sections stay individually ordered.
+- Planned-course rows keep day, run type, optional time, section targets, and notes distinct. Repeated sections stay individually ordered.
 - A day groups zero or more independent training blocks. Give each block a distinct kind/name, optional time, relevant summary, and its own detail or action. Run sections stay nested within their running block. The [training-block design](docs/design/training-blocks.md) separates this future scope from the current run-only implementation.
 - Schedule blocks use collapsible details, approved by Arnaud on October 17, 2026. Keep the kind/name, optional time, and concise summary visible; put sections and notes in the disclosure. Details start expanded in Day and collapsed in Week. Each view keeps its own manual disclosure choices until a week change or reload. Each block expands independently, and several may stay open together. See the [schedule decision](docs/design/schedule-layout.md).
 - Section editors keep distance, pace, and ordering actions together. The last section cannot be removed.
