@@ -119,9 +119,7 @@ class UpdatePlannedCourseCommand:
     ) -> PlannedCourse:
         return replace(
             current,
-            planned_date=current.planned_date
-            if isinstance(input_data.planned_date, Unchanged)
-            else input_data.planned_date,
+            planned_date=cls._resolve_planned_date(current, input_data),
             planned_start_time=cls._apply_change(
                 input_data.planned_start_time,
                 current.planned_start_time,
@@ -140,6 +138,12 @@ class UpdatePlannedCourseCommand:
                 input_data.trainer_note, current.trainer_note, normalize_note
             ),
         )
+
+    @staticmethod
+    def _resolve_planned_date(current: PlannedCourse, input_data: InputData) -> date:
+        if isinstance(input_data.planned_date, Unchanged):
+            return current.planned_date
+        return input_data.planned_date
 
     @staticmethod
     def _apply_change[Supplied, Saved](
