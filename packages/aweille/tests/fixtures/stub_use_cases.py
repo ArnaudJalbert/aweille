@@ -1,3 +1,5 @@
+"""Provide autospec planned course use cases for HTTP tests."""
+
 from unittest.mock import create_autospec
 
 import pytest

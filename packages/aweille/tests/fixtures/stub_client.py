@@ -1,3 +1,5 @@
+"""Serve the HTTP app over stub use cases for failure and transport tests."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 
