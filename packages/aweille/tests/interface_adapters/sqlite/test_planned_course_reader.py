@@ -99,6 +99,8 @@ def test_range_reads_are_half_open_and_see_committed_data_only(
         {"revision": "PRIVATE"},
         {"revision": "1.5"},
         {"sections": '[{"distance_m": "12.5", "target_pace_seconds_per_km": "390"}]'},
+        {"sections": "{}"},
+        {"sections": '"[]"'},
     ],
 )
 def test_malformed_saved_planned_courses_fail_reads_safely(

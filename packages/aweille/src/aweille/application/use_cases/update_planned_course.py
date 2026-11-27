@@ -2,7 +2,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date, time
 from enum import Enum
-from typing import Any
 from uuid import UUID
 
 from aweille.domain import CourseType, Distance, Pace, PlannedCourse, Section
@@ -74,15 +73,6 @@ class UpdatePlannedCourseCommand:
         trainer_note: str | None
         revision: int
 
-    _EDITABLE_FIELDS = (
-        "planned_date",
-        "planned_start_time",
-        "course_type",
-        "sections",
-        "user_note",
-        "trainer_note",
-    )
-
     def __init__(self, repository: PlannedCourseRepository) -> None:
         self._repository = repository
 
@@ -109,7 +99,7 @@ class UpdatePlannedCourseCommand:
         validate_id(input_data.id)
         validate_expected_revision(input_data.expected_revision)
         current = self._load_current(input_data.id, input_data.expected_revision)
-        candidate = replace(current, **self._changes(input_data))
+        candidate = self._candidate(current, input_data)
         saved = self._repository.replace(
             candidate, expected_revision=input_data.expected_revision
         )
@@ -124,31 +114,28 @@ class UpdatePlannedCourseCommand:
         return current
 
     @classmethod
-    def _changes(cls, input_data: InputData) -> dict[str, object]:
-        changes = cls._supplied_fields(input_data)
-        for field, normalize in cls._normalizers().items():
-            if field in changes:
-                changes[field] = normalize(changes[field])
-        return changes
-
-    @classmethod
-    def _supplied_fields(cls, input_data: InputData) -> dict[str, object]:
-        return {
-            field: getattr(input_data, field)
-            for field in cls._EDITABLE_FIELDS
-            if getattr(input_data, field) is not Unchanged.UNCHANGED
-        }
-
-    @classmethod
-    def _normalizers(cls) -> dict[str, Callable[[Any], object]]:
-        # Any: each normalizer takes the value type of its own field.
-        return {
-            "planned_start_time": normalize_start_time,
-            "course_type": CourseType.parse,
-            "sections": cls._sections,
-            "user_note": normalize_note,
-            "trainer_note": normalize_note,
-        }
+    def _candidate(cls, current: PlannedCourse, input_data: InputData) -> PlannedCourse:
+        return replace(
+            current,
+            planned_date=_supplied_or(
+                input_data.planned_date, current.planned_date, _same
+            ),
+            planned_start_time=_supplied_or(
+                input_data.planned_start_time,
+                current.planned_start_time,
+                normalize_start_time,
+            ),
+            course_type=_supplied_or(
+                input_data.course_type, current.course_type, CourseType.parse
+            ),
+            sections=_supplied_or(input_data.sections, current.sections, cls._sections),
+            user_note=_supplied_or(
+                input_data.user_note, current.user_note, normalize_note
+            ),
+            trainer_note=_supplied_or(
+                input_data.trainer_note, current.trainer_note, normalize_note
+            ),
+        )
 
     @staticmethod
     def _sections(sections: tuple[InputData.SectionInput, ...]) -> tuple[Section, ...]:
@@ -175,3 +162,14 @@ class UpdatePlannedCourseCommand:
             trainer_note=planned_course.trainer_note,
             revision=planned_course.revision,
         )
+
+
+def _supplied_or[Supplied, Saved](
+    value: Supplied | Unchanged, saved: Saved, convert: Callable[[Supplied], Saved]
+) -> Saved:
+    """Return the converted supplied value, or the saved one when unchanged."""
+    return saved if isinstance(value, Unchanged) else convert(value)
+
+
+def _same[Value](value: Value) -> Value:
+    return value

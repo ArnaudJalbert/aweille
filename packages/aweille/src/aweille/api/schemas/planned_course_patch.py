@@ -34,7 +34,7 @@ class PlannedCoursePatch(BaseModel):
             raise ValueError("Required editable field cannot be null.")
         return value
 
-    def input_data(
+    def to_input_data(
         self, id: UUID, expected_revision: int
     ) -> UpdatePlannedCourseCommand.InputData:
         """Build the update command's input from only the supplied fields.

@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import replace
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, create_autospec
 
 import httpx2 as httpx
 import pytest
@@ -61,7 +61,7 @@ def test_delete_precondition_failures_never_reach_storage(
     headers, planned_course_request
 ) -> None:
     storage = Mock(spec=PlannedCourseRepository)
-    reader = Mock(spec=PlannedCourseReader)
+    reader = create_autospec(PlannedCourseReader, instance=True)
     with TestClient(create_app(repository=storage, reader=reader)) as client:
         response = client.delete(
             f"/v1/planned-courses/{planned_course_request['id']}", headers=headers
@@ -90,7 +90,7 @@ def test_delete_transport_and_schema_precede_missing_header(
     path, body, location
 ) -> None:
     storage = Mock(spec=PlannedCourseRepository)
-    reader = Mock(spec=PlannedCourseReader)
+    reader = create_autospec(PlannedCourseReader, instance=True)
     with TestClient(create_app(repository=storage, reader=reader)) as client:
         response = client.request("DELETE", f"/v1/planned-courses/{path}", content=body)
     assert response.status_code == 422

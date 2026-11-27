@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import closing
-from unittest.mock import Mock
+from unittest.mock import Mock, create_autospec
 
 import pytest
 from aweille.api.create_app import create_app
@@ -73,7 +73,7 @@ def test_injected_storage_failure_is_safe_without_database(
     database_path = tmp_path / "unused.sqlite"
     monkeypatch.setenv("AWEILLE_DB_PATH", str(database_path))
     storage = Mock(spec=PlannedCourseRepository)
-    reader = Mock(spec=PlannedCourseReader)
+    reader = create_autospec(PlannedCourseReader, instance=True)
     failing = storage if operation == "save" else reader
     getattr(failing, operation).side_effect = RuntimeError("PRIVATE unexpected failure")
     with TestClient(

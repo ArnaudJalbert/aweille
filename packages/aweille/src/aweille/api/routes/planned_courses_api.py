@@ -127,7 +127,9 @@ def post_planned_course(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_course = request.app.state.create_planned_course.execute(data.input_data())
+    planned_course = request.app.state.create_planned_course.execute(
+        data.to_input_data()
+    )
     response.status_code = 201 if planned_course.created else 200
     if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
@@ -311,7 +313,7 @@ def patch_planned_course(
     """
     planned_course = PlannedCourseResponse.from_output(
         request.app.state.update_planned_course.execute(
-            data.input_data(id, _revision(request))
+            data.to_input_data(id, _revision(request))
         )
     )
     response.headers["ETag"] = f'"{planned_course.revision}"'

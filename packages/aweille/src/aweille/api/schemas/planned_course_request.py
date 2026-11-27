@@ -47,7 +47,7 @@ class PlannedCourseRequest(BaseModel):
     user_note: str | None = None
     trainer_note: str | None = None
 
-    def input_data(self) -> CreatePlannedCourseCommand.InputData:
+    def to_input_data(self) -> CreatePlannedCourseCommand.InputData:
         """Build the create command's input from the validated request.
 
         Returns:

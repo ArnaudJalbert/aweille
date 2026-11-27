@@ -94,13 +94,17 @@ class SQLitePlannedCourseReader(PlannedCourseReader):
             if row["planned_start_time"] is not None
             else None,
             course_type=CourseType(row["course_type"]).value,
-            sections=tuple(
-                cls._section(section) for section in json.loads(row["sections"])
-            ),
+            sections=cls._sections(json.loads(row["sections"])),
             user_note=row["user_note"],
             trainer_note=row["trainer_note"],
             revision=decode_positive_integer(row["revision"]),
         )
+
+    @classmethod
+    def _sections(cls, sections: object) -> tuple[SectionReadModel, ...]:
+        if not isinstance(sections, list):
+            raise ValueError
+        return tuple(cls._section(section) for section in sections)
 
     @staticmethod
     def _section(section: dict[str, str]) -> SectionReadModel:
