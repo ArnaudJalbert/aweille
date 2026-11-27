@@ -4,4 +4,5 @@ pytest_plugins = (
     "tests.fixtures.live_server",
     "tests.fixtures.planned_course",
     "tests.fixtures.planned_course_request",
+    "tests.fixtures.stub_factory",
 )

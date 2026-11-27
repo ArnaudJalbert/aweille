@@ -11,6 +11,7 @@ from aweille.application import (
     ReadPlannedCourseQuery,
     ReadPlannedCoursesQuery,
 )
+from aweille.infrastructure import PlannedCourseUseCases
 
 from ..schemas.planned_course_error import MessageResponse, ProblemResponse
 from ..schemas.planned_course_patch import PlannedCoursePatch
@@ -20,6 +21,11 @@ from ..schemas.range_query import RangeQuery
 from .planned_course_request_route import PlannedCourseRequestRoute
 
 router = APIRouter(route_class=PlannedCourseRequestRoute)
+
+
+def _planned_courses(request: Request) -> PlannedCourseUseCases:
+    return request.app.state.factory.planned_courses
+
 
 _IF_MATCH = {
     "name": "If-Match",
@@ -114,7 +120,7 @@ def post_planned_course(
 
     Args:
         data: Creation fields validated by FastAPI and Pydantic.
-        request: Request supplying the application's bound use case.
+        request: Request supplying the app's factory.
         response: Response used to select the committed insertion/retry status.
 
     Returns:
@@ -127,9 +133,7 @@ def post_planned_course(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    planned_course = request.app.state.create_planned_course.execute(
-        data.to_input_data()
-    )
+    planned_course = _planned_courses(request).create.execute(data.to_input_data())
     response.status_code = 201 if planned_course.created else 200
     if planned_course.created:
         response.headers["Location"] = f"/v1/planned-courses/{planned_course.id}"
@@ -147,7 +151,7 @@ def get_planned_courses(
 
     Args:
         query: Calendar-date query parameters validated by FastAPI and Pydantic.
-        request: Request supplying the application's bound use case.
+        request: Request supplying the app's factory.
 
     Returns:
         A 200 array of normalized planned courses in use case ordering.
@@ -157,7 +161,7 @@ def get_planned_courses(
         StorageUnavailable: Storage is temporarily unavailable.
         StorageFailure: The storage operation failed.
     """
-    output = request.app.state.read_planned_courses.execute(
+    output = _planned_courses(request).read_range.execute(
         ReadPlannedCoursesQuery.InputData(start=query.start, end=query.end)
     )
     return [
@@ -236,7 +240,7 @@ def get_planned_course(
     Args:
         id: Planned course UUID parsed from the path by FastAPI.
         query: Empty query model; extra parameters are rejected.
-        request: Request supplying the bound read use case.
+        request: Request supplying the app's factory.
         response: Response receiving the quoted revision ETag.
 
     Returns:
@@ -249,7 +253,7 @@ def get_planned_course(
         StorageFailure: Storage cannot read or decode the planned course (HTTP 500).
     """
     planned_course = PlannedCourseResponse.from_output_data(
-        request.app.state.read_planned_course.execute(
+        _planned_courses(request).read_one.execute(
             ReadPlannedCourseQuery.InputData(id=id)
         )
     )
@@ -295,7 +299,7 @@ def patch_planned_course(
         id: Planned course UUID parsed from the path by FastAPI.
         data: Validated partial edit; omitted fields retain saved values.
         query: Empty query model; extra parameters are rejected.
-        request: Request supplying If-Match and the bound update use case.
+        request: Request supplying If-Match and the app's factory.
         response: Response receiving the resulting quoted revision ETag.
 
     Returns:
@@ -312,7 +316,7 @@ def patch_planned_course(
         StorageFailure: Storage cannot read or write the planned course (HTTP 500).
     """
     planned_course = PlannedCourseResponse.from_output_data(
-        request.app.state.update_planned_course.execute(
+        _planned_courses(request).update.execute(
             data.to_input_data(id, _revision(request))
         )
     )
@@ -340,7 +344,7 @@ def delete_planned_course(
     Args:
         id: Planned course UUID parsed from the path by FastAPI.
         query: Empty query model; extra parameters are rejected.
-        request: Request supplying If-Match and the bound deletion use case.
+        request: Request supplying If-Match and the app's factory.
 
     Returns:
         Empty 204 after committed deletion, without an ETag.
@@ -355,7 +359,7 @@ def delete_planned_course(
         StorageUnavailable: Storage is unavailable; reload and review (HTTP 503).
         StorageFailure: The outcome may be uncertain; reload and review (HTTP 500).
     """
-    request.app.state.delete_planned_course.execute(
+    _planned_courses(request).delete.execute(
         DeletePlannedCourseCommand.InputData(
             id=id, expected_revision=_revision(request)
         )
