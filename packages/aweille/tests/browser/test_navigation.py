@@ -12,7 +12,9 @@ def test_sidebar_shows_logo_and_page_serves_its_icon(
 ):
     """The sidebar shows the Aweille logo and the page icon loads."""
     page.goto(live_server.url)
-    expect(page.get_by_role("img", name="Aweille")).to_be_visible()
+    logo = page.get_by_role("img", name="Aweille")
+    expect(logo).to_be_visible()
+    assert logo.evaluate("node => node.complete && node.naturalWidth > 0")
     icon = page.locator('link[rel="icon"]').evaluate("node => node.href")
     assert page.request.get(icon).ok
 
