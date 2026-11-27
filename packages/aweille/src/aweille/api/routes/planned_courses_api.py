@@ -39,7 +39,7 @@ _RECOVERY_RESPONSE_EXAMPLES = {
         "stale-write": {
             "summary": "Reload after a stale write",
             "value": {
-                "detail": "The planned run has changed; reload it before another "
+                "detail": "The planned course has changed; reload it before another "
                 "edit or deletion."
             },
         }
@@ -48,7 +48,9 @@ _RECOVERY_RESPONSE_EXAMPLES = {
         "missing-if-match": {
             "summary": "Supply the missing precondition",
             "value": {
-                "detail": "Reload the run and supply its quoted revision in If-Match."
+                "detail": (
+                    "Reload the course and supply its quoted revision in If-Match."
+                )
             },
         }
     },
@@ -70,7 +72,7 @@ _EDIT_ERRORS = {
         ),
     }
     for status, description in {
-        404: "Planned run not found.",
+        404: "Planned course not found.",
         412: "Stale revision; reload before another write.",
         413: "Body exceeds 1 MiB.",
         415: "JSON field object required.",
@@ -172,7 +174,7 @@ def _revision(request: Request) -> int:
     ]
     if not values:
         raise HTTPException(
-            428, "Reload the run and supply its quoted revision in If-Match."
+            428, "Reload the course and supply its quoted revision in If-Match."
         )
     if (
         len(values) != 1
